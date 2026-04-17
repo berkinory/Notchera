@@ -56,7 +56,7 @@ class BatteryStatusViewModel: ObservableObject {
             print("🔌 Power source: \(isPluggedIn ? "Connected" : "Disconnected")")
             withAnimation {
                 self.isPluggedIn = isPluggedIn
-                self.statusText = isPluggedIn ? "Charging" : "Charger Unplugged"
+                self.statusText = isPluggedIn ? "Charging" : "Unplugged"
             }
 
             if isPluggedIn {
