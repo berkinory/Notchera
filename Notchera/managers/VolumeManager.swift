@@ -35,7 +35,7 @@ final class VolumeManager: NSObject, ObservableObject {
         let current = readVolumeInternal() ?? rawVolume
         let target = max(0, min(1, current + delta))
         setAbsolute(target)
-        NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(target))
+        NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .volume, value: CGFloat(target))
     }
 
     @MainActor func decrease(stepDivisor: Float = 1.0) {
@@ -44,7 +44,7 @@ final class VolumeManager: NSObject, ObservableObject {
         let current = readVolumeInternal() ?? rawVolume
         let target = max(0, min(1, current - delta))
         setAbsolute(target)
-        NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(target))
+        NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .volume, value: CGFloat(target))
     }
 
     @MainActor func toggleMuteAction() {
@@ -62,7 +62,7 @@ final class VolumeManager: NSObject, ObservableObject {
         }
 
         toggleMuteInternal()
-        NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(willBeMuted ? 0 : resultingVolume))
+        NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .volume, value: CGFloat(willBeMuted ? 0 : resultingVolume))
     }
 
     func refresh() {

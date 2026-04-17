@@ -36,7 +36,7 @@ final class BrightnessManager: ObservableObject {
             } else {
                 refresh()
             }
-            NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .brightness, value: CGFloat(target))
+            NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .brightness, value: CGFloat(target))
         }
     }
 
@@ -102,7 +102,7 @@ final class KeyboardBacklightManager: ObservableObject {
             } else {
                 refresh()
             }
-            NotcheraViewCoordinator.shared.toggleSneakPeek(
+            NotcheraViewCoordinator.shared.toggleHUD(
                 status: true,
                 type: .backlight,
                 value: CGFloat(target)

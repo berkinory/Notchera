@@ -1932,42 +1932,12 @@
         }
       }
     },
-    "Show sneak peek on playback changes": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show sneak peek on playback changes"
-          }
-        }
-      }
-    },
     "Slider color": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Slider color"
-          }
-        }
-      }
-    },
-    "Sneak Peek shows the media title and artist under the notch for a few seconds.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sneak Peek shows the media title and artist under the notch for a few seconds."
-          }
-        }
-      }
-    },
-    "Sneak Peek Style": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sneak Peek Style"
           }
         }
       }
@@ -2070,16 +2040,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toggle Notch Open:"
-          }
-        }
-      }
-    },
-    "Toggle Sneak Peek:": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toggle Sneak Peek:"
           }
         }
       }

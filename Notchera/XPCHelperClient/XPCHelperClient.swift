@@ -1,3 +1,4 @@
+import ApplicationServices
 import AsyncXPCConnection
 import Cocoa
 import Foundation
@@ -96,53 +97,63 @@ final class XPCHelperClient: NSObject {
 
 
 
+    private nonisolated func currentProcessAccessibilityAuthorized(promptIfNeeded: Bool = false) -> Bool {
+        if promptIfNeeded {
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            return AXIsProcessTrustedWithOptions(options)
+        }
+
+        return AXIsProcessTrusted()
+    }
+
     nonisolated func requestAccessibilityAuthorization() {
-        Task {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            try? await service.withService { service in
-                service.requestAccessibilityAuthorization()
-            }
+        let granted = currentProcessAccessibilityAuthorized(promptIfNeeded: true)
+        Task { @MainActor in
+            notifyAuthorizationChange(granted)
         }
     }
 
     nonisolated func isAccessibilityAuthorized() async -> Bool {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            let result: Bool = try await service.withContinuation { service, continuation in
-                service.isAccessibilityAuthorized { authorized in
-                    continuation.resume(returning: authorized)
-                }
-            }
-            await MainActor.run {
-                notifyAuthorizationChange(result)
-            }
-            return result
-        } catch {
-            return false
+        let result = currentProcessAccessibilityAuthorized()
+        await MainActor.run {
+            notifyAuthorizationChange(result)
         }
+        return result
     }
 
     nonisolated func ensureAccessibilityAuthorization(promptIfNeeded: Bool) async -> Bool {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            let result: Bool = try await service.withContinuation { service, continuation in
-                service.ensureAccessibilityAuthorization(promptIfNeeded) { authorized in
-                    continuation.resume(returning: authorized)
-                }
-            }
+        if currentProcessAccessibilityAuthorized() {
             await MainActor.run {
-                notifyAuthorizationChange(result)
+                notifyAuthorizationChange(true)
             }
-            return result
-        } catch {
+            return true
+        }
+
+        guard promptIfNeeded else {
+            await MainActor.run {
+                notifyAuthorizationChange(false)
+            }
             return false
         }
+
+        _ = currentProcessAccessibilityAuthorized(promptIfNeeded: true)
+
+        for _ in 0 ..< 40 {
+            try? await Task.sleep(for: .milliseconds(250))
+
+            let granted = currentProcessAccessibilityAuthorized()
+            if granted {
+                await MainActor.run {
+                    notifyAuthorizationChange(true)
+                }
+                return true
+            }
+        }
+
+        await MainActor.run {
+            notifyAuthorizationChange(false)
+        }
+        return false
     }
 
 

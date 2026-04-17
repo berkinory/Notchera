@@ -187,7 +187,7 @@ class NotcheraViewModel: NSObject, ObservableObject {
         closedNotchSize = notchSize
         notchState = .closed
         isBatteryPopoverActive = false
-        coordinator.sneakPeek.show = false
+        coordinator.hud.show = false
         edgeAutoOpenActive = false
 
         if !ShelfStateViewModel.shared.isEmpty, Defaults[.openShelfByDefault] {

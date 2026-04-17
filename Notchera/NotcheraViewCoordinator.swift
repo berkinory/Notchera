@@ -7,20 +7,19 @@ enum SneakContentType {
     case brightness
     case volume
     case backlight
-    case music
     case mic
     case battery
     case download
 }
 
-struct sneakPeek {
+struct HUDState {
     var show: Bool = false
-    var type: SneakContentType = .music
+    var type: SneakContentType = .volume
     var value: CGFloat = 0
     var icon: String = ""
 }
 
-struct SharedSneakPeek: Codable {
+struct SharedHUDState: Codable {
     var show: Bool
     var type: String
     var value: String
@@ -45,8 +44,6 @@ class NotcheraViewCoordinator: ObservableObject {
 
     @Published var currentView: NotchViews = .home
     @Published var helloAnimationRunning: Bool = false
-    private var sneakPeekDispatch: DispatchWorkItem?
-    private var expandingViewDispatch: DispatchWorkItem?
     private var hudEnableTask: Task<Void, Never>?
 
     @AppStorage("firstLaunch") var firstLaunch: Bool = true
@@ -163,10 +160,10 @@ class NotcheraViewCoordinator: ObservableObject {
         }
     }
 
-    @objc func sneakPeekEvent(_ notification: Notification) {
+    @objc func hudEvent(_ notification: Notification) {
         let decoder = JSONDecoder()
         if let decodedData = try? decoder.decode(
-            SharedSneakPeek.self, from: notification.userInfo?.first?.value as! Data
+            SharedHUDState.self, from: notification.userInfo?.first?.value as! Data
         ) {
             let contentType =
                 decodedData.type == "brightness"
@@ -186,29 +183,28 @@ class NotcheraViewCoordinator: ObservableObject {
 
             print("Decoded: \(decodedData), Parsed value: \(value)")
 
-            toggleSneakPeek(status: decodedData.show, type: contentType, value: value, icon: icon)
+            toggleHUD(status: decodedData.show, type: contentType, value: value, icon: icon)
 
         } else {
             print("Failed to decode JSON data")
         }
     }
 
-    func toggleSneakPeek(
+    func toggleHUD(
         status: Bool, type: SneakContentType, duration: TimeInterval = 1.5, value: CGFloat = 0,
         icon: String = ""
     ) {
-        sneakPeekDuration = duration
-        if type != .music {
-            if !Defaults[.hudReplacement] {
-                return
-            }
+        if status, !Defaults[.hudReplacement] {
+            return
         }
+
+        hudDuration = duration
         Task { @MainActor in
             withAnimation(.smooth) {
-                self.sneakPeek.show = status
-                self.sneakPeek.type = type
-                self.sneakPeek.value = value
-                self.sneakPeek.icon = icon
+                self.hud.show = status
+                self.hud.type = type
+                self.hud.value = value
+                self.hud.icon = icon
             }
         }
 
@@ -217,31 +213,32 @@ class NotcheraViewCoordinator: ObservableObject {
         }
     }
 
-    private var sneakPeekDuration: TimeInterval = 1.5
-    private var sneakPeekTask: Task<Void, Never>?
+    private var hudDuration: TimeInterval = 1.5
+    private var hudTask: Task<Void, Never>?
 
 
-    private func scheduleSneakPeekHide(after duration: TimeInterval) {
-        sneakPeekTask?.cancel()
+    private func scheduleHUDHide(after duration: TimeInterval) {
+        hudTask?.cancel()
 
-        sneakPeekTask = Task { [weak self] in
+        let currentType = hud.type
+        hudTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(duration))
             guard let self, !Task.isCancelled else { return }
             await MainActor.run {
                 withAnimation {
-                    self.toggleSneakPeek(status: false, type: .music)
-                    self.sneakPeekDuration = 1.5
+                    self.toggleHUD(status: false, type: currentType)
+                    self.hudDuration = 1.5
                 }
             }
         }
     }
 
-    @Published var sneakPeek: sneakPeek = .init() {
+    @Published var hud: HUDState = .init() {
         didSet {
-            if sneakPeek.show {
-                scheduleSneakPeekHide(after: sneakPeekDuration)
+            if hud.show {
+                scheduleHUDHide(after: hudDuration)
             } else {
-                sneakPeekTask?.cancel()
+                hudTask?.cancel()
             }
         }
     }

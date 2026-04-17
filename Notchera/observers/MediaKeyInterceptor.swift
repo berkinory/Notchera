@@ -229,18 +229,18 @@ final class MediaKeyInterceptor {
             switch keyType {
             case .soundUp, .soundDown, .mute:
                 let v = VolumeManager.shared.rawVolume
-                NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(v))
+                NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .volume, value: CGFloat(v))
             case .brightnessUp, .brightnessDown:
                 if command {
                     let v = KeyboardBacklightManager.shared.rawBrightness
-                    NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .backlight, value: CGFloat(v))
+                    NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .backlight, value: CGFloat(v))
                 } else {
                     let v = BrightnessManager.shared.rawBrightness
-                    NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .brightness, value: CGFloat(v))
+                    NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .brightness, value: CGFloat(v))
                 }
             case .keyboardBrightnessUp, .keyboardBrightnessDown:
                 let v = KeyboardBacklightManager.shared.rawBrightness
-                NotcheraViewCoordinator.shared.toggleSneakPeek(status: true, type: .backlight, value: CGFloat(v))
+                NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .backlight, value: CGFloat(v))
             }
         }
     }

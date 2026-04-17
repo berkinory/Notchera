@@ -171,9 +171,6 @@ class MusicManager: ObservableObject {
                 self.updateIdleState(state: state.isPlaying)
             }
 
-            if state.isPlaying, !state.title.isEmpty, !state.artist.isEmpty {
-                updateSneakPeek()
-            }
         }
 
         let titleChanged = state.title != lastArtworkTitle
@@ -202,10 +199,6 @@ class MusicManager: ObservableObject {
                 lastArtworkArtist = state.artist
                 lastArtworkAlbum = state.album
                 lastArtworkBundleIdentifier = state.bundleIdentifier
-            }
-
-            if !state.title.isEmpty, !state.artist.isEmpty, state.isPlaying {
-                updateSneakPeek()
             }
 
             fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
@@ -551,18 +544,6 @@ class MusicManager: ObservableObject {
             }
         }
     }
-
-    private func updateSneakPeek() {
-        if isPlaying, Defaults[.enableSneakPeek] {
-            if Defaults[.sneakPeekStyles] == .standard {
-                coordinator.toggleSneakPeek(status: true, type: .music)
-            } else {
-                coordinator.toggleExpandingView(status: true, type: .music)
-            }
-        }
-    }
-
-
 
     func playPause() {
         Task {
