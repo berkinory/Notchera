@@ -15,7 +15,7 @@ struct ContentView: View {
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
-    @ObservedObject var activityCenter = ActivityCenter.shared
+    @ObservedObject var privacyStateManager = PrivacyStateManager.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
@@ -52,7 +52,7 @@ struct ContentView: View {
             chinWidth = openNotchSize.width
         } else if !coordinator.expandingView.show,
                   vm.notchState == .closed,
-                  (musicManager.isPlaying || !musicManager.isPlayerIdle || activityCenter.privacyState.isActive),
+                  (musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive),
                   coordinator.musicLiveActivityEnabled, !vm.hideOnClosed
         {
             chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
@@ -159,7 +159,7 @@ struct ContentView: View {
         }
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
-        .animation(liveActivityAnimation, value: musicManager.isPlaying || !musicManager.isPlayerIdle || activityCenter.privacyState.isActive)
+        .animation(liveActivityAnimation, value: musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive)
         .background(dragDetector)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
@@ -227,7 +227,7 @@ struct ContentView: View {
                     } else if vm.notchState == .closed {
                         ZStack {
                             if !coordinator.expandingView.show,
-                               (musicManager.isPlaying || !musicManager.isPlayerIdle || activityCenter.privacyState.isActive),
+                               (musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive),
                                coordinator.musicLiveActivityEnabled,
                                !vm.hideOnClosed
                             {
@@ -314,9 +314,9 @@ struct ContentView: View {
     @ViewBuilder
     func CompactActivityHost() -> some View {
         if musicManager.isPlaying || !musicManager.isPlayerIdle {
-            MusicCompactActivityView(badges: activityCenter.privacyState.badges, albumArtNamespace: albumArtNamespace)
-        } else if activityCenter.privacyState.isActive {
-            PrivacyCompactActivityView(badges: activityCenter.privacyState.badges)
+            MusicCompactActivityView(badges: privacyStateManager.state.badges, albumArtNamespace: albumArtNamespace)
+        } else if privacyStateManager.state.isActive {
+            PrivacyCompactActivityView(badges: privacyStateManager.state.badges)
         }
     }
 
@@ -387,7 +387,7 @@ struct ContentView: View {
 }
 
 struct ActivityBadgeIcon: View {
-    let badge: PrivacyActivityState.Badge
+    let badge: PrivacyState.Badge
     let size: CGFloat
 
     var body: some View {
@@ -407,7 +407,7 @@ struct ActivityBadgeIcon: View {
 
 struct PrivacyBadgeStack: View {
     @EnvironmentObject var vm: NotcheraViewModel
-    let badges: [PrivacyActivityState.Badge]
+    let badges: [PrivacyState.Badge]
 
     private var badgeVisibility: Double {
         vm.notchState == .closed ? 1 : 0
@@ -440,7 +440,7 @@ struct PrivacyBadgeStack: View {
 struct MusicCompactActivityView: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @ObservedObject var musicManager = MusicManager.shared
-    let badges: [PrivacyActivityState.Badge]
+    let badges: [PrivacyState.Badge]
     let albumArtNamespace: Namespace.ID
 
     private var badgeVisibility: Double {
@@ -510,14 +510,14 @@ struct MusicCompactActivityView: View {
 
 struct PrivacyCompactActivityView: View {
     @EnvironmentObject var vm: NotcheraViewModel
-    let badges: [PrivacyActivityState.Badge]
+    let badges: [PrivacyState.Badge]
     @State private var pulse = false
 
-    private var primaryBadge: PrivacyActivityState.Badge? {
+    private var primaryBadge: PrivacyState.Badge? {
         badges.first
     }
 
-    private var secondaryBadges: [PrivacyActivityState.Badge] {
+    private var secondaryBadges: [PrivacyState.Badge] {
         Array(badges.dropFirst().prefix(2))
     }
 
@@ -563,7 +563,7 @@ struct PrivacyCompactActivityView: View {
     }
 
     @ViewBuilder
-    private func primaryIcon(for badge: PrivacyActivityState.Badge) -> some View {
+    private func primaryIcon(for badge: PrivacyState.Badge) -> some View {
         switch badge.kind {
         case .recording:
             ZStack {

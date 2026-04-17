@@ -2,7 +2,7 @@ import Combine
 import Foundation
 import SwiftUI
 
-struct PrivacyActivityState: Equatable {
+struct PrivacyState: Equatable {
     enum Kind: String {
         case recording
         case camera
@@ -13,6 +13,7 @@ struct PrivacyActivityState: Equatable {
         let kind: Kind
 
         var id: Kind { kind }
+
         var symbol: String {
             switch kind {
             case .recording:
@@ -41,17 +42,13 @@ struct PrivacyActivityState: Equatable {
     var isActive: Bool {
         !badges.isEmpty
     }
-
-    var primaryBadge: Badge? {
-        badges.first
-    }
 }
 
 @MainActor
-final class ActivityCenter: ObservableObject {
-    static let shared = ActivityCenter()
+final class PrivacyStateManager: ObservableObject {
+    static let shared = PrivacyStateManager()
 
-    @Published private(set) var privacyState = PrivacyActivityState()
+    @Published private(set) var state = PrivacyState()
 
     private var cancellables: Set<AnyCancellable> = []
 
@@ -63,7 +60,7 @@ final class ActivityCenter: ObservableObject {
         )
         .receive(on: RunLoop.main)
         .sink { [weak self] isRecording, isCameraActive, isMicrophoneActive in
-            self?.applyPrivacyState(
+            self?.applyState(
                 isRecording: isRecording,
                 isCameraActive: isCameraActive,
                 isMicrophoneActive: isMicrophoneActive
@@ -72,12 +69,12 @@ final class ActivityCenter: ObservableObject {
         .store(in: &cancellables)
     }
 
-    private func applyPrivacyState(
+    private func applyState(
         isRecording: Bool,
         isCameraActive: Bool,
         isMicrophoneActive: Bool
     ) {
-        var nextBadges: [PrivacyActivityState.Badge] = []
+        var nextBadges: [PrivacyState.Badge] = []
 
         if isRecording {
             nextBadges.append(.init(kind: .recording))
@@ -90,7 +87,7 @@ final class ActivityCenter: ObservableObject {
         }
 
         withAnimation(.interactiveSpring(response: 0.42, dampingFraction: 0.82, blendDuration: 0)) {
-            privacyState = PrivacyActivityState(badges: nextBadges)
+            state = PrivacyState(badges: nextBadges)
         }
     }
 }
