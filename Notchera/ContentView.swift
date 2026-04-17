@@ -94,11 +94,10 @@ struct ContentView: View {
                 mainLayout
                     .frame(height: vm.notchState == .open ? vm.notchSize.height : nil)
                     .conditionalModifier(true) { view in
-                        let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
-                        let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+                        let shellAnimation = Animation.interactiveSpring(response: 0.34, dampingFraction: 0.86, blendDuration: 0)
 
                         return view
-                            .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
+                            .animation(shellAnimation, value: vm.notchState)
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in
@@ -300,9 +299,9 @@ struct ContentView: View {
                     }
                 }
                 .transition(
-                    .scale(scale: 0.8, anchor: .top)
+                    .scale(scale: 0.92, anchor: .top)
                         .combined(with: .opacity)
-                        .animation(.smooth(duration: 0.35))
+                        .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.88, blendDuration: 0))
                 )
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
