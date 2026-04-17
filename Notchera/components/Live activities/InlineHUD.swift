@@ -25,7 +25,7 @@ struct WingHUDView: View {
 
     private var wingWidth: CGFloat {
         let scale: CGFloat = isOpen ? 1.04 : 1.0
-        return 104 * scale
+        return 110 * scale
     }
 
     private var titleWidth: CGFloat {
@@ -65,14 +65,13 @@ struct WingHUDView: View {
             .frame(width: 18, height: 18)
             .animation(.smooth(duration: 0.14), value: hudIconKey)
 
-            MarqueeText(
-                .constant(title),
-                font: .footnote,
-                nsFont: .footnote,
-                textColor: .white,
-                frameWidth: titleWidth
-            )
-            .fontWeight(.medium)
+            Text(title)
+                .font(.footnote)
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: titleWidth, alignment: .leading)
         }
         .padding(.leading, 6)
         .padding(.trailing, 6)
