@@ -375,12 +375,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        CameraActivityManager.shared.startMonitoring()
-        MicrophoneActivityManager.shared.startMonitoring()
+        if Defaults[.enableCameraPrivacyIndicator] {
+            CameraActivityManager.shared.startMonitoring()
+        }
+
+        if Defaults[.enableMicrophonePrivacyIndicator] {
+            MicrophoneActivityManager.shared.startMonitoring()
+        }
 
         if Defaults[.enableScreenRecordingDetection] {
             ScreenRecordingManager.shared.startMonitoring()
         }
+
+        Defaults.publisher(.enableCameraPrivacyIndicator)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { isEnabled in
+                if isEnabled {
+                    CameraActivityManager.shared.startMonitoring()
+                } else {
+                    CameraActivityManager.shared.stopMonitoring()
+                }
+            }
+            .store(in: &appCancellables)
+
+        Defaults.publisher(.enableMicrophonePrivacyIndicator)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { isEnabled in
+                if isEnabled {
+                    MicrophoneActivityManager.shared.startMonitoring()
+                } else {
+                    MicrophoneActivityManager.shared.stopMonitoring()
+                }
+            }
+            .store(in: &appCancellables)
 
         Defaults.publisher(.enableScreenRecordingDetection)
             .map(\.newValue)
