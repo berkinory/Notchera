@@ -57,7 +57,6 @@ class NotcheraSkyLightWindow: NSPanel {
         appearance = NSAppearance(named: .darkAqua)
 
         collectionBehavior = [
-            .fullScreenAuxiliary,
             .stationary,
             .canJoinAllSpaces,
             .ignoresCycle,

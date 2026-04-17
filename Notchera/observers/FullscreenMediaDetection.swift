@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Defaults
 import Foundation
@@ -32,10 +33,16 @@ final class FullscreenMediaDetector: ObservableObject {
         var newStatus: [String: Bool] = [:]
 
         for space in spaces {
-            if let uuid = space.screenUUID,
-               let musicSourceBundle = MusicManager.shared.bundleIdentifier
-            {
-                newStatus[uuid] = space.runningApps.contains(musicSourceBundle)
+            let resolvedUUID: String? = {
+                guard let rawUUID = space.screenUUID else { return nil }
+                if rawUUID == "Main" {
+                    return NSScreen.main?.displayUUID
+                }
+                return rawUUID
+            }()
+
+            if let resolvedUUID {
+                newStatus[resolvedUUID] = true
             }
         }
 

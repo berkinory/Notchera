@@ -734,6 +734,7 @@ struct Advanced: View {
     @Default(.extendHoverArea) var extendHoverArea
     @Default(.showOnLockScreen) var showOnLockScreen
     @Default(.hideFromScreenRecording) var hideFromScreenRecording
+    @Default(.hideNotchInFullscreen) var hideNotchInFullscreen
 
     let icons: [String] = ["logo2"]
     @State private var selectedIcon: String = "logo2"
@@ -787,6 +788,9 @@ struct Advanced: View {
             Section {
                 Defaults.Toggle(key: .extendHoverArea) {
                     Text("Extend hover area")
+                }
+                Defaults.Toggle(key: .hideNotchInFullscreen) {
+                    Text("Hide notch in fullscreen")
                 }
                 Defaults.Toggle(key: .showOnLockScreen) {
                     Text("Show notch on lock screen")

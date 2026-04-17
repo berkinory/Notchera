@@ -60,6 +60,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:]
+    private var windowVisibilityObservers: [String: AnyCancellable] = [:]
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
@@ -146,6 +147,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             windows.removeAll()
             viewModels.removeAll()
+            windowVisibilityObservers.removeAll()
         } else if let window {
             window.close()
             NotchSpaceManager.shared.notchSpace.windows.remove(window)
@@ -153,7 +155,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NotificationCenter.default.removeObserver(obs)
                 windowScreenDidChangeObserver = nil
             }
+            windowVisibilityObservers.removeAll()
             self.window = nil
+        }
+    }
+
+    @MainActor
+    private func updateWindowVisibility(_ window: NSWindow, isHidden: Bool) {
+        window.ignoresMouseEvents = isHidden
+        window.alphaValue = isHidden ? 0 : 1
+
+        if isHidden {
+            window.orderOut(nil)
+        } else {
+            window.orderFrontRegardless()
+        }
+    }
+
+    private func bindWindowVisibility(_ window: NSWindow, viewModel: NotcheraViewModel, key: String) {
+        windowVisibilityObservers[key] = viewModel.$hideOnClosed
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self, weak window] shouldHide in
+                guard let self, let window else { return }
+                self.updateWindowVisibility(window, isHidden: shouldHide)
+            }
+
+        Task { @MainActor in
+            self.updateWindowVisibility(window, isHidden: viewModel.hideOnClosed)
         }
     }
 
@@ -222,7 +251,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func createNotcheraWindow(for _: NSScreen, with viewModel: NotcheraViewModel) -> NSWindow {
+    private func createNotcheraWindow(for screen: NSScreen, with viewModel: NotcheraViewModel) -> NSWindow {
         let rect = NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
         let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow]
 
@@ -239,6 +268,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 .environmentObject(viewModel)
         )
 
+        bindWindowVisibility(window, viewModel: viewModel, key: viewModel.screenUUID ?? "main")
         window.orderFrontRegardless()
         NotchSpaceManager.shared.notchSpace.windows.insert(window)
 
@@ -256,7 +286,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     private func positionWindow(_ window: NSWindow, on screen: NSScreen, changeAlpha: Bool = false) {
-        if changeAlpha {
+        if changeAlpha, !window.ignoresMouseEvents {
             window.alphaValue = 0
         }
 
@@ -267,7 +297,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 y: screenFrame.origin.y + screenFrame.height - window.frame.height
             )
         )
-        window.alphaValue = 1
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -478,6 +507,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                 if let window = windows[uuid], let viewModel = viewModels[uuid] {
                     positionWindow(window, on: screen, changeAlpha: changeAlpha)
+                    updateWindowVisibility(window, isHidden: viewModel.hideOnClosed)
 
                     if viewModel.notchState == .closed {
                         viewModel.close()
@@ -511,6 +541,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             if let window {
                 positionWindow(window, on: selectedScreen, changeAlpha: changeAlpha)
+                updateWindowVisibility(window, isHidden: vm.hideOnClosed)
 
                 if vm.notchState == .closed {
                     vm.close()

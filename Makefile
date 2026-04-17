@@ -6,7 +6,7 @@ SOURCE_PACKAGES := $(DERIVED_DATA)/SourcePackages
 APP_PATH := $(DERIVED_DATA)/Build/Products/Debug/Notchera.app
 XCODEBUILD_BASE := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DESTINATION)' -derivedDataPath $(DERIVED_DATA) -clonedSourcePackagesDirPath $(SOURCE_PACKAGES) -disableAutomaticPackageResolution
 
-.PHONY: open build run profile-build profile-run format lint check
+.PHONY: open build run debug debug-run profile-build profile-run format lint check
 
 open:
 	open $(PROJECT)
@@ -16,6 +16,11 @@ build:
 
 run: build
 	open $(APP_PATH)
+
+debug: build
+	$(APP_PATH)/Contents/MacOS/Notchera
+
+debug-run: debug
 
 profile-build:
 	$(XCODEBUILD_BASE) build

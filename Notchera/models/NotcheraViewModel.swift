@@ -71,13 +71,25 @@ class NotcheraViewModel: NSObject, ObservableObject {
 
         Publishers.CombineLatest(screenPublisher, fullscreenStatusPublisher)
             .map { screenUUID, fullscreenStatus in
-                fullscreenStatus[screenUUID] ?? false
+                Defaults[.hideNotchInFullscreen] && (fullscreenStatus[screenUUID] ?? false)
             }
             .removeDuplicates()
             .receive(on: RunLoop.main)
             .sink { [weak self] shouldHide in
                 withAnimation(.smooth) {
                     self?.hideOnClosed = shouldHide
+                }
+            }
+            .store(in: &cancellables)
+
+        Defaults.publisher(.hideNotchInFullscreen)
+            .map(\.newValue)
+            .receive(on: RunLoop.main)
+            .sink { [weak self, weak detector] isEnabled in
+                guard let self, let detector, let screenUUID = self.screenUUID else { return }
+                let shouldHide = isEnabled && (detector.fullscreenStatus[screenUUID] ?? false)
+                withAnimation(.smooth) {
+                    self.hideOnClosed = shouldHide
                 }
             }
             .store(in: &cancellables)

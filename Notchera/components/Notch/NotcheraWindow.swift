@@ -22,7 +22,6 @@ class NotcheraWindow: NSPanel {
         isMovable = false
 
         collectionBehavior = [
-            .fullScreenAuxiliary,
             .stationary,
             .canJoinAllSpaces,
             .ignoresCycle,
