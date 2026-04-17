@@ -15,7 +15,7 @@ struct ContentView: View {
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
-    @ObservedObject var screenRecordingManager = ScreenRecordingManager.shared
+    @ObservedObject var activityCenter = ActivityCenter.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
@@ -52,7 +52,7 @@ struct ContentView: View {
             chinWidth = openNotchSize.width
         } else if !coordinator.expandingView.show,
                   vm.notchState == .closed,
-                  (musicManager.isPlaying || !musicManager.isPlayerIdle || screenRecordingManager.isRecording),
+                  (musicManager.isPlaying || !musicManager.isPlayerIdle || activityCenter.privacyState.isActive),
                   coordinator.musicLiveActivityEnabled, !vm.hideOnClosed
         {
             chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
@@ -159,7 +159,7 @@ struct ContentView: View {
         }
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
-        .animation(liveActivityAnimation, value: musicManager.isPlaying || !musicManager.isPlayerIdle || screenRecordingManager.isRecording)
+        .animation(liveActivityAnimation, value: musicManager.isPlaying || !musicManager.isPlayerIdle || activityCenter.privacyState.isActive)
         .background(dragDetector)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
@@ -227,19 +227,13 @@ struct ContentView: View {
                     } else if vm.notchState == .closed {
                         ZStack {
                             if !coordinator.expandingView.show,
-                               (musicManager.isPlaying || !musicManager.isPlayerIdle || screenRecordingManager.isRecording),
+                               (musicManager.isPlaying || !musicManager.isPlayerIdle || activityCenter.privacyState.isActive),
                                coordinator.musicLiveActivityEnabled,
                                !vm.hideOnClosed
                             {
-                                if musicManager.isPlaying || !musicManager.isPlayerIdle {
-                                    MusicLiveActivity()
-                                        .frame(alignment: .center)
-                                        .opacity(closedHUDVisible ? 0 : 1)
-                                } else if screenRecordingManager.isRecording {
-                                    RecordingLiveActivity()
-                                        .frame(alignment: .center)
-                                        .opacity(closedHUDVisible ? 0 : 1)
-                                }
+                                CompactActivityHost()
+                                    .frame(alignment: .center)
+                                    .opacity(closedHUDVisible ? 0 : 1)
                             } else {
                                 Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                                     .opacity(closedHUDVisible ? 0 : 1)
@@ -311,111 +305,13 @@ struct ContentView: View {
         .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
     }
 
-    func MusicLiveActivity() -> some View {
-        HStack {
-            ZStack(alignment: .bottomTrailing) {
-                Image(nsImage: musicManager.albumArt)
-                    .resizable()
-                    .clipped()
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed
-                        )
-                    )
-                    .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
-                    .frame(
-                        width: max(0, vm.effectiveClosedNotchHeight - 12),
-                        height: max(0, vm.effectiveClosedNotchHeight - 12)
-                    )
-
-                if screenRecordingManager.isRecording {
-                    RecordingBadge(size: 8)
-                        .transition(.scale(scale: 0.9).combined(with: .opacity))
-                        .offset(x: 1, y: 1)
-                }
-            }
-
-            Rectangle()
-                .fill(.black)
-                .frame(
-                    width: vm.closedNotchSize.width
-                        + -cornerRadiusInsets.closed.top
-                )
-
-            HStack {
-                Rectangle()
-                    .fill(
-                        Defaults[.matchAlbumArtColor]
-                            ? Color(nsColor: musicManager.avgColor).gradient
-                            : Color.white.gradient
-                    )
-                    .frame(width: 50, alignment: .center)
-                    .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
-                    .mask {
-                        AudioSpectrumView(isPlaying: $musicManager.isPlaying)
-                            .frame(width: 16, height: 12)
-                    }
-            }
-            .frame(
-                width: max(0, vm.effectiveClosedNotchHeight - 12),
-                height: max(0, vm.effectiveClosedNotchHeight - 12),
-                alignment: .center
-            )
+    @ViewBuilder
+    func CompactActivityHost() -> some View {
+        if musicManager.isPlaying || !musicManager.isPlayerIdle {
+            MusicCompactActivityView(badges: activityCenter.privacyState.badges, albumArtNamespace: albumArtNamespace)
+        } else if let badge = activityCenter.privacyState.primaryBadge {
+            PrivacyCompactActivityView(badge: badge)
         }
-        .frame(
-            height: vm.effectiveClosedNotchHeight,
-            alignment: .center
-        )
-        .animation(liveActivityAnimation, value: screenRecordingManager.isRecording)
-    }
-
-    func RecordingLiveActivity() -> some View {
-        HStack {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.red.opacity(0.32), Color.red.opacity(0.12), .clear],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 14
-                        )
-                    )
-                    .frame(width: 24, height: 24)
-                    .blur(radius: 1.5)
-
-                Image(systemName: "record.circle.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.red)
-                    .symbolRenderingMode(.hierarchical)
-            }
-            .transition(.scale(scale: 0.92).combined(with: .opacity))
-            .frame(
-                width: max(0, vm.effectiveClosedNotchHeight - 12),
-                height: max(0, vm.effectiveClosedNotchHeight - 12)
-            )
-
-            Rectangle()
-                .fill(.black)
-                .frame(
-                    width: vm.closedNotchSize.width
-                        + -cornerRadiusInsets.closed.top
-                )
-
-            Rectangle()
-                .fill(Color.clear)
-                .frame(
-                    width: max(0, vm.effectiveClosedNotchHeight - 12),
-                    height: max(0, vm.effectiveClosedNotchHeight - 12),
-                    alignment: .center
-                )
-        }
-        .frame(
-            height: vm.effectiveClosedNotchHeight,
-            alignment: .center
-        )
-        .contentTransition(.symbolEffect(.replace))
-        .animation(liveActivityAnimation, value: screenRecordingManager.isRecording)
     }
 
     @ViewBuilder
@@ -484,13 +380,142 @@ struct ContentView: View {
     }
 }
 
-struct RecordingBadge: View {
+struct ActivityBadgeIcon: View {
+    let badge: PrivacyActivityState.Badge
     let size: CGFloat
 
     var body: some View {
-        Image(systemName: "record.circle.fill")
+        Image(systemName: badge.symbol)
             .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(.red)
+            .foregroundStyle(badge.tint)
+    }
+}
+
+struct PrivacyBadgeStack: View {
+    let badges: [PrivacyActivityState.Badge]
+
+    var body: some View {
+        HStack(spacing: -3) {
+            ForEach(Array(badges.prefix(3).enumerated()), id: \.element.id) { index, badge in
+                ZStack {
+                    Circle()
+                        .fill(.black)
+                        .frame(width: 10, height: 10)
+
+                    ActivityBadgeIcon(badge: badge, size: 8)
+                }
+                .offset(x: CGFloat(index) * -1)
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
+        }
+    }
+}
+
+struct MusicCompactActivityView: View {
+    @EnvironmentObject var vm: NotcheraViewModel
+    @ObservedObject var musicManager = MusicManager.shared
+    let badges: [PrivacyActivityState.Badge]
+    let albumArtNamespace: Namespace.ID
+
+    var body: some View {
+        HStack {
+            ZStack(alignment: .bottomTrailing) {
+                Image(nsImage: musicManager.albumArt)
+                    .resizable()
+                    .clipped()
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed
+                        )
+                    )
+                    .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
+                    .frame(
+                        width: max(0, vm.effectiveClosedNotchHeight - 12),
+                        height: max(0, vm.effectiveClosedNotchHeight - 12)
+                    )
+
+                if !badges.isEmpty {
+                    PrivacyBadgeStack(badges: badges)
+                        .offset(x: 1, y: 1)
+                }
+            }
+
+            Rectangle()
+                .fill(.black)
+                .frame(
+                    width: vm.closedNotchSize.width
+                        + -cornerRadiusInsets.closed.top
+                )
+
+            HStack {
+                Rectangle()
+                    .fill(
+                        Defaults[.matchAlbumArtColor]
+                            ? Color(nsColor: musicManager.avgColor).gradient
+                            : Color.white.gradient
+                    )
+                    .frame(width: 50, alignment: .center)
+                    .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
+                    .mask {
+                        AudioSpectrumView(isPlaying: $musicManager.isPlaying)
+                            .frame(width: 16, height: 12)
+                    }
+            }
+            .frame(
+                width: max(0, vm.effectiveClosedNotchHeight - 12),
+                height: max(0, vm.effectiveClosedNotchHeight - 12),
+                alignment: .center
+            )
+        }
+        .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
+    }
+}
+
+struct PrivacyCompactActivityView: View {
+    @EnvironmentObject var vm: NotcheraViewModel
+    let badge: PrivacyActivityState.Badge
+
+    var body: some View {
+        HStack {
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [badge.tint.opacity(0.32), badge.tint.opacity(0.12), .clear],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 14
+                        )
+                    )
+                    .frame(width: 24, height: 24)
+                    .blur(radius: 1.5)
+
+                ActivityBadgeIcon(badge: badge, size: 18)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .transition(.scale(scale: 0.92).combined(with: .opacity))
+            .frame(
+                width: max(0, vm.effectiveClosedNotchHeight - 12),
+                height: max(0, vm.effectiveClosedNotchHeight - 12)
+            )
+
+            Rectangle()
+                .fill(.black)
+                .frame(
+                    width: vm.closedNotchSize.width
+                        + -cornerRadiusInsets.closed.top
+                )
+
+            Rectangle()
+                .fill(Color.clear)
+                .frame(
+                    width: max(0, vm.effectiveClosedNotchHeight - 12),
+                    height: max(0, vm.effectiveClosedNotchHeight - 12),
+                    alignment: .center
+                )
+        }
+        .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
+        .contentTransition(.symbolEffect(.replace))
     }
 }
 
