@@ -7,6 +7,7 @@ class AudioSpectrum: NSView {
     private var barScales: [CGFloat] = []
     private var isPlaying: Bool = true
     private var animationTimer: Timer?
+    private var hasStartedAnimation = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -53,6 +54,11 @@ class AudioSpectrum: NSView {
         animationTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             self?.updateBars()
         }
+
+        if !hasStartedAnimation {
+            hasStartedAnimation = true
+            updateBars()
+        }
     }
 
     private func stopAnimating() {
@@ -89,6 +95,8 @@ class AudioSpectrum: NSView {
     }
 
     func setPlaying(_ playing: Bool) {
+        guard isPlaying != playing || (playing && animationTimer == nil) else { return }
+
         isPlaying = playing
         if isPlaying {
             startAnimating()

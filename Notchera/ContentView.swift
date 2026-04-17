@@ -224,6 +224,8 @@ struct ContentView: View {
                         .fixedSize()
                         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
                     } else if vm.notchState == .closed {
+                        let closedContentOpacity: Double = vm.notchState == .open ? 0 : 1
+
                         ZStack {
                             if !coordinator.expandingView.show,
                                (musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive),
@@ -232,16 +234,12 @@ struct ContentView: View {
                             {
                                 CompactActivityHost()
                                     .frame(alignment: .center)
-                                    .opacity(closedHUDVisible ? 0 : 1)
-                                    .transition(
-                                        .asymmetric(
-                                            insertion: .opacity.animation(.easeOut(duration: 0.12).delay(0.12)),
-                                            removal: .opacity.animation(.easeIn(duration: 0.08))
-                                        )
-                                    )
+                                    .opacity(closedHUDVisible ? 0.0 : closedContentOpacity)
+                                    .animation(.easeIn(duration: 0.08), value: vm.notchState)
                             } else {
                                 Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
-                                    .opacity(closedHUDVisible ? 0 : 1)
+                                    .opacity(closedHUDVisible ? 0.0 : closedContentOpacity)
+                                    .animation(.easeIn(duration: 0.08), value: vm.notchState)
                             }
 
                             if closedHUDVisible {
@@ -299,9 +297,14 @@ struct ContentView: View {
                     }
                 }
                 .transition(
-                    .scale(scale: 0.92, anchor: .top)
-                        .combined(with: .opacity)
-                        .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.88, blendDuration: 0))
+                    .asymmetric(
+                        insertion: .scale(scale: 0.94, anchor: .top)
+                            .combined(with: .opacity)
+                            .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.9, blendDuration: 0).delay(0.03)),
+                        removal: .scale(scale: 0.98, anchor: .top)
+                            .combined(with: .opacity)
+                            .animation(.easeOut(duration: 0.08))
+                    )
                 )
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
