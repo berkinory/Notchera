@@ -279,20 +279,12 @@ struct Charge: View {
         Form {
             Section {
                 Defaults.Toggle(key: .showPowerStatusNotifications) {
-                    Text("Show power status notifications")
+                    Text("Show battery notifications")
                 }
             } header: {
-                Text("General")
-            }
-            Section {
-                Defaults.Toggle(key: .showBatteryPercentage) {
-                    Text("Show battery percentage")
-                }
-                Defaults.Toggle(key: .showPowerStatusIcons) {
-                    Text("Show power status icons")
-                }
-            } header: {
-                Text("Battery Information")
+                Text("Notifications")
+            } footer: {
+                Text("Shows battery status updates in the notch.")
             }
         }
         .onAppear {

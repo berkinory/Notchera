@@ -57,7 +57,7 @@ struct BatteryView: View {
                 )
                 .padding(.leading, 2)
 
-            if iconStatus != "", isForNotification || Defaults[.showPowerStatusIcons] {
+            if iconStatus != "" {
                 ZStack {
                     Image(iconStatus)
                         .resizable()
@@ -187,11 +187,10 @@ struct NotcheraBatteryView: View {
             }
         }) {
             HStack {
-                if Defaults[.showBatteryPercentage] {
-                    Text("\(Int32(levelBattery))%")
-                        .font(.callout)
-                        .foregroundStyle(.white)
-                }
+                Text("\(Int32(levelBattery))%")
+                    .font(.callout)
+                    .foregroundStyle(.white)
+
                 BatteryView(
                     levelBattery: levelBattery,
                     isPluggedIn: isPluggedIn,

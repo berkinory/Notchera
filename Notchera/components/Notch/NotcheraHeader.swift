@@ -3,7 +3,6 @@ import SwiftUI
 
 struct NotcheraHeader: View {
     @EnvironmentObject var vm: NotcheraViewModel
-    @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @StateObject var tvm = ShelfStateViewModel.shared
     var body: some View {
@@ -66,16 +65,6 @@ struct NotcheraHeader: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
-                    NotcheraBatteryView(
-                        batteryWidth: 30,
-                        isCharging: batteryModel.isCharging,
-                        isInLowPowerMode: batteryModel.isInLowPowerMode,
-                        isPluggedIn: batteryModel.isPluggedIn,
-                        levelBattery: batteryModel.levelBattery,
-                        maxCapacity: batteryModel.maxCapacity,
-                        timeToFullCharge: batteryModel.timeToFullCharge,
-                        isForNotification: false
-                    )
                 }
             }
             .font(.system(.headline, design: .rounded))
