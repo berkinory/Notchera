@@ -23,6 +23,10 @@ struct WingHUDView: View {
         max(0, vm.closedNotchSize.width - 20)
     }
 
+    private var usesFlexibleCenterWidth: Bool {
+        isOpen
+    }
+
     private var wingWidth: CGFloat {
         let scale: CGFloat = isOpen ? 1.04 : 1.0
         return 110 * scale
@@ -39,13 +43,19 @@ struct WingHUDView: View {
 
             Rectangle()
                 .fill(.black)
-                .frame(width: centerWidth, height: notchHeight)
+                .frame(maxWidth: usesFlexibleCenterWidth ? .infinity : centerWidth, maxHeight: notchHeight)
+                .frame(width: usesFlexibleCenterWidth ? nil : centerWidth, height: notchHeight)
 
             rightWing
                 .frame(width: wingWidth, height: notchHeight, alignment: .trailing)
         }
         .frame(
-            width: wingWidth + centerWidth + wingWidth,
+            maxWidth: usesFlexibleCenterWidth ? .infinity : wingWidth + centerWidth + wingWidth,
+            maxHeight: notchHeight,
+            alignment: .center
+        )
+        .frame(
+            width: usesFlexibleCenterWidth ? nil : wingWidth + centerWidth + wingWidth,
             height: notchHeight,
             alignment: .center
         )

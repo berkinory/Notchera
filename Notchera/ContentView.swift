@@ -273,7 +273,7 @@ struct ContentView: View {
                                 batteryIsPluggedIn: false,
                                 batteryIsInLowPowerMode: false
                             )
-                            .fixedSize()
+                            .frame(maxWidth: .infinity)
                             .frame(height: max(24, vm.effectiveClosedNotchHeight))
                             .transition(.opacity)
                         } else {
