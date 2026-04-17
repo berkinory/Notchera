@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Darwin
 
 @MainActor
@@ -86,10 +87,11 @@ final class ScreenRecordingManager: ObservableObject {
     }
 
     private func startRecordingUI() {
-        isRecording = true
+        withAnimation(.interactiveSpring(response: 0.42, dampingFraction: 0.82, blendDuration: 0)) {
+            isRecording = true
+        }
         recordingStartedAt = Date()
         recordingDuration = 0
-        pushHUD()
 
         durationTask?.cancel()
         durationTask = Task { [weak self] in
@@ -99,7 +101,6 @@ final class ScreenRecordingManager: ObservableObject {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
                 self.updateDuration()
-                self.pushHUD()
             }
         }
     }
@@ -110,11 +111,8 @@ final class ScreenRecordingManager: ObservableObject {
         recordingStartedAt = nil
         recordingDuration = 0
 
-        let wasRecording = isRecording
-        isRecording = false
-
-        if wasRecording {
-            NotcheraViewCoordinator.shared.toggleHUD(status: false, type: .recording)
+        withAnimation(.interactiveSpring(response: 0.45, dampingFraction: 0.9, blendDuration: 0)) {
+            isRecording = false
         }
     }
 
@@ -127,20 +125,16 @@ final class ScreenRecordingManager: ObservableObject {
         recordingDuration = Date().timeIntervalSince(recordingStartedAt)
     }
 
-    private func pushHUD() {
-        NotcheraViewCoordinator.shared.toggleHUD(
-            status: true,
-            type: .recording,
-            duration: 2,
-            value: 1,
-            label: durationText
-        )
-    }
-
-    private var durationText: String {
+    var durationText: String {
         let totalSeconds = max(0, Int(recordingDuration.rounded(.down)))
-        let minutes = totalSeconds / 60
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
         let seconds = totalSeconds % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+
         return String(format: "%02d:%02d", minutes, seconds)
     }
 

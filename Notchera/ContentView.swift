@@ -15,6 +15,7 @@ struct ContentView: View {
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
+    @ObservedObject var screenRecordingManager = ScreenRecordingManager.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
@@ -22,6 +23,7 @@ struct ContentView: View {
     @Namespace var albumArtNamespace
 
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+    private let liveActivityAnimation = Animation.interactiveSpring(response: 0.42, dampingFraction: 0.82, blendDuration: 0)
 
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
@@ -49,7 +51,8 @@ struct ContentView: View {
         {
             chinWidth = openNotchSize.width
         } else if !coordinator.expandingView.show,
-                  vm.notchState == .closed, musicManager.isPlaying || !musicManager.isPlayerIdle,
+                  vm.notchState == .closed,
+                  (musicManager.isPlaying || !musicManager.isPlayerIdle || screenRecordingManager.isRecording),
                   coordinator.musicLiveActivityEnabled, !vm.hideOnClosed
         {
             chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
@@ -156,6 +159,7 @@ struct ContentView: View {
         }
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
+        .animation(liveActivityAnimation, value: musicManager.isPlaying || !musicManager.isPlayerIdle || screenRecordingManager.isRecording)
         .background(dragDetector)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
@@ -222,10 +226,20 @@ struct ContentView: View {
                         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
                     } else if vm.notchState == .closed {
                         ZStack {
-                            if !coordinator.expandingView.show, musicManager.isPlaying || !musicManager.isPlayerIdle, coordinator.musicLiveActivityEnabled, !vm.hideOnClosed {
-                                MusicLiveActivity()
-                                    .frame(alignment: .center)
-                                    .opacity(closedHUDVisible ? 0 : 1)
+                            if !coordinator.expandingView.show,
+                               (musicManager.isPlaying || !musicManager.isPlayerIdle || screenRecordingManager.isRecording),
+                               coordinator.musicLiveActivityEnabled,
+                               !vm.hideOnClosed
+                            {
+                                if musicManager.isPlaying || !musicManager.isPlayerIdle {
+                                    MusicLiveActivity()
+                                        .frame(alignment: .center)
+                                        .opacity(closedHUDVisible ? 0 : 1)
+                                } else if screenRecordingManager.isRecording {
+                                    RecordingLiveActivity()
+                                        .frame(alignment: .center)
+                                        .opacity(closedHUDVisible ? 0 : 1)
+                                }
                             } else {
                                 Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                                     .opacity(closedHUDVisible ? 0 : 1)
@@ -299,26 +313,30 @@ struct ContentView: View {
 
     func MusicLiveActivity() -> some View {
         HStack {
-            Image(nsImage: musicManager.albumArt)
-                .resizable()
-                .clipped()
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed
+            ZStack(alignment: .bottomTrailing) {
+                Image(nsImage: musicManager.albumArt)
+                    .resizable()
+                    .clipped()
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed
+                        )
                     )
-                )
-                .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
-                .frame(
-                    width: max(0, vm.effectiveClosedNotchHeight - 12),
-                    height: max(0, vm.effectiveClosedNotchHeight - 12)
-                )
+                    .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
+                    .frame(
+                        width: max(0, vm.effectiveClosedNotchHeight - 12),
+                        height: max(0, vm.effectiveClosedNotchHeight - 12)
+                    )
+
+                if screenRecordingManager.isRecording {
+                    RecordingBadge(size: 8)
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
+                        .offset(x: 1, y: 1)
+                }
+            }
 
             Rectangle()
                 .fill(.black)
-                .overlay(
-                    HStack(alignment: .top) {
-                    }
-                )
                 .frame(
                     width: vm.closedNotchSize.width
                         + -cornerRadiusInsets.closed.top
@@ -348,6 +366,56 @@ struct ContentView: View {
             height: vm.effectiveClosedNotchHeight,
             alignment: .center
         )
+        .animation(liveActivityAnimation, value: screenRecordingManager.isRecording)
+    }
+
+    func RecordingLiveActivity() -> some View {
+        HStack {
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.red.opacity(0.32), Color.red.opacity(0.12), .clear],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 14
+                        )
+                    )
+                    .frame(width: 24, height: 24)
+                    .blur(radius: 1.5)
+
+                Image(systemName: "record.circle.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.red)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .transition(.scale(scale: 0.92).combined(with: .opacity))
+            .frame(
+                width: max(0, vm.effectiveClosedNotchHeight - 12),
+                height: max(0, vm.effectiveClosedNotchHeight - 12)
+            )
+
+            Rectangle()
+                .fill(.black)
+                .frame(
+                    width: vm.closedNotchSize.width
+                        + -cornerRadiusInsets.closed.top
+                )
+
+            Rectangle()
+                .fill(Color.clear)
+                .frame(
+                    width: max(0, vm.effectiveClosedNotchHeight - 12),
+                    height: max(0, vm.effectiveClosedNotchHeight - 12),
+                    alignment: .center
+                )
+        }
+        .frame(
+            height: vm.effectiveClosedNotchHeight,
+            alignment: .center
+        )
+        .contentTransition(.symbolEffect(.replace))
+        .animation(liveActivityAnimation, value: screenRecordingManager.isRecording)
     }
 
     @ViewBuilder
@@ -413,6 +481,16 @@ struct ContentView: View {
                 }
             }
         }
+    }
+}
+
+struct RecordingBadge: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image(systemName: "record.circle.fill")
+            .font(.system(size: size, weight: .semibold))
+            .foregroundStyle(.red)
     }
 }
 
