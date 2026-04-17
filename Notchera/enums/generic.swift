@@ -58,5 +58,4 @@ enum WindowHeightMode: String, Defaults.Serializable {
 enum SliderColorEnum: String, CaseIterable, Defaults.Serializable {
     case white = "White"
     case albumArt = "Match album art"
-    case accent = "Accent color"
 }

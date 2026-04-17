@@ -141,16 +141,6 @@
         }
       }
     },
-    "Accent color": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accent color"
-          }
-        }
-      }
-    },
     "Access Denied": {
       "localizations": {
         "en": {
@@ -458,16 +448,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose any color"
-          }
-        }
-      }
-    },
-    "Choose between your system accent color or customize it with your own selection.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose between your system accent color or customize it with your own selection."
           }
         }
       }
@@ -2004,16 +1984,6 @@
         }
       }
     },
-    "Tint progress bar with accent color": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tint progress bar with accent color"
-          }
-        }
-      }
-    },
     "Toggle Notch Open:": {
       "localizations": {
         "en": {
@@ -2091,26 +2061,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use music visualizer spectrogram"
-          }
-        }
-      }
-    },
-    "Use your macOS system accent color": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use your macOS system accent color"
-          }
-        }
-      }
-    },
-    "Using System Accent": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Using System Accent"
           }
         }
       }
@@ -2201,16 +2151,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "You're All Set!"
-          }
-        }
-      }
-    },
-    "Your macOS system accent color": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your macOS system accent color"
           }
         }
       }

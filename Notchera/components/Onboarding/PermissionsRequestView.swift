@@ -14,7 +14,7 @@ struct PermissionRequestView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 70, height: 56)
-                .foregroundColor(.effectiveAccent)
+                .foregroundColor(.white)
                 .padding(.top, 32)
 
             Text(title)

@@ -136,7 +136,6 @@ extension Defaults.Keys {
     static let hudReplacement = Key<Bool>("hudReplacement", default: false)
     static let enableGradient = Key<Bool>("enableGradient", default: false)
     static let systemEventIndicatorShadow = Key<Bool>("systemEventIndicatorShadow", default: false)
-    static let systemEventIndicatorUseAccent = Key<Bool>("systemEventIndicatorUseAccent", default: false)
     static let showOpenNotchHUD = Key<Bool>("showOpenNotchHUD", default: true)
     static let showOpenNotchHUDPercentage = Key<Bool>("showOpenNotchHUDPercentage", default: true)
     static let showClosedNotchHUDPercentage = Key<Bool>("showClosedNotchHUDPercentage", default: false)
@@ -160,11 +159,6 @@ extension Defaults.Keys {
 
 
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
-
-
-
-    static let useCustomAccentColor = Key<Bool>("useCustomAccentColor", default: false)
-    static let customAccentColorData = Key<Data?>("customAccentColorData", default: nil)
 
     static var defaultMediaController: MediaControllerType {
         if MusicManager.shared.isNowPlayingDeprecated {
