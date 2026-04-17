@@ -1,0 +1,122 @@
+import AppKit
+import Foundation
+import QuickLookUI
+import SwiftUI
+import UniformTypeIdentifiers
+
+@MainActor
+final class QuickLookService: ObservableObject {
+    @Published var urls: [URL] = []
+    @Published var selectedURL: URL?
+
+    @Published var isQuickLookOpen: Bool = false
+
+    private var previewPanel: QLPreviewPanel?
+    private var dataSource: QuickLookDataSource?
+    private var accessingURLs: [URL] = []
+    private var previewPanelObserver: Any?
+
+    func show(urls: [URL], selectFirst: Bool = true, slideshow _: Bool = false) {
+        guard !urls.isEmpty else { return }
+        stopAccessingCurrentURLs()
+        accessingURLs = urls.filter { url in
+            if url.isFileURL {
+                return url.startAccessingSecurityScopedResource()
+            }
+            return true
+        }
+        self.urls = accessingURLs
+        isQuickLookOpen = true
+        if selectFirst {
+            selectedURL = accessingURLs.first
+        }
+        let panel = QLPreviewPanel.shared()
+        if let prev = previewPanel {
+            NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: prev)
+        }
+        previewPanel = panel
+        NotificationCenter.default.addObserver(self, selector: #selector(previewPanelWillClose(_:)), name: NSWindow.willCloseNotification, object: panel)
+    }
+
+    func hide() {
+        stopAccessingCurrentURLs()
+        selectedURL = nil
+        urls.removeAll()
+        isQuickLookOpen = false
+        if let panel = previewPanel, panel.isVisible {
+            panel.orderOut(nil)
+        }
+        if let panel = previewPanel {
+            NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
+            previewPanel = nil
+        }
+    }
+
+    private func stopAccessingCurrentURLs() {
+        NSLog("Stopping access to \(accessingURLs.count) URLs")
+        for url in accessingURLs where url.isFileURL {
+            url.stopAccessingSecurityScopedResource()
+        }
+        accessingURLs.removeAll()
+        if let panel = previewPanel {
+            NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
+            previewPanel = nil
+        }
+    }
+
+    func showQuickLook(urls: [URL]) {
+        show(urls: urls, selectFirst: true, slideshow: false)
+    }
+
+    func updateSelection(urls: [URL]) {
+        guard isQuickLookOpen else { return }
+        show(urls: urls, selectFirst: true)
+    }
+}
+
+extension QuickLookService {
+    @objc private func previewPanelWillClose(_ notification: Notification) {
+        guard let panel = notification.object as? QLPreviewPanel, panel === previewPanel else { return }
+        Task { @MainActor in
+            stopAccessingCurrentURLs()
+            selectedURL = nil
+            urls.removeAll()
+            isQuickLookOpen = false
+            NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
+            previewPanel = nil
+        }
+    }
+}
+
+struct QuickLookPresenter: ViewModifier {
+    @ObservedObject var service: QuickLookService
+
+    func body(content: Content) -> some View {
+        content
+            .quickLookPreview($service.selectedURL, in: service.urls)
+    }
+}
+
+extension View {
+    func quickLookPresenter(using service: QuickLookService) -> some View {
+        modifier(QuickLookPresenter(service: service))
+    }
+}
+
+final class QuickLookDataSource: NSObject, QLPreviewPanelDataSource, QLPreviewPanelDelegate {
+    private let urls: [URL]
+
+    init(urls: [URL]) {
+        self.urls = urls
+        super.init()
+    }
+
+    nonisolated func numberOfPreviewItems(in _: QLPreviewPanel!) -> Int {
+        urls.count
+    }
+
+    nonisolated func previewPanel(_: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! {
+        guard index >= 0, index < urls.count else { return nil }
+        return urls[index] as QLPreviewItem
+    }
+}

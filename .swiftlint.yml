@@ -1,0 +1,11 @@
+included:
+  - Notchera
+  - NotcheraXPCHelper
+excluded:
+  - mediaremote-adapter
+  - .build
+  - DerivedData
+  - .derived-data
+  - Notchera.xcodeproj
+strict: true
+reporter: "xcode"
