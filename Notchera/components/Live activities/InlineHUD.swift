@@ -18,47 +18,25 @@ struct WingHUDView: View {
         max(0, vm.closedNotchSize.width - 20)
     }
 
-    private var leftWingWidth: CGFloat {
-        let scale: CGFloat = isOpen ? 1.08 : 1.0
-
-        switch type {
-        case .backlight:
-            return max(120, notchHeight * 3.9) * scale
-        case .brightness:
-            return max(112, notchHeight * 3.6) * scale
-        case .volume:
-            return max(106, notchHeight * 3.4) * scale
-        case .mic:
-            return max(94, notchHeight * 3.0) * scale
-        default:
-            return max(106, notchHeight * 3.4) * scale
-        }
-    }
-
-    private var rightWingWidth: CGFloat {
-        let scale: CGFloat = isOpen ? 1.08 : 1.0
-
-        if type == .mic {
-            return max(72, notchHeight * 2.4) * scale
-        }
-
-        return max(144, notchHeight * 4.5) * scale
+    private var wingWidth: CGFloat {
+        let scale: CGFloat = isOpen ? 1.04 : 1.0
+        return 104 * scale
     }
 
     var body: some View {
         HStack(spacing: 0) {
             leftWing
-                .frame(width: leftWingWidth, height: notchHeight, alignment: .leading)
+                .frame(width: wingWidth, height: notchHeight, alignment: .leading)
 
             Rectangle()
                 .fill(.black)
                 .frame(width: centerWidth, height: notchHeight)
 
             rightWing
-                .frame(width: rightWingWidth, height: notchHeight, alignment: .trailing)
+                .frame(width: wingWidth, height: notchHeight, alignment: .trailing)
         }
         .frame(
-            width: leftWingWidth + centerWidth + rightWingWidth,
+            width: wingWidth + centerWidth + wingWidth,
             height: notchHeight,
             alignment: .center
         )
@@ -69,20 +47,24 @@ struct WingHUDView: View {
     }
 
     private var leftWing: some View {
-        HStack(spacing: 8) {
-            hudIcon
-                .frame(width: 18, height: 18)
-                .contentTransition(.interpolate)
-                .animation(.smooth(duration: 0.18), value: hudIconKey)
+        HStack(spacing: 5) {
+            ZStack {
+                hudIcon
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    .id(hudIconKey)
+            }
+            .frame(width: 18, height: 18)
+            .animation(.smooth(duration: 0.14), value: hudIconKey)
 
             Text(title)
-                .font(.subheadline)
+                .font(.footnote)
                 .fontWeight(.medium)
                 .lineLimit(1)
                 .allowsTightening(true)
+                .minimumScaleFactor(0.8)
         }
-        .padding(.leading, 8)
-        .padding(.trailing, 10)
+        .padding(.leading, 6)
+        .padding(.trailing, 6)
     }
 
     @ViewBuilder
@@ -95,9 +77,9 @@ struct WingHUDView: View {
                 .lineLimit(1)
                 .monospacedDigit()
                 .frame(width: 24, alignment: .trailing)
-                .padding(.trailing, 8)
+                .padding(.trailing, 6)
         } else {
-            HStack(spacing: 8) {
+            HStack(spacing: 3) {
                 DraggableProgressBar(value: $value, onChange: setSystemValue)
 
                 Text(displayValue)
@@ -108,8 +90,8 @@ struct WingHUDView: View {
                     .monospacedDigit()
                     .frame(width: 24, alignment: .trailing)
             }
-            .padding(.leading, 10)
-            .padding(.trailing, 8)
+            .padding(.leading, 6)
+            .padding(.trailing, 6)
         }
     }
 
