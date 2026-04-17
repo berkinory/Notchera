@@ -302,6 +302,7 @@ struct HUD: View {
     @Default(.enableGradient) var enableGradient
     @Default(.optionKeyAction) var optionKeyAction
     @Default(.hudReplacement) var hudReplacement
+    @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @State private var accessibilityAuthorized = false
 
@@ -372,6 +373,20 @@ struct HUD: View {
                     Text("Open Notch")
                     customBadge(text: "Beta")
                 }
+            }
+            .disabled(!hudReplacement)
+
+            Section {
+                Defaults.Toggle(key: .enableScreenRecordingDetection) {
+                    Text("Show screen recording status")
+                }
+
+                Text("Uses private CoreGraphics APIs. If macOS breaks it, detection will silently stop working.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                Text("Screen Recording")
             }
             .disabled(!hudReplacement)
         }

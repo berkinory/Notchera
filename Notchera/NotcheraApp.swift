@@ -61,6 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:]
     private var windowVisibilityObservers: [String: AnyCancellable] = [:]
+    private var appCancellables: Set<AnyCancellable> = []
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
@@ -80,6 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cleanupDragDetectors()
         cleanupWindows()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
+        ScreenRecordingManager.shared.stopMonitoring()
     }
 
     @MainActor
@@ -370,6 +372,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.onScreenUnlocked(notification)
             }
         }
+
+        if Defaults[.enableScreenRecordingDetection] {
+            ScreenRecordingManager.shared.startMonitoring()
+        }
+
+        Defaults.publisher(.enableScreenRecordingDetection)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { isEnabled in
+                if isEnabled {
+                    ScreenRecordingManager.shared.startMonitoring()
+                } else {
+                    ScreenRecordingManager.shared.stopMonitoring()
+                }
+            }
+            .store(in: &appCancellables)
 
         KeyboardShortcuts.onKeyDown(for: .toggleNotchOpen) { [weak self] in
             Task { [weak self] in

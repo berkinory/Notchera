@@ -103,6 +103,7 @@ extension Defaults.Keys {
     static let enableGradient = Key<Bool>("enableGradient", default: false)
     static let systemEventIndicatorShadow = Key<Bool>("systemEventIndicatorShadow", default: false)
     static let showOpenNotchHUD = Key<Bool>("showOpenNotchHUD", default: true)
+    static let enableScreenRecordingDetection = Key<Bool>("enableScreenRecordingDetection", default: true)
 
     static let optionKeyAction = Key<OptionKeyAction>("optionKeyAction", default: OptionKeyAction.openSettings)
 

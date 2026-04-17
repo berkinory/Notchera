@@ -7,6 +7,7 @@ struct WingHUDView: View {
     @Binding var type: SneakContentType
     @Binding var value: CGFloat
     @Binding var icon: String
+    @Binding var label: String
     let showsPercentage: Bool
     let isOpen: Bool
     let batteryStatusText: String?
@@ -102,14 +103,14 @@ struct WingHUDView: View {
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
-        } else if type == .mic {
-            Text(displayValue)
+        } else if type == .mic || type == .recording {
+            Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.gray)
                 .lineLimit(1)
                 .monospacedDigit()
-                .frame(width: 24, alignment: .trailing)
+                .frame(width: type == .recording ? 44 : 28, alignment: .trailing)
                 .padding(.trailing, 6)
         } else {
             HStack(spacing: 3) {
@@ -147,6 +148,9 @@ struct WingHUDView: View {
         case .mic:
             Image(systemName: "mic")
                 .symbolVariant(clampedValue > 0 ? .none : .slash)
+        case .recording:
+            Image(systemName: "record.circle.fill")
+                .foregroundStyle(.red)
         case .battery:
             Image(systemName: batteryMonoSymbol)
                 .foregroundStyle(.white)
@@ -165,6 +169,8 @@ struct WingHUDView: View {
             "Backlight"
         case .mic:
             "Mic"
+        case .recording:
+            "Screen Record"
         case .battery:
             batteryStatusText ?? "Battery"
         default:
@@ -175,6 +181,17 @@ struct WingHUDView: View {
     private var displayValue: String {
         let index = Int((clampedValue * 100).rounded())
         return Self.displayValues[index]
+    }
+
+    private var statusText: String {
+        switch type {
+        case .mic:
+            clampedValue > 0 ? "On" : "Off"
+        case .recording:
+            label.isEmpty ? "00:00" : label
+        default:
+            displayValue
+        }
     }
 
     private var hudIconKey: String {
@@ -189,6 +206,8 @@ struct WingHUDView: View {
             return clampedValue > 0.5 ? "backlight:max" : "backlight:min"
         case .mic:
             return clampedValue > 0 ? "mic:on" : "mic:off"
+        case .recording:
+            return clampedValue > 0 ? "recording:on" : "recording:off"
         case .battery:
             return "battery:\(batteryMonoSymbol):\(displayValue):\(batteryStatusText ?? "")"
         default:
@@ -249,6 +268,7 @@ struct WingHUDView: View {
         type: .constant(.brightness),
         value: .constant(0.4),
         icon: .constant(""),
+        label: .constant(""),
         showsPercentage: true,
         isOpen: false,
         batteryStatusText: nil,

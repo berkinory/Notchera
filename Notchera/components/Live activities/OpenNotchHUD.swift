@@ -29,6 +29,9 @@ struct OpenNotchHUD: View {
                     Image(systemName: "mic")
                         .symbolVariant(value > 0 ? .none : .slash)
                         .contentTransition(.interpolate)
+                case .recording:
+                    Image(systemName: "record.circle")
+                        .contentTransition(.interpolate)
                 default:
                     EmptyView()
                 }
@@ -37,16 +40,21 @@ struct OpenNotchHUD: View {
             .foregroundStyle(.white)
             .frame(width: 20, alignment: .center)
 
-            if type != .mic {
-                DraggableProgressBar(value: $value, onChange: { newVal in
-                    updateSystemValue(newVal)
-                })
-                .frame(width: 108)
-            } else {
+            if type == .mic {
                 Text(value > 0 ? "Unmuted" : "Muted")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white)
                     .fixedSize()
+            } else if type == .recording {
+                Text(value > 0 ? "Screen Recording" : "Inactive")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .fixedSize()
+            } else {
+                DraggableProgressBar(value: $value, onChange: { newVal in
+                    updateSystemValue(newVal)
+                })
+                .frame(width: 108)
             }
 
         }

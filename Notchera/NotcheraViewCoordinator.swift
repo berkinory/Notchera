@@ -8,6 +8,7 @@ enum SneakContentType {
     case volume
     case backlight
     case mic
+    case recording
     case battery
     case download
 }
@@ -17,6 +18,7 @@ struct HUDState: Equatable {
     var type: SneakContentType = .volume
     var value: CGFloat = 0
     var icon: String = ""
+    var label: String = ""
 }
 
 struct SharedHUDState: Codable {
@@ -195,8 +197,12 @@ class NotcheraViewCoordinator: ObservableObject {
     }
 
     func toggleHUD(
-        status: Bool, type: SneakContentType, duration: TimeInterval = 1.5, value: CGFloat = 0,
-        icon: String = ""
+        status: Bool,
+        type: SneakContentType,
+        duration: TimeInterval = 1.5,
+        value: CGFloat = 0,
+        icon: String = "",
+        label: String = ""
     ) {
         if status, !Defaults[.hudReplacement] {
             return
@@ -209,8 +215,9 @@ class NotcheraViewCoordinator: ObservableObject {
         let nextState = HUDState(
             show: status,
             type: type,
-            value: type == .mic ? (value > 0 ? 1 : 0) : value,
-            icon: icon
+            value: type == .mic || type == .recording ? (value > 0 ? 1 : 0) : value,
+            icon: icon,
+            label: label
         )
 
         if status {
@@ -254,14 +261,14 @@ class NotcheraViewCoordinator: ObservableObject {
 
             let currentHUD = hud
             clearHUDTasks()
-            applyHUDState(HUDState(show: false, type: currentHUD.type, value: currentHUD.value, icon: currentHUD.icon))
+            applyHUDState(HUDState(show: false, type: currentHUD.type, value: currentHUD.value, icon: currentHUD.icon, label: currentHUD.label))
         }
     }
 
     private func applyHUDState(_ state: HUDState) {
         guard hud != state else { return }
 
-        let shouldAnimate = hud.show != state.show || hud.type != state.type || hud.icon != state.icon
+        let shouldAnimate = hud.show != state.show || hud.type != state.type || hud.icon != state.icon || hud.label != state.label
 
         if shouldAnimate {
             withAnimation(.smooth) {
