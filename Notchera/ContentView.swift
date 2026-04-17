@@ -234,6 +234,12 @@ struct ContentView: View {
                                 CompactActivityHost()
                                     .frame(alignment: .center)
                                     .opacity(closedHUDVisible ? 0 : 1)
+                                    .transition(
+                                        .asymmetric(
+                                            insertion: .opacity.animation(.easeOut(duration: 0.12).delay(0.12)),
+                                            removal: .opacity.animation(.easeIn(duration: 0.08))
+                                        )
+                                    )
                             } else {
                                 Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                                     .opacity(closedHUDVisible ? 0 : 1)
@@ -400,7 +406,12 @@ struct ActivityBadgeIcon: View {
 }
 
 struct PrivacyBadgeStack: View {
+    @EnvironmentObject var vm: NotcheraViewModel
     let badges: [PrivacyActivityState.Badge]
+
+    private var badgeVisibility: Double {
+        vm.notchState == .closed ? 1 : 0
+    }
 
     var body: some View {
         HStack(spacing: -3) {
@@ -412,9 +423,15 @@ struct PrivacyBadgeStack: View {
 
                     ActivityBadgeIcon(badge: badge, size: 8)
                 }
+                .opacity(badgeVisibility)
+                .animation(
+                    vm.notchState == .closed
+                        ? .easeOut(duration: 0.1).delay(0.7)
+                        : .easeIn(duration: 0.06),
+                    value: vm.notchState
+                )
                 .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
                 .offset(x: CGFloat(index) * -1)
-                .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
         }
     }
@@ -425,6 +442,10 @@ struct MusicCompactActivityView: View {
     @ObservedObject var musicManager = MusicManager.shared
     let badges: [PrivacyActivityState.Badge]
     let albumArtNamespace: Namespace.ID
+
+    private var badgeVisibility: Double {
+        vm.notchState == .closed ? 1 : 0
+    }
 
     var body: some View {
         HStack {
@@ -445,7 +466,13 @@ struct MusicCompactActivityView: View {
 
                 if let badge = badges.first {
                     ActivityBadgeIcon(badge: badge, size: 8)
-                        .transition(.scale(scale: 0.9).combined(with: .opacity))
+                        .opacity(badgeVisibility)
+                        .animation(
+                            vm.notchState == .closed
+                                ? .easeOut(duration: 0.09).delay(0.24)
+                                : .easeIn(duration: 0.06),
+                            value: vm.notchState
+                        )
                         .offset(x: 1, y: 1)
                 }
             }
