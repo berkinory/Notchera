@@ -786,16 +786,6 @@
         }
       }
     },
-    "Enable blur effect behind album art": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable blur effect behind album art"
-          }
-        }
-      }
-    },
     "Enable notch mirror": {
       "localizations": {
         "en": {

@@ -23,27 +23,8 @@ struct AlbumArtView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            if Defaults[.lightingEffect] {
-                albumArtBackground
-            }
             albumArtButton
         }
-    }
-
-    private var albumArtBackground: some View {
-        Image(nsImage: musicManager.albumArt)
-            .resizable()
-            .clipped()
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened
-                )
-            )
-            .aspectRatio(1, contentMode: .fit)
-            .scaleEffect(x: 1.3, y: 1.4)
-            .rotationEffect(.degrees(92))
-            .blur(radius: 8)
-            .opacity(musicManager.isPlaying ? 0.5 : 0)
     }
 
     private var albumArtButton: some View {
