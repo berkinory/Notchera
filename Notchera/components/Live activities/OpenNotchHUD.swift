@@ -6,7 +6,6 @@ struct OpenNotchHUD: View {
     @Binding var type: SneakContentType
     @Binding var value: CGFloat
     @Binding var icon: String
-    @Default(.showOpenNotchHUDPercentage) var showPercentage
 
     var body: some View {
         HStack(spacing: 8) {
@@ -42,7 +41,7 @@ struct OpenNotchHUD: View {
                 DraggableProgressBar(value: $value, onChange: { newVal in
                     updateSystemValue(newVal)
                 })
-                .frame(width: showPercentage ? 65 : 108)
+                .frame(width: 108)
             } else {
                 Text(value > 0 ? "Unmuted" : "Muted")
                     .font(.system(size: 13, weight: .medium))
@@ -50,13 +49,6 @@ struct OpenNotchHUD: View {
                     .fixedSize()
             }
 
-            if type != .mic, showPercentage {
-                Text("\(Int(value * 100))%")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.gray)
-                    .monospacedDigit()
-                    .frame(width: 35, alignment: .trailing)
-            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)

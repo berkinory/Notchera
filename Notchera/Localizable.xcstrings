@@ -182,16 +182,6 @@
         }
       }
     },
-    "Add new visualizer": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add new visualizer"
-          }
-        }
-      }
-    },
     "Additional features": {
       "localizations": {
         "en": {
@@ -392,16 +382,6 @@
         }
       }
     },
-    "Change media with horizontal gestures": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Change media with horizontal gestures"
-          }
-        }
-      }
-    },
     "Charging": {
       "localizations": {
         "en": {
@@ -492,16 +472,6 @@
         }
       }
     },
-    "Close gesture": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close gesture"
-          }
-        }
-      }
-    },
     "Closed Notch": {
       "localizations": {
         "en": {
@@ -518,16 +488,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Color Presets"
-          }
-        }
-      }
-    },
-    "Colored spectrogram": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Colored spectrogram"
           }
         }
       }
@@ -602,32 +562,12 @@
         }
       }
     },
-    "Custom music live activity animation": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom music live activity animation"
-          }
-        }
-      }
-    },
     "Custom notch size - %.0f": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Custom notch size - %.0f"
-          }
-        }
-      }
-    },
-    "Custom vizualizers (Lottie)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom vizualizers (Lottie)"
           }
         }
       }
@@ -787,32 +727,12 @@
         }
       }
     },
-    "Enable gestures": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable gestures"
-          }
-        }
-      }
-    },
     "Enable glowing effect": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Enable glowing effect"
-          }
-        }
-      }
-    },
-    "Enable haptic feedback": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable haptic feedback"
           }
         }
       }
@@ -908,42 +828,12 @@
         }
       }
     },
-    "Full screen behavior": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Full screen behavior"
-          }
-        }
-      }
-    },
     "General": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "General"
-          }
-        }
-      }
-    },
-    "Gesture control": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesture control"
-          }
-        }
-      }
-    },
-    "Gesture sensitivity": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesture sensitivity"
           }
         }
       }
@@ -994,26 +884,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hide all-day events"
-          }
-        }
-      }
-    },
-    "Hide for all apps": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hide for all apps"
-          }
-        }
-      }
-    },
-    "Hide for media app only": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hide for media app only"
           }
         }
       }
@@ -1125,16 +995,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Layout Preview"
-          }
-        }
-      }
-    },
-    "Lottie JSON URL": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lottie JSON URL"
           }
         }
       }
@@ -1365,36 +1225,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Name"
-          }
-        }
-      }
-    },
-    "Never hide": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Never hide"
-          }
-        }
-      }
-    },
-    "No custom animation available": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No custom animation available"
-          }
-        }
-      }
-    },
-    "No custom visualizer": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No custom visualizer"
           }
         }
       }
@@ -1712,26 +1542,6 @@
         }
       }
     },
-    "selected": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "selected"
-          }
-        }
-      }
-    },
-    "Selected animation": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selected animation"
-          }
-        }
-      }
-    },
     "Settings": {
       "localizations": {
         "en": {
@@ -1762,32 +1572,12 @@
         }
       }
     },
-    "Show battery indicator": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show battery indicator"
-          }
-        }
-      }
-    },
     "Show battery percentage": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Show battery percentage"
-          }
-        }
-      }
-    },
-    "Show cool face animation while inactive": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show cool face animation while inactive"
           }
         }
       }
@@ -1848,16 +1638,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show on all displays"
-          }
-        }
-      }
-    },
-    "Show percentage": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show percentage"
           }
         }
       }
@@ -1994,16 +1774,6 @@
         }
       }
     },
-    "Two-finger swipe up on notch to close, two-finger swipe down on notch to open when **Open notch on hover** option is disabled": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Two-finger swipe up on notch to close, two-finger swipe down on notch to open when **Open notch on hover** option is disabled"
-          }
-        }
-      }
-    },
     "Uninstall": {
       "extractionState": "stale",
       "localizations": {
@@ -2051,16 +1821,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Upgrade to Pro"
-          }
-        }
-      }
-    },
-    "Use music visualizer spectrogram": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use music visualizer spectrogram"
           }
         }
       }

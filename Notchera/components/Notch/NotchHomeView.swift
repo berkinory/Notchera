@@ -118,9 +118,8 @@ struct MusicControlsView: View {
                 $musicManager.artistName,
                 font: .headline,
                 nsFont: .headline,
-                textColor: Defaults[.playerColorTinting]
-                    ? Color(nsColor: musicManager.avgColor)
-                    .ensureMinimumBrightness(factor: 0.6) : .gray,
+                textColor: Color(nsColor: musicManager.avgColor)
+                    .ensureMinimumBrightness(factor: 0.6),
                 frameWidth: width
             )
             .fontWeight(.medium)
@@ -450,8 +449,7 @@ struct MusicSliderView: View {
             }
             .fontWeight(.medium)
             .foregroundColor(
-                Defaults[.playerColorTinting]
-                    ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.6) : .gray
+                Color(nsColor: color).ensureMinimumBrightness(factor: 0.6)
             )
             .font(.caption)
         }

@@ -66,18 +66,16 @@ struct NotcheraHeader: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
-                    if Defaults[.showBatteryIndicator] {
-                        NotcheraBatteryView(
-                            batteryWidth: 30,
-                            isCharging: batteryModel.isCharging,
-                            isInLowPowerMode: batteryModel.isInLowPowerMode,
-                            isPluggedIn: batteryModel.isPluggedIn,
-                            levelBattery: batteryModel.levelBattery,
-                            maxCapacity: batteryModel.maxCapacity,
-                            timeToFullCharge: batteryModel.timeToFullCharge,
-                            isForNotification: false
-                        )
-                    }
+                    NotcheraBatteryView(
+                        batteryWidth: 30,
+                        isCharging: batteryModel.isCharging,
+                        isInLowPowerMode: batteryModel.isInLowPowerMode,
+                        isPluggedIn: batteryModel.isPluggedIn,
+                        levelBattery: batteryModel.levelBattery,
+                        maxCapacity: batteryModel.maxCapacity,
+                        timeToFullCharge: batteryModel.timeToFullCharge,
+                        isForNotification: false
+                    )
                 }
             }
             .font(.system(.headline, design: .rounded))

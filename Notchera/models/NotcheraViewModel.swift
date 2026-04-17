@@ -62,12 +62,6 @@ class NotcheraViewModel: NSObject, ObservableObject {
     }
 
     private func setupDetectorObserver() {
-        let enabledPublisher = Defaults
-            .publisher(.hideNotchOption)
-            .map(\.newValue)
-            .map { $0 != .never }
-            .removeDuplicates()
-
         let screenPublisher = $screenUUID
             .compactMap(\.self)
             .removeDuplicates()
@@ -75,10 +69,9 @@ class NotcheraViewModel: NSObject, ObservableObject {
         let fullscreenStatusPublisher = detector.$fullscreenStatus
             .removeDuplicates()
 
-        Publishers.CombineLatest3(screenPublisher, fullscreenStatusPublisher, enabledPublisher)
-            .map { screenUUID, fullscreenStatus, enabled in
-                let isFullscreen = fullscreenStatus[screenUUID] ?? false
-                return enabled && isFullscreen
+        Publishers.CombineLatest(screenPublisher, fullscreenStatusPublisher)
+            .map { screenUUID, fullscreenStatus in
+                fullscreenStatus[screenUUID] ?? false
             }
             .removeDuplicates()
             .receive(on: RunLoop.main)
