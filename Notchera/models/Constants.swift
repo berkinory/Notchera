@@ -74,10 +74,7 @@ extension Defaults.Keys {
     static let settingsIconInNotch = Key<Bool>("settingsIconInNotch", default: true)
 
     static let tileShowLabels = Key<Bool>("tileShowLabels", default: false)
-    static let sliderColor = Key<SliderColorEnum>(
-        "sliderUseAlbumArtColor",
-        default: SliderColorEnum.white
-    )
+    static let matchAlbumArtColor = Key<Bool>("sliderUseAlbumArtColor", default: false)
     static let waitInterval = Key<Double>("waitInterval", default: 3)
     static let enableLyrics = Key<Bool>("enableLyrics", default: false)
     static let musicControlSlots = Key<[MusicControlButton]>(

@@ -118,8 +118,9 @@ struct MusicControlsView: View {
                 $musicManager.artistName,
                 font: .headline,
                 nsFont: .headline,
-                textColor: Color(nsColor: musicManager.avgColor)
-                    .ensureMinimumBrightness(factor: 0.6),
+                textColor: Defaults[.matchAlbumArtColor]
+                    ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
+                    : .gray,
                 frameWidth: width
             )
             .fontWeight(.medium)
@@ -433,9 +434,7 @@ struct MusicSliderView: View {
             CustomSlider(
                 value: $sliderValue,
                 range: 0 ... duration,
-                color: Defaults[.sliderColor] == SliderColorEnum.albumArt
-                    ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.8)
-                    : .white,
+                color: .white,
                 dragging: $dragging,
                 lastDragged: $lastDragged,
                 onValueChange: onValueChange
@@ -448,9 +447,7 @@ struct MusicSliderView: View {
                 Text(timeString(from: duration))
             }
             .fontWeight(.medium)
-            .foregroundColor(
-                Color(nsColor: color).ensureMinimumBrightness(factor: 0.6)
-            )
+            .foregroundColor(.gray)
             .font(.caption)
         }
         .onChange(of: currentDate) {

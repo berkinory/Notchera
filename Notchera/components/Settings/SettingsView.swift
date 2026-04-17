@@ -677,7 +677,6 @@ struct Shelf: View {
 struct Appearance: View {
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
-    @Default(.sliderColor) var sliderColor
 
     var body: some View {
         Form {
@@ -692,10 +691,8 @@ struct Appearance: View {
             }
 
             Section {
-                Picker("Slider color", selection: $sliderColor) {
-                    ForEach(SliderColorEnum.allCases, id: \.self) { option in
-                        Text(option.rawValue)
-                    }
+                Defaults.Toggle(key: .matchAlbumArtColor) {
+                    Text("Match album art color")
                 }
             } header: {
                 Text("Media")

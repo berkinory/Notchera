@@ -1672,12 +1672,12 @@
         }
       }
     },
-    "Slider color": {
+    "Match album art color": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Slider color"
+            "value": "Match album art color"
           }
         }
       }

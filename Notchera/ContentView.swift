@@ -326,7 +326,11 @@ struct ContentView: View {
 
             HStack {
                 Rectangle()
-                    .fill(Color(nsColor: musicManager.avgColor).gradient)
+                    .fill(
+                        Defaults[.matchAlbumArtColor]
+                            ? Color(nsColor: musicManager.avgColor).gradient
+                            : Color.white.gradient
+                    )
                     .frame(width: 50, alignment: .center)
                     .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
                     .mask {
