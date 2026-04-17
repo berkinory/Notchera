@@ -9,6 +9,10 @@ struct WingHUDView: View {
     @Binding var icon: String
     let showsPercentage: Bool
     let isOpen: Bool
+    let batteryStatusText: String?
+    let batteryIsCharging: Bool
+    let batteryIsPluggedIn: Bool
+    let batteryIsInLowPowerMode: Bool
 
     private var notchHeight: CGFloat {
         max(24, vm.effectiveClosedNotchHeight)
@@ -69,7 +73,30 @@ struct WingHUDView: View {
 
     @ViewBuilder
     private var rightWing: some View {
-        if type == .mic {
+        if type == .battery {
+            HStack(spacing: 6) {
+                BatteryView(
+                    levelBattery: Float(clampedValue * 100),
+                    isPluggedIn: batteryIsPluggedIn,
+                    isCharging: batteryIsCharging,
+                    isInLowPowerMode: batteryIsInLowPowerMode,
+                    batteryWidth: 30,
+                    isForNotification: true
+                )
+                .scaleEffect(0.78)
+                .frame(width: 20, height: 14)
+
+                Text(displayValue)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.gray)
+                    .lineLimit(1)
+                    .monospacedDigit()
+                    .frame(width: 24, alignment: .trailing)
+            }
+            .padding(.leading, 6)
+            .padding(.trailing, 6)
+        } else if type == .mic {
             Text(displayValue)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -101,19 +128,22 @@ struct WingHUDView: View {
         case .volume:
             if icon.isEmpty {
                 Image(systemName: speakerSymbol)
-                    .symbolVariant(value > 0 ? .none : .slash)
+                    .symbolVariant(clampedValue > 0 ? .none : .slash)
             } else {
                 Image(systemName: icon)
-                    .opacity(value.isZero ? 0.6 : 1)
-                    .scaleEffect(value.isZero ? 0.85 : 1)
+                    .opacity(clampedValue.isZero ? 0.6 : 1)
+                    .scaleEffect(clampedValue.isZero ? 0.85 : 1)
             }
         case .brightness:
             Image(systemName: brightnessSymbol)
         case .backlight:
-            Image(systemName: value > 0.5 ? "light.max" : "light.min")
+            Image(systemName: clampedValue > 0.5 ? "light.max" : "light.min")
         case .mic:
             Image(systemName: "mic")
-                .symbolVariant(value > 0 ? .none : .slash)
+                .symbolVariant(clampedValue > 0 ? .none : .slash)
+        case .battery:
+            Image(systemName: batteryMonoSymbol)
+                .foregroundStyle(.white)
         default:
             EmptyView()
         }
@@ -129,13 +159,15 @@ struct WingHUDView: View {
             "Backlight"
         case .mic:
             "Mic"
+        case .battery:
+            batteryStatusText ?? "Battery"
         default:
             ""
         }
     }
 
     private var displayValue: String {
-        let index = Int((max(0, min(value, 1)) * 100).rounded())
+        let index = Int((clampedValue * 100).rounded())
         return Self.displayValues[index]
     }
 
@@ -143,21 +175,27 @@ struct WingHUDView: View {
         switch type {
         case .volume:
             return icon.isEmpty
-                ? "volume:\(speakerSymbol):\(value > 0 ? 1 : 0)"
-                : "volume-custom:\(icon):\(value > 0 ? 1 : 0)"
+                ? "volume:\(speakerSymbol):\(clampedValue > 0 ? 1 : 0)"
+                : "volume-custom:\(icon):\(clampedValue > 0 ? 1 : 0)"
         case .brightness:
             return "brightness:\(brightnessSymbol)"
         case .backlight:
-            return value > 0.5 ? "backlight:max" : "backlight:min"
+            return clampedValue > 0.5 ? "backlight:max" : "backlight:min"
         case .mic:
-            return value > 0 ? "mic:on" : "mic:off"
+            return clampedValue > 0 ? "mic:on" : "mic:off"
+        case .battery:
+            return "battery:\(batteryMonoSymbol):\(displayValue):\(batteryStatusText ?? "")"
         default:
             return ""
         }
     }
 
+    private var clampedValue: CGFloat {
+        max(0, min(value, 1))
+    }
+
     private var speakerSymbol: String {
-        switch value {
+        switch clampedValue {
         case 0:
             "speaker"
         case 0 ... 0.3:
@@ -172,7 +210,7 @@ struct WingHUDView: View {
     }
 
     private var brightnessSymbol: String {
-        switch value {
+        switch clampedValue {
         case 0 ... 0.6:
             "sun.min"
         case 0.6 ... 1:
@@ -180,6 +218,10 @@ struct WingHUDView: View {
         default:
             "sun.min"
         }
+    }
+
+    private var batteryMonoSymbol: String {
+        "battery.100"
     }
 
     private func setSystemValue(_ newValue: CGFloat) {
@@ -202,7 +244,11 @@ struct WingHUDView: View {
         value: .constant(0.4),
         icon: .constant(""),
         showsPercentage: true,
-        isOpen: false
+        isOpen: false,
+        batteryStatusText: nil,
+        batteryIsCharging: false,
+        batteryIsPluggedIn: false,
+        batteryIsInLowPowerMode: false
     )
     .padding(.horizontal, 8)
     .background(Color.black)

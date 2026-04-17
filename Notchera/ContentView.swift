@@ -206,29 +206,18 @@ struct ContentView: View {
                     if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
                        vm.notchState == .closed, Defaults[.showPowerStatusNotifications]
                     {
-                        HStack(spacing: 0) {
-                            HStack {
-                                Text(batteryModel.statusText)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.white)
-                            }
-
-                            Rectangle()
-                                .fill(.black)
-                                .frame(width: vm.closedNotchSize.width + 10)
-
-                            HStack {
-                                NotcheraBatteryView(
-                                    batteryWidth: 30,
-                                    isCharging: batteryModel.isCharging,
-                                    isInLowPowerMode: batteryModel.isInLowPowerMode,
-                                    isPluggedIn: batteryModel.isPluggedIn,
-                                    levelBattery: batteryModel.levelBattery,
-                                    isForNotification: true
-                                )
-                            }
-                            .frame(width: 76, alignment: .trailing)
-                        }
+                        WingHUDView(
+                            type: .constant(.battery),
+                            value: .constant(CGFloat(batteryModel.levelBattery / 100)),
+                            icon: .constant(""),
+                            showsPercentage: true,
+                            isOpen: false,
+                            batteryStatusText: batteryModel.statusText,
+                            batteryIsCharging: batteryModel.isCharging,
+                            batteryIsPluggedIn: batteryModel.isPluggedIn,
+                            batteryIsInLowPowerMode: batteryModel.isInLowPowerMode
+                        )
+                        .fixedSize()
                         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
                     } else if vm.notchState == .closed {
                         ZStack {
@@ -247,7 +236,11 @@ struct ContentView: View {
                                     value: $coordinator.hud.value,
                                     icon: $coordinator.hud.icon,
                                     showsPercentage: false,
-                                    isOpen: false
+                                    isOpen: false,
+                                    batteryStatusText: nil,
+                                    batteryIsCharging: false,
+                                    batteryIsPluggedIn: false,
+                                    batteryIsInLowPowerMode: false
                                 )
                                 .fixedSize()
                                 .transition(.opacity)
@@ -260,7 +253,11 @@ struct ContentView: View {
                                 value: $coordinator.hud.value,
                                 icon: $coordinator.hud.icon,
                                 showsPercentage: false,
-                                isOpen: true
+                                isOpen: true,
+                                batteryStatusText: nil,
+                                batteryIsCharging: false,
+                                batteryIsPluggedIn: false,
+                                batteryIsInLowPowerMode: false
                             )
                             .fixedSize()
                             .frame(height: max(24, vm.effectiveClosedNotchHeight))

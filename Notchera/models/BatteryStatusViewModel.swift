@@ -6,7 +6,6 @@ import SwiftUI
 
 /// A view model that manages and monitors the battery status of the device
 class BatteryStatusViewModel: ObservableObject {
-    private var wasCharging: Bool = false
     private var powerSourceChangedCallback: IOPowerSourceCallbackType?
     private var runLoopSource: Unmanaged<CFRunLoopSource>?
 
@@ -23,6 +22,8 @@ class BatteryStatusViewModel: ObservableObject {
 
     private let managerBattery = BatteryActivityManager.shared
     private var managerBatteryId: Int?
+    private var didNotifyLowBatteryAt20 = false
+    private var didNotifyFullChargeWhilePlugged = false
 
     static let shared = BatteryStatusViewModel()
 
@@ -55,35 +56,36 @@ class BatteryStatusViewModel: ObservableObject {
             print("🔌 Power source: \(isPluggedIn ? "Connected" : "Disconnected")")
             withAnimation {
                 self.isPluggedIn = isPluggedIn
-                self.statusText = isPluggedIn ? "Plugged In" : "Unplugged"
-                self.notifyImportanChangeStatus()
+                self.statusText = isPluggedIn ? "Charging" : "Charger Unplugged"
             }
+
+            if isPluggedIn {
+                didNotifyLowBatteryAt20 = false
+            } else {
+                didNotifyFullChargeWhilePlugged = false
+            }
+
+            self.notifyImportanChangeStatus()
 
         case let .batteryLevelChanged(level):
             print("🔋 Battery level: \(Int(level))%")
             withAnimation {
                 self.levelBattery = level
             }
+            self.handleBatteryThresholdNotifications(level: level)
 
         case let .lowPowerModeChanged(isEnabled):
             print("⚡ Low power mode: \(isEnabled ? "Enabled" : "Disabled")")
-            notifyImportanChangeStatus()
             withAnimation {
                 self.isInLowPowerMode = isEnabled
-                self.statusText = "Low Power: \(self.isInLowPowerMode ? "On" : "Off")"
+                self.statusText = isEnabled ? "Low Power On" : "Low Power Off"
             }
+            self.notifyImportanChangeStatus()
 
         case let .isChargingChanged(isCharging):
             print("🔌 Charging: \(isCharging ? "Yes" : "No")")
-            print("maxCapacity: \(maxCapacity)")
-            print("levelBattery: \(levelBattery)")
-            notifyImportanChangeStatus()
             withAnimation {
                 self.isCharging = isCharging
-                self.statusText =
-                    isCharging
-                        ? "Charging battery"
-                        : (self.levelBattery < self.maxCapacity ? "Not charging" : "Full charge")
             }
 
         case let .timeToFullChargeChanged(time):
@@ -115,9 +117,35 @@ class BatteryStatusViewModel: ObservableObject {
             self.maxCapacity = batteryInfo.maxCapacity
             self.statusText = batteryInfo.isPluggedIn ? "Plugged In" : "Unplugged"
         }
+
+        didNotifyLowBatteryAt20 = batteryInfo.isPluggedIn || batteryInfo.currentCapacity <= 20
+        didNotifyFullChargeWhilePlugged = batteryInfo.isPluggedIn && batteryInfo.currentCapacity >= 100
     }
 
 
+
+    private func handleBatteryThresholdNotifications(level: Float) {
+        if !isPluggedIn {
+            if level <= 20, !didNotifyLowBatteryAt20 {
+                didNotifyLowBatteryAt20 = true
+                statusText = "Low Battery"
+                notifyImportanChangeStatus()
+            } else if level > 20 {
+                didNotifyLowBatteryAt20 = false
+            }
+
+            didNotifyFullChargeWhilePlugged = false
+            return
+        }
+
+        if level >= 100, !didNotifyFullChargeWhilePlugged {
+            didNotifyFullChargeWhilePlugged = true
+            statusText = "Fully Charged"
+            notifyImportanChangeStatus()
+        } else if level < 100 {
+            didNotifyFullChargeWhilePlugged = false
+        }
+    }
 
     private func notifyImportanChangeStatus(delay: Double = 0.0) {
         Task {

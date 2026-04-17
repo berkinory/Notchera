@@ -27,12 +27,14 @@ struct BatteryView: View {
     var batteryColor: Color {
         if isInLowPowerMode {
             .yellow
-        } else if levelBattery <= 20 && !isCharging && !isPluggedIn {
-            .red
-        } else if isCharging || isPluggedIn || levelBattery == 100 {
+        } else if isCharging || isPluggedIn {
             .green
+        } else if levelBattery < 10 {
+            .red
+        } else if levelBattery < 20 {
+            .yellow
         } else {
-            .white
+            .green
         }
     }
 

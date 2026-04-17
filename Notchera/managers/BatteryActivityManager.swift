@@ -16,8 +16,6 @@ class BatteryActivityManager {
     private var batterySource: CFRunLoopSource?
     private var observers: [(BatteryEvent) -> Void] = []
     private var previousBatteryInfo: BatteryInfo?
-    private var notificationQueue: [BatteryEvent] = []
-    private var isProcessingNotifications = false
 
     enum BatteryEvent {
         case powerSourceChanged(isPluggedIn: Bool)
@@ -162,27 +160,7 @@ class BatteryActivityManager {
 
 
     private func enqueueNotification(_ event: BatteryEvent) {
-        notificationQueue.append(event)
-        processNextNotification()
-    }
-
-
-
-
-    private func processNextNotification() {
-        guard !isProcessingNotifications, !notificationQueue.isEmpty else { return }
-        isProcessingNotifications = true
-
-        let event = notificationQueue.removeFirst()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self else { return }
-            notifyObservers(event: event)
-            isProcessingNotifications = false
-
-            if !notificationQueue.isEmpty {
-                processNextNotification()
-            }
-        }
+        notifyObservers(event: event)
     }
 
 
