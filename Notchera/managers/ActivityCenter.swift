@@ -56,19 +56,37 @@ final class ActivityCenter: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     private init() {
-        ScreenRecordingManager.shared.$isRecording
-            .receive(on: RunLoop.main)
-            .sink { [weak self] isRecording in
-                self?.applyRecordingState(isRecording)
-            }
-            .store(in: &cancellables)
+        Publishers.CombineLatest3(
+            ScreenRecordingManager.shared.$isRecording,
+            CameraActivityManager.shared.$isActive,
+            MicrophoneActivityManager.shared.$isActive
+        )
+        .receive(on: RunLoop.main)
+        .sink { [weak self] isRecording, isCameraActive, isMicrophoneActive in
+            self?.applyPrivacyState(
+                isRecording: isRecording,
+                isCameraActive: isCameraActive,
+                isMicrophoneActive: isMicrophoneActive
+            )
+        }
+        .store(in: &cancellables)
     }
 
-    private func applyRecordingState(_ isRecording: Bool) {
+    private func applyPrivacyState(
+        isRecording: Bool,
+        isCameraActive: Bool,
+        isMicrophoneActive: Bool
+    ) {
         var nextBadges: [PrivacyActivityState.Badge] = []
 
         if isRecording {
             nextBadges.append(.init(kind: .recording))
+        }
+
+        if isCameraActive {
+            nextBadges.append(.init(kind: .camera))
+        } else if isMicrophoneActive {
+            nextBadges.append(.init(kind: .microphone))
         }
 
         withAnimation(.interactiveSpring(response: 0.42, dampingFraction: 0.82, blendDuration: 0)) {

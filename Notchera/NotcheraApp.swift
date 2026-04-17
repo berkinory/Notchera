@@ -82,6 +82,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cleanupWindows()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         ScreenRecordingManager.shared.stopMonitoring()
+        CameraActivityManager.shared.stopMonitoring()
+        MicrophoneActivityManager.shared.stopMonitoring()
     }
 
     @MainActor
@@ -372,6 +374,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.onScreenUnlocked(notification)
             }
         }
+
+        CameraActivityManager.shared.startMonitoring()
+        MicrophoneActivityManager.shared.startMonitoring()
 
         if Defaults[.enableScreenRecordingDetection] {
             ScreenRecordingManager.shared.startMonitoring()

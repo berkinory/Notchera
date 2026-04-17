@@ -309,8 +309,8 @@ struct ContentView: View {
     func CompactActivityHost() -> some View {
         if musicManager.isPlaying || !musicManager.isPlayerIdle {
             MusicCompactActivityView(badges: activityCenter.privacyState.badges, albumArtNamespace: albumArtNamespace)
-        } else if let badge = activityCenter.privacyState.primaryBadge {
-            PrivacyCompactActivityView(badge: badge)
+        } else if activityCenter.privacyState.isActive {
+            PrivacyCompactActivityView(badges: activityCenter.privacyState.badges)
         }
     }
 
@@ -385,9 +385,17 @@ struct ActivityBadgeIcon: View {
     let size: CGFloat
 
     var body: some View {
-        Image(systemName: badge.symbol)
-            .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(badge.tint)
+        if badge.kind == .recording {
+            Image(systemName: "record.circle")
+                .font(.system(size: size, weight: .bold))
+                .foregroundStyle(.red)
+                .symbolRenderingMode(.monochrome)
+        } else {
+            Image(systemName: badge.symbol)
+                .font(.system(size: size, weight: .semibold))
+                .foregroundStyle(badge.tint)
+                .symbolRenderingMode(.hierarchical)
+        }
     }
 }
 
@@ -399,11 +407,12 @@ struct PrivacyBadgeStack: View {
             ForEach(Array(badges.prefix(3).enumerated()), id: \.element.id) { index, badge in
                 ZStack {
                     Circle()
-                        .fill(.black)
-                        .frame(width: 10, height: 10)
+                        .fill(Color.black.opacity(0.9))
+                        .frame(width: 11, height: 11)
 
                     ActivityBadgeIcon(badge: badge, size: 8)
                 }
+                .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
                 .offset(x: CGFloat(index) * -1)
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
@@ -434,8 +443,9 @@ struct MusicCompactActivityView: View {
                         height: max(0, vm.effectiveClosedNotchHeight - 12)
                     )
 
-                if !badges.isEmpty {
-                    PrivacyBadgeStack(badges: badges)
+                if let badge = badges.first {
+                    ActivityBadgeIcon(badge: badge, size: 8)
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
                         .offset(x: 1, y: 1)
                 }
             }
@@ -473,25 +483,29 @@ struct MusicCompactActivityView: View {
 
 struct PrivacyCompactActivityView: View {
     @EnvironmentObject var vm: NotcheraViewModel
-    let badge: PrivacyActivityState.Badge
+    let badges: [PrivacyActivityState.Badge]
+    @State private var pulse = false
+
+    private var primaryBadge: PrivacyActivityState.Badge? {
+        badges.first
+    }
+
+    private var secondaryBadges: [PrivacyActivityState.Badge] {
+        Array(badges.dropFirst().prefix(2))
+    }
 
     var body: some View {
         HStack {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [badge.tint.opacity(0.32), badge.tint.opacity(0.12), .clear],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 14
-                        )
-                    )
-                    .frame(width: 24, height: 24)
-                    .blur(radius: 1.5)
+            ZStack(alignment: .bottomTrailing) {
+                if let primaryBadge {
+                    primaryIcon(for: primaryBadge)
+                }
 
-                ActivityBadgeIcon(badge: badge, size: 18)
-                    .symbolRenderingMode(.hierarchical)
+                if !secondaryBadges.isEmpty {
+                    PrivacyBadgeStack(badges: secondaryBadges)
+                        .scaleEffect(0.9)
+                        .offset(x: 2, y: 2)
+                }
             }
             .transition(.scale(scale: 0.92).combined(with: .opacity))
             .frame(
@@ -516,6 +530,42 @@ struct PrivacyCompactActivityView: View {
         }
         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
         .contentTransition(.symbolEffect(.replace))
+        .onAppear {
+            pulse = true
+        }
+    }
+
+    @ViewBuilder
+    private func primaryIcon(for badge: PrivacyActivityState.Badge) -> some View {
+        switch badge.kind {
+        case .recording:
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.red.opacity(0.44), Color.red.opacity(0.16), .clear],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 15
+                        )
+                    )
+                    .frame(width: 26, height: 26)
+                    .blur(radius: 2.2)
+
+                ActivityBadgeIcon(badge: badge, size: 16)
+                    .symbolRenderingMode(.hierarchical)
+            }
+        case .camera:
+            ActivityBadgeIcon(badge: badge, size: 15)
+                .scaleEffect(pulse ? 1.07 : 0.95)
+                .shadow(color: Color.green.opacity(pulse ? 0.32 : 0.12), radius: 5)
+                .animation(.easeInOut(duration: 1.25).repeatForever(autoreverses: true), value: pulse)
+        case .microphone:
+            ActivityBadgeIcon(badge: badge, size: 15)
+                .scaleEffect(pulse ? 1.08 : 0.95)
+                .shadow(color: Color.yellow.opacity(pulse ? 0.28 : 0.1), radius: 5)
+                .animation(.easeInOut(duration: 1.15).repeatForever(autoreverses: true), value: pulse)
+        }
     }
 }
 
