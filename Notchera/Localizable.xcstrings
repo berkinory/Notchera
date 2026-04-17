@@ -1108,16 +1108,6 @@
         }
       }
     },
-    "HUD style": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HUD style"
-          }
-        }
-      }
-    },
     "HUDs": {
       "localizations": {
         "en": {

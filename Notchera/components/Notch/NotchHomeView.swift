@@ -11,7 +11,7 @@ struct MusicPlayerView: View {
     var body: some View {
         HStack {
             AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace).padding(.all, 5)
-            MusicControlsView().drawingGroup().compositingGroup()
+            MusicControlsView()
         }
     }
 }
@@ -42,7 +42,7 @@ struct AlbumArtView: View {
             .aspectRatio(1, contentMode: .fit)
             .scaleEffect(x: 1.3, y: 1.4)
             .rotationEffect(.degrees(92))
-            .blur(radius: 40)
+            .blur(radius: 8)
             .opacity(musicManager.isPlaying ? 0.5 : 0)
     }
 
@@ -68,7 +68,7 @@ struct AlbumArtView: View {
             .aspectRatio(1, contentMode: .fit)
             .foregroundColor(Color.black)
             .opacity(musicManager.isPlaying ? 0 : 0.8)
-            .blur(radius: 50)
+            .blur(radius: 8)
     }
 
     private var albumArtImage: some View {
@@ -426,12 +426,12 @@ struct NotchHomeView: View {
                 CameraPreviewView(webcamManager: webcamManager)
                     .scaledToFit()
                     .opacity(vm.notchState == .closed ? 0 : 1)
-                    .blur(radius: vm.notchState == .closed ? 20 : 0)
+                    .blur(radius: vm.notchState == .closed ? 2 : 0)
                     .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.76, blendDuration: 0), value: shouldShowCamera)
             }
         }
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
-        .blur(radius: vm.notchState == .closed ? 30 : 0)
+        .blur(radius: vm.notchState == .closed ? 2 : 0)
     }
 }
 

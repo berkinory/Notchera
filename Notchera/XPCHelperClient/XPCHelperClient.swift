@@ -107,9 +107,19 @@ final class XPCHelperClient: NSObject {
     }
 
     nonisolated func requestAccessibilityAuthorization() {
-        let granted = currentProcessAccessibilityAuthorized(promptIfNeeded: true)
         Task { @MainActor in
+            NSApp.activate(ignoringOtherApps: true)
+
+            let granted = currentProcessAccessibilityAuthorized(promptIfNeeded: true)
             notifyAuthorizationChange(granted)
+
+            if !granted,
+               let settingsURL = URL(
+                   string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+               )
+            {
+                NSWorkspace.shared.open(settingsURL)
+            }
         }
     }
 
@@ -136,6 +146,10 @@ final class XPCHelperClient: NSObject {
             return false
         }
 
+        await MainActor.run {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+
         _ = currentProcessAccessibilityAuthorized(promptIfNeeded: true)
 
         for _ in 0 ..< 40 {
@@ -152,6 +166,12 @@ final class XPCHelperClient: NSObject {
 
         await MainActor.run {
             notifyAuthorizationChange(false)
+
+            if let settingsURL = URL(
+                string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+            ) {
+                NSWorkspace.shared.open(settingsURL)
+            }
         }
         return false
     }

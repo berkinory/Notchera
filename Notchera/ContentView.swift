@@ -100,8 +100,8 @@ struct ContentView: View {
                     }
                     .shadow(
                         color: (vm.notchState == .open || isHovering)
-                            ? .black.opacity(0.7) : .clear,
-                        radius: 6
+                            ? .black.opacity(0.4) : .clear,
+                        radius: 1
                     )
                     .padding(
                         .bottom,
@@ -190,7 +190,6 @@ struct ContentView: View {
         }
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
-        .compositingGroup()
         .scaleEffect(
             x: gestureScale,
             y: gestureScale,
@@ -269,42 +268,40 @@ struct ContentView: View {
                             .frame(width: 76, alignment: .trailing)
                         }
                         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
-                    } else if coordinator.hud.show, Defaults[.inlineHUD], coordinator.hud.type != .battery, vm.notchState == .closed {
-                        InlineHUD(type: $coordinator.hud.type, value: $coordinator.hud.value, icon: $coordinator.hud.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
-                            .transition(.opacity)
+                    } else if coordinator.hud.show, coordinator.hud.type != .battery, vm.notchState == .closed {
+                        WingHUDView(
+                            type: $coordinator.hud.type,
+                            value: $coordinator.hud.value,
+                            icon: $coordinator.hud.icon,
+                            showsPercentage: Defaults[.showClosedNotchHUDPercentage],
+                            isOpen: false
+                        )
+                        .transition(.opacity)
                     } else if !coordinator.expandingView.show, vm.notchState == .closed, musicManager.isPlaying || !musicManager.isPlayerIdle, coordinator.musicLiveActivityEnabled, !vm.hideOnClosed {
                         MusicLiveActivity()
                             .frame(alignment: .center)
                     } else if !coordinator.expandingView.show, vm.notchState == .closed, !musicManager.isPlaying, musicManager.isPlayerIdle, Defaults[.showNotHumanFace], !vm.hideOnClosed {
                         NotcheraFaceAnimation()
                     } else if vm.notchState == .open {
-                        NotcheraHeader()
+                        if coordinator.hud.show, coordinator.hud.type != .battery, Defaults[.showOpenNotchHUD] {
+                            WingHUDView(
+                                type: $coordinator.hud.type,
+                                value: $coordinator.hud.value,
+                                icon: $coordinator.hud.icon,
+                                showsPercentage: Defaults[.showOpenNotchHUDPercentage],
+                                isOpen: true
+                            )
                             .frame(height: max(24, vm.effectiveClosedNotchHeight))
-                            .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
+                            .transition(.opacity)
+                        } else {
+                            NotcheraHeader()
+                                .frame(height: max(24, vm.effectiveClosedNotchHeight))
+                                .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
+                        }
                     } else {
                         Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                     }
 
-                    if coordinator.hud.show, coordinator.hud.type != .battery, !Defaults[.inlineHUD], vm.notchState == .closed {
-                        SystemEventIndicatorModifier(
-                            eventType: $coordinator.hud.type,
-                            value: $coordinator.hud.value,
-                            icon: $coordinator.hud.icon,
-                            sendEventBack: { newVal in
-                                switch coordinator.hud.type {
-                                case .volume:
-                                    VolumeManager.shared.setAbsolute(Float32(newVal))
-                                case .brightness:
-                                    BrightnessManager.shared.setAbsolute(value: Float32(newVal))
-                                default:
-                                    break
-                                }
-                            }
-                        )
-                        .padding(.bottom, 10)
-                        .padding(.leading, 4)
-                        .padding(.trailing, 8)
-                    }
                 }
             }
             .conditionalModifier(coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed) { view in

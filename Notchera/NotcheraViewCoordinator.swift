@@ -12,7 +12,7 @@ enum SneakContentType {
     case download
 }
 
-struct HUDState {
+struct HUDState: Equatable {
     var show: Bool = false
     var type: SneakContentType = .volume
     var value: CGFloat = 0
@@ -44,7 +44,10 @@ class NotcheraViewCoordinator: ObservableObject {
 
     @Published var currentView: NotchViews = .home
     @Published var helloAnimationRunning: Bool = false
+    private let hudHidePollInterval: Duration = .milliseconds(100)
     private var hudEnableTask: Task<Void, Never>?
+    private var hudHideTask: Task<Void, Never>?
+    private var hudHideDeadline: Date = .distantPast
 
     @AppStorage("firstLaunch") var firstLaunch: Bool = true
     @AppStorage("showWhatsNew") var showWhatsNew: Bool = true
@@ -142,6 +145,7 @@ class NotcheraViewCoordinator: ObservableObject {
                         }
                     } else {
                         MediaKeyInterceptor.shared.stop()
+                        self.clearHUDState()
                     }
                 }
             }
@@ -198,49 +202,85 @@ class NotcheraViewCoordinator: ObservableObject {
             return
         }
 
-        hudDuration = duration
-        Task { @MainActor in
-            withAnimation(.smooth) {
-                self.hud.show = status
-                self.hud.type = type
-                self.hud.value = value
-                self.hud.icon = icon
-            }
-        }
-
         if type == .mic {
             currentMicStatus = value == 1
         }
+
+        let nextState = HUDState(
+            show: status,
+            type: type,
+            value: type == .mic ? (value > 0 ? 1 : 0) : value,
+            icon: icon
+        )
+
+        if status {
+            if hud == nextState {
+                hudHideDeadline = Date().addingTimeInterval(duration)
+                scheduleHUDHideIfNeeded()
+                return
+            }
+
+            hudHideDeadline = Date().addingTimeInterval(duration)
+            applyHUDState(nextState)
+            scheduleHUDHideIfNeeded()
+            return
+        }
+
+        clearHUDTasks()
+        applyHUDState(nextState)
     }
 
-    private var hudDuration: TimeInterval = 1.5
-    private var hudTask: Task<Void, Never>?
+    @Published var hud: HUDState = .init()
 
+    private func scheduleHUDHideIfNeeded() {
+        guard hudHideTask == nil else { return }
 
-    private func scheduleHUDHide(after duration: TimeInterval) {
-        hudTask?.cancel()
+        hudHideTask = Task { @MainActor [weak self] in
+            guard let self else { return }
 
-        let currentType = hud.type
-        hudTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(duration))
-            guard let self, !Task.isCancelled else { return }
-            await MainActor.run {
-                withAnimation {
-                    self.toggleHUD(status: false, type: currentType)
-                    self.hudDuration = 1.5
+            defer {
+                self.hudHideTask = nil
+            }
+
+            while !Task.isCancelled {
+                if hudHideDeadline.timeIntervalSinceNow <= 0 {
+                    break
                 }
+
+                try? await Task.sleep(for: hudHidePollInterval)
             }
+
+            guard !Task.isCancelled else { return }
+
+            let currentHUD = hud
+            clearHUDTasks()
+            applyHUDState(HUDState(show: false, type: currentHUD.type, value: currentHUD.value, icon: currentHUD.icon))
         }
     }
 
-    @Published var hud: HUDState = .init() {
-        didSet {
-            if hud.show {
-                scheduleHUDHide(after: hudDuration)
-            } else {
-                hudTask?.cancel()
+    private func applyHUDState(_ state: HUDState) {
+        guard hud != state else { return }
+
+        let shouldAnimate = hud.show != state.show || hud.type != state.type || hud.icon != state.icon
+
+        if shouldAnimate {
+            withAnimation(.smooth) {
+                hud = state
             }
+        } else {
+            hud = state
         }
+    }
+
+    private func clearHUDTasks() {
+        hudHideDeadline = .distantPast
+        hudHideTask?.cancel()
+        hudHideTask = nil
+    }
+
+    private func clearHUDState() {
+        clearHUDTasks()
+        hud = .init()
     }
 
     func toggleExpandingView(

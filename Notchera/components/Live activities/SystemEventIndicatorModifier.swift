@@ -121,8 +121,9 @@ struct DraggableProgressBar: View {
                                 Color.effectiveAccent.ensureMinimumBrightness(factor: 0.7) :
                                 Color.white) :
                             Color.clear,
-                            radius: 8, x: 3)
+                            radius: 4, x: 1)
                         .opacity(value.isZero ? 0 : 1)
+                        .animation(.smooth(duration: 0.18), value: value)
                 }
                 .gesture(
                     DragGesture(minimumDistance: 0)
@@ -139,7 +140,7 @@ struct DraggableProgressBar: View {
                         }
                 )
             }
-            .frame(height: Defaults[.inlineHUD] ? isDragging ? 8 : 5 : isDragging ? 9 : 6)
+            .frame(height: isDragging ? 8 : 6)
         }
     }
 
