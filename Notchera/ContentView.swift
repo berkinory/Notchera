@@ -241,6 +241,8 @@ struct ContentView: View {
                     .padding(.top, 40)
                     Spacer()
                 } else {
+                    let closedHUDVisible = coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed
+
                     if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
                        vm.notchState == .closed, Defaults[.showPowerStatusNotifications]
                     {
@@ -268,20 +270,32 @@ struct ContentView: View {
                             .frame(width: 76, alignment: .trailing)
                         }
                         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
-                    } else if coordinator.hud.show, coordinator.hud.type != .battery, vm.notchState == .closed {
-                        WingHUDView(
-                            type: $coordinator.hud.type,
-                            value: $coordinator.hud.value,
-                            icon: $coordinator.hud.icon,
-                            showsPercentage: Defaults[.showClosedNotchHUDPercentage],
-                            isOpen: false
-                        )
-                        .transition(.opacity)
-                    } else if !coordinator.expandingView.show, vm.notchState == .closed, musicManager.isPlaying || !musicManager.isPlayerIdle, coordinator.musicLiveActivityEnabled, !vm.hideOnClosed {
-                        MusicLiveActivity()
-                            .frame(alignment: .center)
-                    } else if !coordinator.expandingView.show, vm.notchState == .closed, !musicManager.isPlaying, musicManager.isPlayerIdle, Defaults[.showNotHumanFace], !vm.hideOnClosed {
-                        NotcheraFaceAnimation()
+                    } else if vm.notchState == .closed {
+                        ZStack {
+                            if !coordinator.expandingView.show, musicManager.isPlaying || !musicManager.isPlayerIdle, coordinator.musicLiveActivityEnabled, !vm.hideOnClosed {
+                                MusicLiveActivity()
+                                    .frame(alignment: .center)
+                                    .opacity(closedHUDVisible ? 0 : 1)
+                            } else if !coordinator.expandingView.show, !musicManager.isPlaying, musicManager.isPlayerIdle, Defaults[.showNotHumanFace], !vm.hideOnClosed {
+                                NotcheraFaceAnimation()
+                                    .opacity(closedHUDVisible ? 0 : 1)
+                            } else {
+                                Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
+                                    .opacity(closedHUDVisible ? 0 : 1)
+                            }
+
+                            if closedHUDVisible {
+                                WingHUDView(
+                                    type: $coordinator.hud.type,
+                                    value: $coordinator.hud.value,
+                                    icon: $coordinator.hud.icon,
+                                    showsPercentage: Defaults[.showClosedNotchHUDPercentage],
+                                    isOpen: false
+                                )
+                                .fixedSize()
+                                .transition(.opacity)
+                            }
+                        }
                     } else if vm.notchState == .open {
                         if coordinator.hud.show, coordinator.hud.type != .battery, Defaults[.showOpenNotchHUD] {
                             WingHUDView(
@@ -291,6 +305,7 @@ struct ContentView: View {
                                 showsPercentage: Defaults[.showOpenNotchHUDPercentage],
                                 isOpen: true
                             )
+                            .fixedSize()
                             .frame(height: max(24, vm.effectiveClosedNotchHeight))
                             .transition(.opacity)
                         } else {
@@ -303,10 +318,6 @@ struct ContentView: View {
                     }
 
                 }
-            }
-            .conditionalModifier(coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed) { view in
-                view
-                    .fixedSize()
             }
             .zIndex(2)
             if vm.notchState == .open {
