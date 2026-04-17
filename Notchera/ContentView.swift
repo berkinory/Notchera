@@ -462,8 +462,8 @@ struct MusicCompactActivityView: View {
                     )
                     .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
                     .frame(
-                        width: max(0, vm.effectiveClosedNotchHeight - 12),
-                        height: max(0, vm.effectiveClosedNotchHeight - 12)
+                        width: max(0, vm.effectiveClosedNotchHeight - 10),
+                        height: max(0, vm.effectiveClosedNotchHeight - 10)
                     )
 
                 if let badge = badges.first {
@@ -581,16 +581,16 @@ struct PrivacyCompactActivityView: View {
                     .frame(width: 26, height: 26)
                     .blur(radius: 2.2)
 
-                ActivityBadgeIcon(badge: badge, size: 16)
+                ActivityBadgeIcon(badge: badge, size: 14)
                     .symbolRenderingMode(.hierarchical)
             }
         case .camera:
-            ActivityBadgeIcon(badge: badge, size: 15)
+            ActivityBadgeIcon(badge: badge, size: 13)
                 .scaleEffect(pulse ? 1.07 : 0.95)
                 .shadow(color: Color.green.opacity(pulse ? 0.32 : 0.12), radius: 5)
                 .animation(.easeInOut(duration: 1.25).repeatForever(autoreverses: true), value: pulse)
         case .microphone:
-            ActivityBadgeIcon(badge: badge, size: 15)
+            ActivityBadgeIcon(badge: badge, size: 13)
                 .scaleEffect(pulse ? 1.08 : 0.95)
                 .shadow(color: Color.yellow.opacity(pulse ? 0.28 : 0.1), radius: 5)
                 .animation(.easeInOut(duration: 1.15).repeatForever(autoreverses: true), value: pulse)
