@@ -202,7 +202,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             width = openNotchSize.width
         } else if !coordinator.expandingView.show,
                   viewModel.notchState == .closed,
-                  (musicManager.isPlaying || !musicManager.isPlayerIdle),
+                  musicManager.isPlaying || !musicManager.isPlayerIdle,
                   coordinator.musicLiveActivityEnabled,
                   !viewModel.hideOnClosed
         {

@@ -640,7 +640,6 @@ struct Appearance: View {
             } header: {
                 Text("Media")
             }
-
         }
         .navigationTitle("Appearance")
     }

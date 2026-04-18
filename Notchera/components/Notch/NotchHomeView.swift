@@ -72,7 +72,6 @@ struct AlbumArtView: View {
                 )
             )
     }
-
 }
 
 struct MusicControlsView: View {
@@ -153,7 +152,6 @@ struct MusicControlsView: View {
         }
         .frame(height: 30, alignment: .bottom)
     }
-
 }
 
 struct MusicSliderRowView: View {

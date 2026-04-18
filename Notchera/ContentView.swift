@@ -96,56 +96,56 @@ struct ContentView: View {
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in
-                    handleHover(hovering)
-                }
-                .onTapGesture {
-                    doOpen()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
-                    if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive {
-                        hoverTask?.cancel()
-                        hoverTask = Task {
-                            try? await Task.sleep(for: .milliseconds(100))
-                            guard !Task.isCancelled else { return }
-                            await MainActor.run {
-                                guard Date() >= suppressAutoCloseUntil else { return }
-                                if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
-                                    vm.close()
+                        handleHover(hovering)
+                    }
+                    .onTapGesture {
+                        doOpen()
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
+                        if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive {
+                            hoverTask?.cancel()
+                            hoverTask = Task {
+                                try? await Task.sleep(for: .milliseconds(100))
+                                guard !Task.isCancelled else { return }
+                                await MainActor.run {
+                                    guard Date() >= suppressAutoCloseUntil else { return }
+                                    if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
+                                        vm.close()
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                .onChange(of: vm.notchState) { _, newState in
-                    if newState == .closed, isHovering {
-                        withAnimation {
-                            isHovering = false
+                    .onChange(of: vm.notchState) { _, newState in
+                        if newState == .closed, isHovering {
+                            withAnimation {
+                                isHovering = false
+                            }
                         }
                     }
-                }
-                .onChange(of: vm.isBatteryPopoverActive) {
-                    if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
-                        hoverTask?.cancel()
-                        hoverTask = Task {
-                            try? await Task.sleep(for: .milliseconds(100))
-                            guard !Task.isCancelled else { return }
-                            await MainActor.run {
-                                guard Date() >= suppressAutoCloseUntil else { return }
-                                if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
-                                    vm.close()
+                    .onChange(of: vm.isBatteryPopoverActive) {
+                        if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
+                            hoverTask?.cancel()
+                            hoverTask = Task {
+                                try? await Task.sleep(for: .milliseconds(100))
+                                guard !Task.isCancelled else { return }
+                                await MainActor.run {
+                                    guard Date() >= suppressAutoCloseUntil else { return }
+                                    if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
+                                        vm.close()
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                .contextMenu {
-                    Button("Settings") {
-                        DispatchQueue.main.async {
-                            SettingsWindowController.shared.showWindow()
+                    .contextMenu {
+                        Button("Settings") {
+                            DispatchQueue.main.async {
+                                SettingsWindowController.shared.showWindow()
+                            }
                         }
+                        .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
                     }
-                    .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
-                }
 
                 if vm.chinHeight > 0 {
                     Rectangle()
