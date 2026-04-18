@@ -25,10 +25,6 @@ struct OpenNotchHUD: View {
                 case .backlight:
                     Image(systemName: value > 0.5 ? "light.max" : "light.min")
                         .contentTransition(.interpolate)
-                case .mic:
-                    Image(systemName: "mic")
-                        .symbolVariant(value > 0 ? .none : .slash)
-                        .contentTransition(.interpolate)
                 case .recording:
                     Image(systemName: "record.circle")
                         .contentTransition(.interpolate)
@@ -40,12 +36,7 @@ struct OpenNotchHUD: View {
             .foregroundStyle(.white)
             .frame(width: 20, alignment: .center)
 
-            if type == .mic {
-                Text(value > 0 ? "Unmuted" : "Muted")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
-                    .fixedSize()
-            } else if type == .recording {
+            if type == .recording {
                 Text(value > 0 ? "Recording" : "Recorded")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white)

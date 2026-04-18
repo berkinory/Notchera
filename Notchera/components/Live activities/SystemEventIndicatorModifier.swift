@@ -43,23 +43,10 @@ struct SystemEventIndicatorModifier: View {
                     .contentTransition(.interpolate)
                     .frame(width: 20, height: 15)
                     .foregroundStyle(.white)
-            case .mic:
-                Image(systemName: "mic")
-                    .symbolVariant(value > 0 ? .none : .slash)
-                    .contentTransition(.interpolate)
-                    .frame(width: 20, height: 15)
-                    .foregroundStyle(.white)
             default:
                 EmptyView()
             }
-            if eventType != .mic {
-                DraggableProgressBar(value: $value)
-            } else {
-                Text("Mic \(value > 0 ? "unmuted" : "muted")")
-                    .foregroundStyle(.gray)
-                    .lineLimit(1)
-                    .allowsTightening(true)
-            }
+            DraggableProgressBar(value: $value)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .symbolVariant(.fill)

@@ -198,7 +198,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         var width = viewModel.closedNotchSize.width
 
         if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
-           viewModel.notchState == .closed, Defaults[.showPowerStatusNotifications]
+           viewModel.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
         {
             width = openNotchSize.width
         } else if !coordinator.expandingView.show,
@@ -462,22 +462,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        if Defaults[.enableScreenRecordingDetection] {
-            ScreenRecordingManager.shared.startMonitoring()
+        let updateScreenRecordingMonitoring = {
+            if Defaults[.hudReplacement] && Defaults[.enableScreenRecordingDetection] {
+                ScreenRecordingManager.shared.startMonitoring()
+            } else {
+                ScreenRecordingManager.shared.stopMonitoring()
+            }
         }
 
-        Defaults.publisher(.enableScreenRecordingDetection)
-            .map(\.newValue)
-            .removeDuplicates()
-            .receive(on: RunLoop.main)
-            .sink { isEnabled in
-                if isEnabled {
-                    ScreenRecordingManager.shared.startMonitoring()
-                } else {
-                    ScreenRecordingManager.shared.stopMonitoring()
-                }
-            }
-            .store(in: &appCancellables)
+        updateScreenRecordingMonitoring()
+
+        Publishers.CombineLatest(
+            Defaults.publisher(.hudReplacement).map(\.newValue).removeDuplicates(),
+            Defaults.publisher(.enableScreenRecordingDetection).map(\.newValue).removeDuplicates()
+        )
+        .receive(on: RunLoop.main)
+        .sink { _, _ in
+            updateScreenRecordingMonitoring()
+        }
+        .store(in: &appCancellables)
 
         Defaults.publisher(.notchShelf)
             .map(\.newValue)

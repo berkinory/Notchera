@@ -10,7 +10,6 @@ enum SneakContentType {
     case backlight
     case capsLock
     case inputSource
-    case mic
     case recording
     case battery
     case download
@@ -64,7 +63,6 @@ class NotcheraViewCoordinator: ObservableObject {
     @AppStorage("firstLaunch") var firstLaunch: Bool = true
     @AppStorage("showWhatsNew") var showWhatsNew: Bool = true
     @AppStorage("musicLiveActivityEnabled") var musicLiveActivityEnabled: Bool = true
-    @AppStorage("currentMicStatus") var currentMicStatus: Bool = true
 
     @AppStorage("alwaysShowTabs") var alwaysShowTabs: Bool = true {
         didSet {
@@ -215,8 +213,7 @@ class NotcheraViewCoordinator: ObservableObject {
                     ? SneakContentType.volume
                     : decodedData.type == "backlight"
                     ? SneakContentType.backlight
-                    : decodedData.type == "mic"
-                    ? SneakContentType.mic : SneakContentType.brightness
+                    : SneakContentType.brightness
 
             let formatter = NumberFormatter()
             formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -245,14 +242,14 @@ class NotcheraViewCoordinator: ObservableObject {
             return
         }
 
-        if type == .mic {
-            currentMicStatus = value == 1
+        if status, !isIndicatorEnabled(for: type) {
+            return
         }
 
         let nextState = HUDState(
             show: status,
             type: type,
-            value: type == .mic || type == .recording ? (value > 0 ? 1 : 0) : value,
+            value: type == .recording ? (value > 0 ? 1 : 0) : value,
             icon: icon,
             label: label
         )
@@ -302,6 +299,27 @@ class NotcheraViewCoordinator: ObservableObject {
         }
     }
 
+    private func isIndicatorEnabled(for type: SneakContentType) -> Bool {
+        switch type {
+        case .volume:
+            Defaults[.showVolumeIndicator]
+        case .brightness:
+            Defaults[.showBrightnessIndicator]
+        case .backlight:
+            Defaults[.showBacklightIndicator]
+        case .capsLock:
+            Defaults[.showCapsLockIndicator]
+        case .inputSource:
+            Defaults[.showInputSourceIndicator]
+        case .recording:
+            Defaults[.enableScreenRecordingDetection]
+        case .battery:
+            Defaults[.showPowerStatusNotifications]
+        case .download:
+            true
+        }
+    }
+
     private func applyHUDState(_ state: HUDState) {
         guard hud != state else { return }
 
@@ -333,6 +351,10 @@ class NotcheraViewCoordinator: ObservableObject {
         value: CGFloat = 0,
         browser: BrowserType = .chromium
     ) {
+        if status, (!Defaults[.hudReplacement] || !isIndicatorEnabled(for: type)) {
+            return
+        }
+
         Task { @MainActor in
             withAnimation(.smooth) {
                 self.expandingView.show = status

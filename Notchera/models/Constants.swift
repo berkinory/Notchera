@@ -78,8 +78,6 @@ extension Defaults.Keys {
         default: MusicControlButton.defaultLayout.count
     )
 
-    static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
-
     static let enableDownloadListener = Key<Bool>("enableDownloadListener", default: true)
     static let enableSafariDownloads = Key<Bool>("enableSafariDownloads", default: true)
     static let selectedDownloadIndicatorStyle = Key<DownloadIndicatorStyle>("selectedDownloadIndicatorStyle", default: DownloadIndicatorStyle.progress)
@@ -89,8 +87,12 @@ extension Defaults.Keys {
     static let enableGradient = Key<Bool>("enableGradient", default: false)
     static let systemEventIndicatorShadow = Key<Bool>("systemEventIndicatorShadow", default: false)
     static let showOpenNotchHUD = Key<Bool>("showOpenNotchHUD", default: true)
+    static let showVolumeIndicator = Key<Bool>("showVolumeIndicator", default: true)
+    static let showBrightnessIndicator = Key<Bool>("showBrightnessIndicator", default: true)
+    static let showBacklightIndicator = Key<Bool>("showBacklightIndicator", default: true)
     static let showCapsLockIndicator = Key<Bool>("showCapsLockIndicator", default: true)
     static let showInputSourceIndicator = Key<Bool>("showInputSourceIndicator", default: true)
+    static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
     static let enableScreenRecordingDetection = Key<Bool>("enableScreenRecordingDetection", default: true)
 
     static let optionKeyAction = Key<OptionKeyAction>("optionKeyAction", default: OptionKeyAction.openSettings)

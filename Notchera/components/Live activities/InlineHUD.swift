@@ -112,7 +112,7 @@ struct WingHUDView: View {
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
-        } else if type == .mic || type == .recording || type == .capsLock || type == .inputSource {
+        } else if type == .recording || type == .capsLock || type == .inputSource {
             Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -157,10 +157,7 @@ struct WingHUDView: View {
         case .capsLock:
             Image(systemName: clampedValue > 0 ? "capslock.fill" : "capslock")
         case .inputSource:
-            Image(systemName: icon.isEmpty ? "globe" : icon)
-        case .mic:
-            Image(systemName: "mic")
-                .symbolVariant(clampedValue > 0 ? .none : .slash)
+            Image(systemName: icon.isEmpty ? "translate" : icon)
         case .recording:
             Image(systemName: "record.circle.fill")
                 .foregroundStyle(.red)
@@ -200,7 +197,7 @@ struct WingHUDView: View {
 
     private var statusText: String {
         switch type {
-        case .mic, .capsLock:
+        case .capsLock:
             clampedValue > 0 ? "On" : "Off"
         case .inputSource:
             label.isEmpty ? "--" : label
@@ -219,8 +216,6 @@ struct WingHUDView: View {
             36
         case .capsLock:
             24
-        case .mic:
-            28
         default:
             24
         }
@@ -251,8 +246,6 @@ struct WingHUDView: View {
             clampedValue > 0 ? "capslock:on" : "capslock:off"
         case .inputSource:
             "input-source:\(icon):\(label)"
-        case .mic:
-            clampedValue > 0 ? "mic:on" : "mic:off"
         case .recording:
             clampedValue > 0 ? "recording:on" : "recording:off"
         case .battery:

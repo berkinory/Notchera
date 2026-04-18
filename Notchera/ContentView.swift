@@ -42,7 +42,7 @@ struct ContentView: View {
         var chinWidth: CGFloat = vm.closedNotchSize.width
 
         if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
-           vm.notchState == .closed, Defaults[.showPowerStatusNotifications]
+           vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
         } else if !coordinator.expandingView.show,
@@ -240,7 +240,7 @@ struct ContentView: View {
                     let closedHUDVisible = coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed
 
                     if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
-                       vm.notchState == .closed, Defaults[.showPowerStatusNotifications]
+                       vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
                     {
                         WingHUDView(
                             type: .constant(.battery),

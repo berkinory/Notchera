@@ -28,9 +28,6 @@ struct SettingsView: View {
                 NavigationLink(value: "HUD") {
                     Label("HUDs", systemImage: "dial.medium.fill")
                 }
-                NavigationLink(value: "Battery") {
-                    Label("Battery", systemImage: "battery.100.bolt")
-                }
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
@@ -58,8 +55,6 @@ struct SettingsView: View {
                     Media()
                 case "HUD":
                     HUD()
-                case "Battery":
-                    Charge()
                 case "Shelf":
                     Shelf()
                 case "Shortcuts":
@@ -272,35 +267,17 @@ struct GeneralSettings: View {
     }
 }
 
-struct Charge: View {
-    var body: some View {
-        Form {
-            Section {
-                Defaults.Toggle(key: .showPowerStatusNotifications) {
-                    Text("Show battery notifications")
-                }
-            } header: {
-                Text("Notifications")
-            } footer: {
-                Text("Shows battery status updates in the notch.")
-            }
-        }
-        .onAppear {
-            Task { @MainActor in
-                await XPCHelperClient.shared.isAccessibilityAuthorized()
-            }
-        }
-        .navigationTitle("Battery")
-    }
-}
-
 struct HUD: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @Default(.enableGradient) var enableGradient
     @Default(.optionKeyAction) var optionKeyAction
     @Default(.hudReplacement) var hudReplacement
+    @Default(.showVolumeIndicator) var showVolumeIndicator
+    @Default(.showBrightnessIndicator) var showBrightnessIndicator
+    @Default(.showBacklightIndicator) var showBacklightIndicator
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
     @Default(.showInputSourceIndicator) var showInputSourceIndicator
+    @Default(.showPowerStatusNotifications) var showPowerStatusNotifications
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @State private var accessibilityAuthorized = false
@@ -364,8 +341,16 @@ struct HUD: View {
             .disabled(!hudReplacement)
 
             Section {
-                Defaults.Toggle(key: .showOpenNotchHUD) {
-                    Text("Show HUD in open notch")
+                Defaults.Toggle(key: .showVolumeIndicator) {
+                    Text("Show volume indicator")
+                }
+
+                Defaults.Toggle(key: .showBrightnessIndicator) {
+                    Text("Show brightness indicator")
+                }
+
+                Defaults.Toggle(key: .showBacklightIndicator) {
+                    Text("Show keyboard backlight indicator")
                 }
 
                 Defaults.Toggle(key: .showCapsLockIndicator) {
@@ -375,25 +360,33 @@ struct HUD: View {
                 Defaults.Toggle(key: .showInputSourceIndicator) {
                     Text("Show input language indicator")
                 }
+
+                Defaults.Toggle(key: .showPowerStatusNotifications) {
+                    Text("Show battery notifications")
+                }
+
+                Defaults.Toggle(key: .enableScreenRecordingDetection) {
+                    Text("Show screen recording toast")
+                }
+            } header: {
+                Text("Indicators")
+            } footer: {
+                Text("Replace system HUD acts as the master switch. When it is off, no indicator runs.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .disabled(!hudReplacement)
+
+            Section {
+                Defaults.Toggle(key: .showOpenNotchHUD) {
+                    Text("Show HUD in open notch")
+                }
             } header: {
                 HStack {
                     Text("Open Notch")
                     customBadge(text: "Beta")
                 }
-            }
-            .disabled(!hudReplacement)
-
-            Section {
-                Defaults.Toggle(key: .enableScreenRecordingDetection) {
-                    Text("Show screen recording toast")
-                }
-
-                Text("Shows a winged toast when screen recording starts or stops. Uses private CoreGraphics APIs.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } header: {
-                Text("Recording")
             }
             .disabled(!hudReplacement)
         }
