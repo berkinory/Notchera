@@ -63,6 +63,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var dragDetectors: [String: DragDetector] = [:]
     private var windowVisibilityObservers: [String: AnyCancellable] = [:]
     private var appCancellables: Set<AnyCancellable> = []
+    private let windowInteractivityPollingInterval: TimeInterval = 1 / 15
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
@@ -541,11 +542,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1 / 60, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: windowInteractivityPollingInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.updateWindowInteractivity()
             }
         }
+        timer?.tolerance = windowInteractivityPollingInterval / 2
         if let timer {
             RunLoop.main.add(timer, forMode: .common)
         }
