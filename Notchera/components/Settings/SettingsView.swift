@@ -1,4 +1,3 @@
-import AVFoundation
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
@@ -110,7 +109,6 @@ struct GeneralSettings: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
 
-    @Default(.mirrorShape) var mirrorShape
     @Default(.showEmojis) var showEmojis
     @Default(.minimumHoverDuration) var minimumHoverDuration
     @Default(.nonNotchHeight) var nonNotchHeight
@@ -695,7 +693,6 @@ struct Shelf: View {
 
 struct Appearance: View {
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
-    @Default(.mirrorShape) var mirrorShape
 
     var body: some View {
         Form {
@@ -717,32 +714,8 @@ struct Appearance: View {
                 Text("Media")
             }
 
-            Section {
-                Defaults.Toggle(key: .showMirror) {
-                    Text("Enable notch mirror")
-                }
-                .disabled(!checkVideoInput())
-                Picker("Mirror shape", selection: $mirrorShape) {
-                    Text("Circle")
-                        .tag(MirrorShapeEnum.circle)
-                    Text("Square")
-                        .tag(MirrorShapeEnum.rectangle)
-                }
-            } header: {
-                HStack {
-                    Text("Additional features")
-                }
-            }
         }
         .navigationTitle("Appearance")
-    }
-
-    func checkVideoInput() -> Bool {
-        if AVCaptureDevice.default(for: .video) != nil {
-            return true
-        }
-
-        return false
     }
 }
 

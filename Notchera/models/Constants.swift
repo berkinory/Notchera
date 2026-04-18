@@ -63,8 +63,6 @@ extension Defaults.Keys {
     static let hideNotchInFullscreen = Key<Bool>("hideNotchInFullscreen", default: true)
 
     static let showEmojis = Key<Bool>("showEmojis", default: false)
-    static let showMirror = Key<Bool>("showMirror", default: false)
-    static let mirrorShape = Key<MirrorShapeEnum>("mirrorShape", default: MirrorShapeEnum.rectangle)
     static let settingsIconInNotch = Key<Bool>("settingsIconInNotch", default: true)
 
     static let tileShowLabels = Key<Bool>("tileShowLabels", default: false)

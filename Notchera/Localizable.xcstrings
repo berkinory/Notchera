@@ -706,16 +706,6 @@
         }
       }
     },
-    "Enable notch mirror": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable notch mirror"
-          }
-        }
-      }
-    },
     "Enable colored spectrograms": {
       "extractionState": "stale",
       "localizations": {
@@ -1155,26 +1145,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mic %@"
-          }
-        }
-      }
-    },
-    "Mirror": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mirror"
-          }
-        }
-      }
-    },
-    "Mirror shape": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mirror shape"
           }
         }
       }

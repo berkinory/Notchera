@@ -1,4 +1,3 @@
-import AVFoundation
 import Combine
 import Defaults
 import KeyboardShortcuts
@@ -8,8 +7,6 @@ import SwiftUIIntrospect
 @MainActor
 struct ContentView: View {
     @EnvironmentObject var vm: NotcheraViewModel
-    @ObservedObject var webcamManager = WebcamManager.shared
-
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared

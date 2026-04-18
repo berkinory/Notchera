@@ -1,9 +1,7 @@
-import AVFoundation
 import SwiftUI
 
 enum OnboardingStep {
     case welcome
-    case cameraPermission
     case accessibilityPermission
     case musicPermission
     case finished
@@ -20,31 +18,9 @@ struct OnboardingView: View {
             case .welcome:
                 WelcomeView {
                     withAnimation(.easeInOut(duration: 0.6)) {
-                        step = .cameraPermission
+                        step = .accessibilityPermission
                     }
                 }
-                .transition(.opacity)
-
-            case .cameraPermission:
-                PermissionRequestView(
-                    icon: Image(systemName: "camera.fill"),
-                    title: "Enable Camera Access",
-                    description: "Notchera includes a mirror feature that lets you quickly check your appearance using your camera, right from the notch. Camera access is required only to show this live preview. You can turn the mirror feature on or off at any time in the app.",
-                    privacyNote: "Your camera is never used without your consent, and nothing is recorded or stored.",
-                    onAllow: {
-                        Task {
-                            await requestCameraPermission()
-                            withAnimation(.easeInOut(duration: 0.6)) {
-                                step = .accessibilityPermission
-                            }
-                        }
-                    },
-                    onSkip: {
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            step = .accessibilityPermission
-                        }
-                    }
-                )
                 .transition(.opacity)
 
             case .accessibilityPermission:
@@ -85,10 +61,6 @@ struct OnboardingView: View {
             }
         }
         .frame(width: 400, height: 600)
-    }
-
-    func requestCameraPermission() async {
-        await AVCaptureDevice.requestAccess(for: .video)
     }
 
     func requestAccessibilityPermission() async {
