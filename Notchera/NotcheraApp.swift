@@ -48,10 +48,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var viewModels: [String: NotcheraViewModel] = [:]
     var window: NSWindow?
     let vm: NotcheraViewModel = .init()
+    let musicManager = MusicManager.shared
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     var whatsNewWindow: NSWindow?
     var timer: Timer?
     var closeNotchTask: Task<Void, Never>?
+    private var collapsedHoverStartDates: [String: Date] = [:]
     private var previousScreens: [NSScreen]?
     private var onboardingWindowController: NSWindowController?
     private var screenLockedObserver: Any?
@@ -76,6 +78,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DistributedNotificationCenter.default().removeObserver(observer)
             screenUnlockedObserver = nil
         }
+        timer?.invalidate()
+        timer = nil
         MusicManager.shared.destroy()
         cleanupDragDetectors()
         cleanupWindows()
@@ -149,6 +153,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             windows.removeAll()
             viewModels.removeAll()
             windowVisibilityObservers.removeAll()
+            collapsedHoverStartDates.removeAll()
         } else if let window {
             window.close()
             NotchSpaceManager.shared.notchSpace.windows.remove(window)
@@ -157,6 +162,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 windowScreenDidChangeObserver = nil
             }
             windowVisibilityObservers.removeAll()
+            collapsedHoverStartDates.removeAll()
             self.window = nil
         }
     }
@@ -184,6 +190,95 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         Task { @MainActor in
             self.updateWindowVisibility(window, isHidden: viewModel.hideOnClosed)
+        }
+    }
+
+    private func collapsedHitTestWidth(for viewModel: NotcheraViewModel) -> CGFloat {
+        var width = viewModel.closedNotchSize.width
+
+        if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
+           viewModel.notchState == .closed, Defaults[.showPowerStatusNotifications]
+        {
+            width = openNotchSize.width
+        } else if !coordinator.expandingView.show,
+                  viewModel.notchState == .closed,
+                  (musicManager.isPlaying || !musicManager.isPlayerIdle),
+                  coordinator.musicLiveActivityEnabled,
+                  !viewModel.hideOnClosed
+        {
+            width += (2 * max(0, viewModel.effectiveClosedNotchHeight - 12) + 20)
+        }
+
+        return width
+    }
+
+    private func collapsedInteractiveRect(for viewModel: NotcheraViewModel, on screen: NSScreen) -> CGRect {
+        let width = collapsedHitTestWidth(for: viewModel)
+        let height = max(viewModel.effectiveClosedNotchHeight + viewModel.chinHeight, 0)
+        let baseRect = CGRect(
+            x: screen.frame.midX - width / 2,
+            y: screen.frame.maxY - height,
+            width: width,
+            height: height
+        )
+
+        guard Defaults[.extendHoverArea] else { return baseRect }
+        return baseRect.insetBy(dx: -16, dy: -10)
+    }
+
+    @MainActor
+    private func updateWindowInteractivity() {
+        let mouseLocation = NSEvent.mouseLocation
+
+        if Defaults[.showOnAllDisplays] {
+            for (uuid, window) in windows {
+                guard let viewModel = viewModels[uuid], let screen = window.screen ?? NSScreen.screen(withUUID: uuid) else { continue }
+                updateWindowInteractivity(window, viewModel: viewModel, screen: screen, key: uuid, mouseLocation: mouseLocation)
+            }
+        } else if let window {
+            let key = vm.screenUUID ?? "main"
+            let screen = window.screen
+                ?? vm.screenUUID.flatMap(NSScreen.screen(withUUID:))
+                ?? NSScreen.main
+            guard let screen else { return }
+            updateWindowInteractivity(window, viewModel: vm, screen: screen, key: key, mouseLocation: mouseLocation)
+        }
+    }
+
+    @MainActor
+    private func updateWindowInteractivity(_ window: NSWindow, viewModel: NotcheraViewModel, screen: NSScreen, key: String, mouseLocation: NSPoint) {
+        guard window.isVisible, !viewModel.hideOnClosed else {
+            collapsedHoverStartDates[key] = nil
+            return
+        }
+
+        if viewModel.notchState == .open {
+            collapsedHoverStartDates[key] = nil
+            if window.ignoresMouseEvents {
+                window.ignoresMouseEvents = false
+            }
+            return
+        }
+
+        let isPointerInside = collapsedInteractiveRect(for: viewModel, on: screen).contains(mouseLocation)
+        window.ignoresMouseEvents = !isPointerInside
+
+        guard Defaults[.openNotchOnHover], !coordinator.hud.show, !coordinator.firstLaunch else {
+            collapsedHoverStartDates[key] = nil
+            return
+        }
+
+        guard isPointerInside else {
+            collapsedHoverStartDates[key] = nil
+            return
+        }
+
+        if let hoverStart = collapsedHoverStartDates[key] {
+            guard Date().timeIntervalSince(hoverStart) >= Defaults[.minimumHoverDuration] else { return }
+            collapsedHoverStartDates[key] = nil
+            viewModel.open()
+        } else {
+            collapsedHoverStartDates[key] = Date()
         }
     }
 
@@ -443,6 +538,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             adjustWindowPosition(changeAlpha: true)
         } else {
             adjustWindowPosition(changeAlpha: true)
+        }
+
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1 / 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateWindowInteractivity()
+            }
+        }
+        if let timer {
+            RunLoop.main.add(timer, forMode: .common)
         }
 
         setupDragDetectors()
