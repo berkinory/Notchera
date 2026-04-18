@@ -407,24 +407,15 @@ struct MusicCompactActivityView: View {
                         + -cornerRadiusInsets.closed.top
                 )
 
-            HStack {
-                Rectangle()
-                    .fill(
-                        Defaults[.matchAlbumArtColor]
-                            ? Color(nsColor: musicManager.avgColor).gradient
-                            : Color.white.gradient
-                    )
-                    .frame(width: 50, alignment: .center)
-                    .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
-                    .mask {
-                        AudioSpectrumView(isPlaying: $musicManager.isPlaying)
-                            .frame(width: 16, height: 12)
-                    }
-            }
-            .frame(
-                width: max(0, vm.effectiveClosedNotchHeight - 12),
-                height: max(0, vm.effectiveClosedNotchHeight - 12),
-                alignment: .center
+            MusicSpectrumIndicatorView(
+                albumArtNamespace: albumArtNamespace,
+                barWidth: 50,
+                spectrumSize: CGSize(width: 16, height: 12),
+                containerSize: CGSize(
+                    width: max(0, vm.effectiveClosedNotchHeight - 12),
+                    height: max(0, vm.effectiveClosedNotchHeight - 12)
+                ),
+                cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed
             )
         }
         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)

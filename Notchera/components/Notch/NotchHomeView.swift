@@ -10,7 +10,7 @@ struct MusicPlayerView: View {
     var body: some View {
         HStack {
             AlbumArtView(albumArtNamespace: albumArtNamespace).padding(.all, 5)
-            MusicControlsView()
+            MusicControlsView(albumArtNamespace: albumArtNamespace)
         }
     }
 }
@@ -70,6 +70,7 @@ struct MusicControlsView: View {
     @State private var lastDragged: Date = .distantPast
     @Default(.musicControlSlots) private var slotConfig
     @Default(.musicControlSlotLimit) private var slotLimit
+    let albumArtNamespace: Namespace.ID
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -86,59 +87,72 @@ struct MusicControlsView: View {
                 musicSlider
             }
         }
-        .padding(.top, 10)
+        .padding(.top, 2)
         .padding(.leading, 5)
     }
 
     private func songInfo(width: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            MarqueeText(
-                $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: .white,
-                frameWidth: width
-            )
-            MarqueeText(
-                $musicManager.artistName,
-                font: .headline,
-                nsFont: .headline,
-                textColor: Defaults[.matchAlbumArtColor]
-                    ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
-                    : .gray,
-                frameWidth: width
-            )
-            .fontWeight(.medium)
-            if false, Defaults[.enableLyrics] {
-                TimelineView(.animation(minimumInterval: 0.25)) { timeline in
-                    let currentElapsed: Double = {
-                        guard musicManager.isPlaying else { return musicManager.elapsedTime }
-                        let delta = timeline.date.timeIntervalSince(musicManager.timestampDate)
-                        let progressed = musicManager.elapsedTime + (delta * musicManager.playbackRate)
-                        return min(max(progressed, 0), musicManager.songDuration)
-                    }()
-                    let line: String = {
-                        if musicManager.isFetchingLyrics { return "Loading lyrics…" }
-                        if !musicManager.syncedLyrics.isEmpty {
-                            return musicManager.lyricLine(at: currentElapsed)
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
+                MarqueeText(
+                    $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: .white,
+                    frameWidth: max(0, width - 32)
+                )
+                MarqueeText(
+                    $musicManager.artistName,
+                    font: .headline,
+                    nsFont: .headline,
+                    textColor: Defaults[.matchAlbumArtColor]
+                        ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
+                        : .gray,
+                    frameWidth: max(0, width - 32)
+                )
+                .fontWeight(.medium)
+                if false, Defaults[.enableLyrics] {
+                    TimelineView(.animation(minimumInterval: 0.25)) { timeline in
+                        let currentElapsed: Double = {
+                            guard musicManager.isPlaying else { return musicManager.elapsedTime }
+                            let delta = timeline.date.timeIntervalSince(musicManager.timestampDate)
+                            let progressed = musicManager.elapsedTime + (delta * musicManager.playbackRate)
+                            return min(max(progressed, 0), musicManager.songDuration)
+                        }()
+                        let line: String = {
+                            if musicManager.isFetchingLyrics { return "Loading lyrics…" }
+                            if !musicManager.syncedLyrics.isEmpty {
+                                return musicManager.lyricLine(at: currentElapsed)
+                            }
+                            let trimmed = musicManager.currentLyrics.trimmingCharacters(in: .whitespacesAndNewlines)
+                            return trimmed.isEmpty ? "No lyrics found" : trimmed.replacingOccurrences(of: "\n", with: " ")
+                        }()
+                        let isPersian = line.unicodeScalars.contains { scalar in
+                            let v = scalar.value
+                            return v >= 0x0600 && v <= 0x06FF
                         }
-                        let trimmed = musicManager.currentLyrics.trimmingCharacters(in: .whitespacesAndNewlines)
-                        return trimmed.isEmpty ? "No lyrics found" : trimmed.replacingOccurrences(of: "\n", with: " ")
-                    }()
-                    let isPersian = line.unicodeScalars.contains { scalar in
-                        let v = scalar.value
-                        return v >= 0x0600 && v <= 0x06FF
+                        MarqueeText(
+                            .constant(line),
+                            font: .subheadline,
+                            nsFont: .subheadline,
+                            textColor: musicManager.isFetchingLyrics ? .gray.opacity(0.7) : .gray,
+                            frameWidth: max(0, width - 32)
+                        )
+                        .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
+                        .lineLimit(1)
+                        .opacity(musicManager.isPlaying ? 1 : 0)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
-                    MarqueeText(
-                        .constant(line),
-                        font: .subheadline,
-                        nsFont: .subheadline,
-                        textColor: musicManager.isFetchingLyrics ? .gray.opacity(0.7) : .gray,
-                        frameWidth: width
-                    )
-                    .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
-                    .lineLimit(1)
-                    .opacity(musicManager.isPlaying ? 1 : 0)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
+
+            Spacer(minLength: 0)
+
+            MusicSpectrumIndicatorView(
+                albumArtNamespace: albumArtNamespace,
+                barWidth: 72,
+                spectrumSize: CGSize(width: 24, height: 16),
+                containerSize: CGSize(width: 30, height: 30),
+                cornerRadius: 8
+            )
+            .padding(.top, 2)
         }
     }
 
@@ -241,6 +255,36 @@ struct MusicControlsView: View {
         case .all, .one:
             .red
         }
+    }
+}
+
+struct MusicSpectrumIndicatorView: View {
+    @ObservedObject var musicManager = MusicManager.shared
+    let albumArtNamespace: Namespace.ID
+    let barWidth: CGFloat
+    let spectrumSize: CGSize
+    let containerSize: CGSize
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(.clear)
+            .frame(width: containerSize.width, height: containerSize.height)
+            .overlay {
+                Rectangle()
+                    .fill(
+                        Defaults[.matchAlbumArtColor]
+                            ? Color(nsColor: musicManager.avgColor).gradient
+                            : Color.white.gradient
+                    )
+                    .frame(width: barWidth, alignment: .center)
+                    .mask {
+                        AudioSpectrumView(isPlaying: $musicManager.isPlaying)
+                            .frame(width: spectrumSize.width, height: spectrumSize.height)
+                    }
+            }
+            .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
+            .opacity(musicManager.isPlaying ? 1 : 0.55)
     }
 }
 
