@@ -20,8 +20,6 @@ final class YouTubeMusicHTTPClient: ObservableObject {
         session = URLSession(configuration: config)
     }
 
-
-
     func authenticate() async throws -> String {
         guard let url = URL(string: "\(baseURL)/auth/Notchera") else {
             throw YouTubeMusicError.invalidURL
@@ -37,8 +35,6 @@ final class YouTubeMusicHTTPClient: ObservableObject {
         return authResponse.accessToken
     }
 
-
-
     func getPlaybackInfo(token: String) async throws -> PlaybackResponse {
         let data = try await sendCommand(
             endpoint: "/song",
@@ -47,8 +43,6 @@ final class YouTubeMusicHTTPClient: ObservableObject {
         )
         return try Self.decoder.decode(PlaybackResponse.self, from: data)
     }
-
-
 
     struct LikeStateResponse: Decodable {
         let state: String?
@@ -66,8 +60,6 @@ final class YouTubeMusicHTTPClient: ObservableObject {
     func toggleDislike(token: String) async throws -> Data {
         try await sendCommand(endpoint: "/dislike", method: "POST", token: token)
     }
-
-
 
     func sendCommand(
         endpoint: String,
@@ -87,8 +79,6 @@ final class YouTubeMusicHTTPClient: ObservableObject {
 
         return data
     }
-
-
 
     private func createAuthenticatedRequest(
         endpoint: String,

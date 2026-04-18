@@ -67,8 +67,7 @@ struct NotcheraExtrasMenu: View {
     var hide: some View {
         NotcheraLargeButtons(
             action: {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {}
             },
             icon: Image(systemName: "arrow.down.forward.and.arrow.up.backward"),
             title: "Hide"

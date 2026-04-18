@@ -6,7 +6,6 @@ struct CameraPreviewView: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @ObservedObject var webcamManager: WebcamManager
 
-
     @State private var isRequestingAuthorization: Bool = false
 
     var body: some View {

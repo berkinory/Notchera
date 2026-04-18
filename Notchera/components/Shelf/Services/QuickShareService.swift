@@ -25,8 +25,6 @@ class QuickShareService: ObservableObject {
         }
     }
 
-
-
     @MainActor
     func discoverAvailableProviders() async {
         let finder = ShareServiceFinder()
@@ -63,8 +61,6 @@ class QuickShareService: ObservableObject {
         availableProviders = providers
     }
 
-
-
     @MainActor
     func showFilePicker(for provider: QuickShareProvider, from view: NSView?) async {
         guard !isPickerOpen else {
@@ -98,8 +94,6 @@ class QuickShareService: ObservableObject {
         let response = panel.runModal()
         completion(response)
     }
-
-
 
     @MainActor
     func shareFilesOrText(_ items: [Any], using provider: QuickShareProvider, from view: NSView?) async {
@@ -135,8 +129,6 @@ class QuickShareService: ObservableObject {
         }
         sharingAccessingURLs.removeAll()
     }
-
-
 
     private class SharingServiceDelegate: NSObject {}
 

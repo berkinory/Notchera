@@ -36,8 +36,6 @@ final class ShelfItemViewModel: ObservableObject {
         }
     }
 
-
-
     func dragItemProvider() -> NSItemProvider {
         let selectedItems = selection.selectedItems(in: ShelfStateViewModel.shared.items)
         if selectedItems.count > 1, selectedItems.contains(where: { $0.id == item.id }) {
@@ -91,8 +89,6 @@ final class ShelfItemViewModel: ObservableObject {
         }
         return provider
     }
-
-
 
     func handleClick(event: NSEvent, view: NSView) {
         let flags = event.modifierFlags
@@ -170,10 +166,7 @@ final class ShelfItemViewModel: ObservableObject {
         sharingAccessingURLs.removeAll()
     }
 
-
     var onQuickLookRequest: (([URL]) -> Void)?
-
-
 
     func loadOpenWithApps() -> [URL] {
         if let fileURL = item.fileURL {
@@ -386,7 +379,6 @@ final class ShelfItemViewModel: ObservableObject {
         weak var view: NSView?
         unowned let viewModel: ShelfItemViewModel
 
-
         private static var sliderHandlerAssoc = AssociatedObject<AnyObject>()
 
         init(item: ShelfItem, view: NSView, viewModel: ShelfItemViewModel) {
@@ -508,7 +500,6 @@ final class ShelfItemViewModel: ObservableObject {
                         return nil
                     }
                     if !fileURLs.isEmpty {
-
                         ShelfItemViewModel.copiedURLs = fileURLs.filter { $0.startAccessingSecurityScopedResource() }
                         NSLog("🔐 Started security-scoped access for \(ShelfItemViewModel.copiedURLs.count) copied files")
 
@@ -732,7 +723,6 @@ final class ShelfItemViewModel: ObservableObject {
             Task {
                 let bookmark = Bookmark(data: bookmarkData)
                 if let fileURL = bookmark.resolveURL() {
-
                     let didStart = fileURL.startAccessingSecurityScopedResource()
 
                     let savePanel = NSSavePanel()
@@ -838,8 +828,6 @@ final class ShelfItemViewModel: ObservableObject {
             let accessoryView = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 180))
             accessoryView.wantsLayer = true
 
-
-
             let formatLabel = NSTextField(labelWithString: "Format:")
             formatLabel.frame = NSRect(x: 0, y: 145, width: 100, height: 20)
             formatLabel.font = .systemFont(ofSize: 12, weight: .medium)
@@ -850,8 +838,6 @@ final class ShelfItemViewModel: ObservableObject {
             formatPopup.selectItem(at: 0)
             formatPopup.font = .systemFont(ofSize: 12)
             accessoryView.addSubview(formatPopup)
-
-
 
             let imageSizeLabel = NSTextField(labelWithString: "Image Size:")
             imageSizeLabel.frame = NSRect(x: 0, y: 105, width: 100, height: 20)
@@ -870,22 +856,16 @@ final class ShelfItemViewModel: ObservableObject {
             customSizeField.isHidden = true
             accessoryView.addSubview(customSizeField)
 
-
-
             let metadataCheckbox = NSButton(checkboxWithTitle: "Preserve Metadata", target: nil, action: nil)
             metadataCheckbox.frame = NSRect(x: 120, y: 65, width: 200, height: 20)
             metadataCheckbox.font = .systemFont(ofSize: 12)
             metadataCheckbox.state = .on
             accessoryView.addSubview(metadataCheckbox)
 
-
-
             let separatorLine = NSView(frame: NSRect(x: 0, y: 50, width: 380, height: 1))
             separatorLine.wantsLayer = true
             separatorLine.layer?.backgroundColor = NSColor.separatorColor.cgColor
             accessoryView.addSubview(separatorLine)
-
-
 
             let qualityRow = NSView(frame: NSRect(x: 0, y: 15, width: 380, height: 30))
             qualityRow.wantsLayer = true
@@ -1039,8 +1019,6 @@ final class ShelfItemViewModel: ObservableObject {
             alert.runModal()
         }
     }
-
-
 
     private func appDisplayName(for appURL: URL) -> String {
         (try? appURL.resourceValues(forKeys: [.localizedNameKey]).localizedName) ?? appURL.lastPathComponent

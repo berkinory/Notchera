@@ -76,7 +76,6 @@ struct NotcheraHeader: View {
         .foregroundColor(.gray)
         .environmentObject(vm)
     }
-
 }
 
 #Preview {

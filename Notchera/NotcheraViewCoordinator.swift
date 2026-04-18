@@ -77,9 +77,7 @@ class NotcheraViewCoordinator: ObservableObject {
 
     @Default(.hudReplacement) var hudReplacement: Bool
 
-
     @AppStorage("preferred_screen_name") private var legacyPreferredScreenName: String?
-
 
     @AppStorage("preferred_screen_uuid") var preferredScreenUUID: String? {
         didSet {
@@ -168,8 +166,10 @@ class NotcheraViewCoordinator: ObservableObject {
 
     @objc func hudEvent(_ notification: Notification) {
         let decoder = JSONDecoder()
+        guard let payload = notification.userInfo?.first?.value as? Data else { return }
+
         if let decodedData = try? decoder.decode(
-            SharedHUDState.self, from: notification.userInfo?.first?.value as! Data
+            SharedHUDState.self, from: payload
         ) {
             let contentType =
                 decodedData.type == "brightness"

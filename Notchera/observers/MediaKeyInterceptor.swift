@@ -26,8 +26,6 @@ final class MediaKeyInterceptor {
 
     private init() {}
 
-
-
     func requestAccessibilityAuthorization() {
         XPCHelperClient.shared.requestAccessibilityAuthorization()
     }
@@ -36,8 +34,6 @@ final class MediaKeyInterceptor {
         await XPCHelperClient.shared.ensureAccessibilityAuthorization(promptIfNeeded: promptIfNeeded)
     }
 
-
-
     func start(promptIfNeeded: Bool = false) async {
         guard eventTap == nil else { return }
 
@@ -45,7 +41,6 @@ final class MediaKeyInterceptor {
             stop()
             return
         }
-
 
         let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
         if !authorized {
@@ -90,8 +85,6 @@ final class MediaKeyInterceptor {
         runLoopSource = nil
         eventTap = nil
     }
-
-
 
     private func handleEvent(_ cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
         guard cgEvent.type != .null else {

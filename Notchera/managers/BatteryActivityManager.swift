@@ -47,7 +47,6 @@ class BatteryActivityManager {
         setupLowPowerModeObserver()
     }
 
-
     private func setupLowPowerModeObserver() {
         NotificationCenter.default.addObserver(
             self,
@@ -57,11 +56,9 @@ class BatteryActivityManager {
         )
     }
 
-
     @objc private func lowPowerModeChanged() {
         notifyBatteryChanges()
     }
-
 
     private func startMonitoring() {
         guard let powerSource = IOPSNotificationCreateRunLoopSource({ context in
@@ -75,14 +72,12 @@ class BatteryActivityManager {
         CFRunLoopAddSource(CFRunLoopGetCurrent(), powerSource, .defaultMode)
     }
 
-
     private func stopMonitoring() {
         if let powerSource = batterySource {
             CFRunLoopRemoveSource(CFRunLoopGetCurrent(), powerSource, .defaultMode)
             batterySource = nil
         }
     }
-
 
     private func checkAndNotify<T: Equatable>(
         previous: T,
@@ -93,8 +88,6 @@ class BatteryActivityManager {
             enqueueNotification(eventGenerator(current))
         }
     }
-
-
 
     private func notifyBatteryChanges() {
         let batteryInfo = getBatteryInfo()
@@ -157,13 +150,9 @@ class BatteryActivityManager {
         }
     }
 
-
-
     private func enqueueNotification(_ event: BatteryEvent) {
         notifyObservers(event: event)
     }
-
-
 
     func initializeBatteryInfo() -> BatteryInfo {
         previousBatteryInfo = getBatteryInfo()
@@ -179,8 +168,6 @@ class BatteryActivityManager {
         }
         return batteryInfo
     }
-
-
 
     private func getBatteryInfo() -> BatteryInfo {
         do {
@@ -246,22 +233,15 @@ class BatteryActivityManager {
         }
     }
 
-
-
-
     func addObserver(_ observer: @escaping (BatteryEvent) -> Void) -> Int {
         observers.append(observer)
         return observers.count - 1
     }
 
-
-
     func removeObserver(byId id: Int) {
         guard id >= 0, id < observers.count else { return }
         observers.remove(at: id)
     }
-
-
 
     private func notifyObservers(event: BatteryEvent) {
         DispatchQueue.main.async { [weak self] in

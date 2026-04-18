@@ -79,8 +79,7 @@ struct ShelfItem: Identifiable, Codable, Equatable {
                     if let textData = try? decoder.decode(TextBlockData.self, from: data) {
                         return textData.displayTitle
                     }
-                } catch {
-                }
+                } catch {}
             } else if resolvedURL.pathExtension.lowercased() == "webloc", resolvedURL.path.contains("WebLocs") {
                 do {
                     let data = try Data(contentsOf: resolvedURL)
@@ -90,8 +89,7 @@ struct ShelfItem: Identifiable, Codable, Equatable {
                         let title = plist["Title"] as? String
                         return title ?? urlString
                     }
-                } catch {
-                }
+                } catch {}
             }
             return (try? resolvedURL.resourceValues(forKeys: [.localizedNameKey]).localizedName) ?? resolvedURL.lastPathComponent
         case let .text(string):
@@ -114,9 +112,7 @@ struct ShelfItem: Identifiable, Codable, Equatable {
     }
 
     var URL: URL? {
-        if case let .file(bookmark) = kind { resolvedContext(for: bookmark)?.url }
-        else if case let .link(url) = kind { url }
-        else { nil }
+        if case let .file(bookmark) = kind { resolvedContext(for: bookmark)?.url } else if case let .link(url) = kind { url } else { nil }
     }
 
     var icon: NSImage {

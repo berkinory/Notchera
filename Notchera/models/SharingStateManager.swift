@@ -115,8 +115,6 @@ final class SharingLifecycleDelegate: NSObject, NSSharingServiceDelegate, NSShar
         onEnd()
     }
 
-
-
     func sharingServicePicker(_: NSSharingServicePicker, didChoose service: NSSharingService?) {
         if service == nil {
             if pickerActive, !serviceInProgress {
@@ -129,8 +127,6 @@ final class SharingLifecycleDelegate: NSObject, NSSharingServiceDelegate, NSShar
         serviceInProgress = true
         startTimeoutFallback()
     }
-
-
 
     func sharingService(_: NSSharingService, willShareItems _: [Any]) {
         if !pickerActive, !serviceInProgress {

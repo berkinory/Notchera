@@ -44,9 +44,5 @@ func isNewVersion() -> Bool {
 }
 
 func isExtensionRunning(_ bundleID: String) -> Bool {
-    if let _ = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
-        return true
-    }
-
-    return false
+    NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) != nil
 }

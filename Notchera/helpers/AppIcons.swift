@@ -18,7 +18,6 @@ struct AppIcons {
         return getIcon(file: path)
     }
 
-
     func bundle(forBundleID: String) -> Bundle? {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: forBundleID)
         else { return nil }

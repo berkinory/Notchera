@@ -9,8 +9,6 @@ let defaultImage: NSImage = .init(
 )!
 
 class MusicManager: ObservableObject {
-
-
     static let shared = MusicManager()
     private var cancellables = Set<AnyCancellable>()
     private var controllerCancellables = Set<AnyCancellable>()
@@ -18,7 +16,6 @@ class MusicManager: ObservableObject {
 
     private(set) var isNowPlayingDeprecated: Bool = false
     private let mediaChecker = MediaChecker()
-
 
     private var activeController: (any MediaControllerProtocol)?
 
@@ -30,7 +27,7 @@ class MusicManager: ObservableObject {
     @Published var isPlayerIdle: Bool = true
     @Published var animations: NotcheraAnimations = .init()
     @Published var avgColor: NSColor = .white
-    @Published var bundleIdentifier: String? = nil
+    @Published var bundleIdentifier: String?
     @Published var songDuration: TimeInterval = 0
     @Published var elapsedTime: TimeInterval = 0
     @Published var timestampDate: Date = .init()
@@ -59,8 +56,6 @@ class MusicManager: ObservableObject {
 
     @Published var isTransitioning: Bool = false
     private var transitionWorkItem: DispatchWorkItem?
-
-
 
     init() {
         NotificationCenter.default.publisher(for: Notification.Name.mediaControllerChanged)
@@ -95,8 +90,6 @@ class MusicManager: ObservableObject {
 
         activeController = nil
     }
-
-
 
     private func createController(for type: MediaControllerType) -> (any MediaControllerProtocol)? {
         if activeController != nil {
@@ -160,8 +153,6 @@ class MusicManager: ObservableObject {
         forceUpdate()
     }
 
-
-
     @MainActor
     private func updateFromPlaybackState(_ state: PlaybackState) {
         if state.isPlaying != isPlaying {
@@ -170,7 +161,6 @@ class MusicManager: ObservableObject {
                 self.isPlaying = state.isPlaying
                 self.updateIdleState(state: state.isPlaying)
             }
-
         }
 
         let titleChanged = state.title != lastArtworkTitle
@@ -301,12 +291,9 @@ class MusicManager: ObservableObject {
         }
     }
 
-
     func dislikeCurrentTrack() {
         setFavorite(false)
     }
-
-
 
     private func fetchLyricsIfAvailable(bundleIdentifier: String?, title: String, artist: String) {
         guard Defaults[.enableLyrics], !title.isEmpty else {
@@ -356,8 +343,7 @@ class MusicManager: ObservableObject {
                         self.syncedLyrics = []
                         return
                     }
-                } catch {
-                }
+                } catch {}
                 await self.fetchLyricsFromWeb(title: title, artist: artist)
             }
         } else {
@@ -424,8 +410,6 @@ class MusicManager: ObservableObject {
             syncedLyrics = []
         }
     }
-
-
 
     private func parseLRC(_ lrc: String) -> [(time: Double, text: String)] {
         var result: [(Double, String)] = []
@@ -522,8 +506,6 @@ class MusicManager: ObservableObject {
             self.calculateAverageColor()
         }
     }
-
-
 
     func estimatedPlaybackPosition(at date: Date = Date()) -> TimeInterval {
         guard isPlaying else { return min(elapsedTime, songDuration) }

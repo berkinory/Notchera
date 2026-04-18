@@ -4,7 +4,6 @@ class ShareServiceFinder: NSObject, NSSharingServicePickerDelegate {
     @MainActor
     private var onServicesCaptured: (([NSSharingService]) -> Void)?
 
-
     @MainActor
     func findApplicableServices(for items: [Any], timeout: TimeInterval = 2.0) async -> [NSSharingService] {
         let dummyView = NSView(frame: .zero)
@@ -33,8 +32,6 @@ class ShareServiceFinder: NSObject, NSSharingServicePickerDelegate {
             }
         }
     }
-
-
 
     func sharingServicePicker(_: NSSharingServicePicker,
                               sharingServicesForItems _: [Any],

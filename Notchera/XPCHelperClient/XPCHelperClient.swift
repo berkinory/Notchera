@@ -18,8 +18,6 @@ final class XPCHelperClient: NSObject {
         stopMonitoringAccessibilityAuthorization()
     }
 
-
-
     @MainActor
     private func ensureRemoteService() -> RemoteXPCService<NotcheraXPCHelperProtocol> {
         if let existing = remoteService {
@@ -70,8 +68,6 @@ final class XPCHelperClient: NSObject {
         )
     }
 
-
-
     nonisolated func startMonitoringAccessibilityAuthorization(every interval: TimeInterval = 3.0) {
         stopMonitoringAccessibilityAuthorization()
         monitoringTask = Task.detached { [weak self] in
@@ -90,12 +86,9 @@ final class XPCHelperClient: NSObject {
         monitoringTask = nil
     }
 
-
     var isMonitoring: Bool {
         monitoringTask != nil
     }
-
-
 
     private nonisolated func currentProcessAccessibilityAuthorized(promptIfNeeded: Bool = false) -> Bool {
         if promptIfNeeded {
@@ -176,8 +169,6 @@ final class XPCHelperClient: NSObject {
         return false
     }
 
-
-
     nonisolated func isKeyboardBrightnessAvailable() async -> Bool {
         do {
             let service = await MainActor.run {
@@ -223,8 +214,6 @@ final class XPCHelperClient: NSObject {
             return false
         }
     }
-
-
 
     nonisolated func isScreenBrightnessAvailable() async -> Bool {
         do {

@@ -7,8 +7,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         await fetchFavoriteStateIfSupported()
     }
 
-
-
     @Published private(set) var playbackState: PlaybackState = .init(
         bundleIdentifier: "com.apple.Music"
     )
@@ -51,8 +49,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private var lastMusicItem:
         (title: String, artist: String, album: String, duration: TimeInterval, artworkData: Data?)?
 
-
-
     private let mediaRemoteBundle: CFBundle
     private let MRMediaRemoteSendCommandFunction: @convention(c) (Int, AnyObject?) -> Void
     private let MRMediaRemoteSetElapsedTimeFunction: @convention(c) (Double) -> Void
@@ -62,8 +58,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private var process: Process?
     private var pipeHandler: JSONLinesPipeHandler?
     private var streamTask: Task<Void, Never>?
-
-
 
     init?() {
         guard
@@ -122,8 +116,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         self.pipeHandler = nil
     }
 
-
-
     func play() async {
         MRMediaRemoteSendCommandFunction(0, nil)
     }
@@ -164,8 +156,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func setVolume(_ level: Double) async {
-
-
         let clampedLevel = max(0.0, min(1.0, level))
         let volumePercentage = Int(clampedLevel * 100)
 
@@ -188,8 +178,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         playbackState.volume = clampedLevel
     }
-
-
 
     private func setupNowPlayingObserver() async {
         let process = Process()
@@ -220,8 +208,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
     }
 
-
-
     private func processJSONStream() async {
         guard let pipeHandler else { return }
 
@@ -229,8 +215,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             await self?.handleAdapterUpdate(update)
         }
     }
-
-
 
     private func handleAdapterUpdate(_ update: NowPlayingUpdate) async {
         let payload = update.payload
@@ -300,7 +284,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         newPlaybackState.volume = payload.volume ?? (diff ? playbackState.volume : 0.5)
 
         playbackState = newPlaybackState
-
     }
 
     private func fetchFavoriteStateIfSupported() async {
@@ -401,8 +384,7 @@ actor JSONLinesPipeHandler {
         do {
             let decodedObject = try JSONDecoder().decode(T.self, from: data)
             await onLine(decodedObject)
-        } catch {
-        }
+        } catch {}
     }
 
     private func readData() async throws -> Data {

@@ -182,7 +182,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self, weak window] shouldHide in
                 guard let self, let window else { return }
-                self.updateWindowVisibility(window, isHidden: shouldHide)
+                updateWindowVisibility(window, isHidden: shouldHide)
             }
 
         Task { @MainActor in
@@ -255,7 +255,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func createNotcheraWindow(for screen: NSScreen, with viewModel: NotcheraViewModel) -> NSWindow {
+    private func createNotcheraWindow(for _: NSScreen, with viewModel: NotcheraViewModel) -> NSWindow {
         let rect = NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
         let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow]
 

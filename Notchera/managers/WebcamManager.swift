@@ -33,8 +33,6 @@ class WebcamManager: NSObject, ObservableObject {
 
     private var isCleaningUp: Bool = false
 
-
-
     enum WebcamError: Error, LocalizedError {
         case deviceUnavailable
         case accessDenied
@@ -51,8 +49,6 @@ class WebcamManager: NSObject, ObservableObject {
             }
         }
     }
-
-
 
     override private init() {
         super.init()
@@ -74,9 +70,6 @@ class WebcamManager: NSObject, ObservableObject {
         previewLayer = nil
     }
 
-
-
-
     func checkAndRequestVideoAuthorization() {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         DispatchQueue.main.async {
@@ -95,7 +88,6 @@ class WebcamManager: NSObject, ObservableObject {
         }
     }
 
-
     private func requestVideoAccess() {
         AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
             DispatchQueue.main.async {
@@ -106,7 +98,6 @@ class WebcamManager: NSObject, ObservableObject {
             }
         }
     }
-
 
     func checkCameraAvailability() {
         let availableDevices = AVCaptureDevice.DiscoverySession(
@@ -121,7 +112,6 @@ class WebcamManager: NSObject, ObservableObject {
             self.cameraAvailable = hasAvailableDevices
         }
     }
-
 
     private func setupCaptureSession(completion: @escaping (Bool) -> Void) {
         sessionQueue.async { [weak self] in
@@ -195,7 +185,6 @@ class WebcamManager: NSObject, ObservableObject {
             }
         }
     }
-
 
     private func cleanupExistingSession() {
         if let existingSession = captureSession {

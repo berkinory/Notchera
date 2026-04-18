@@ -27,19 +27,15 @@ class BatteryStatusViewModel: ObservableObject {
 
     static let shared = BatteryStatusViewModel()
 
-
-
     private init() {
         setupPowerStatus()
         setupMonitor()
     }
 
-
     private func setupPowerStatus() {
         let batteryInfo = managerBattery.initializeBatteryInfo()
         updateBatteryInfo(batteryInfo)
     }
-
 
     private func setupMonitor() {
         managerBatteryId = managerBattery.addObserver { [weak self] event in
@@ -47,8 +43,6 @@ class BatteryStatusViewModel: ObservableObject {
             handleBatteryEvent(event)
         }
     }
-
-
 
     private func handleBatteryEvent(_ event: BatteryActivityManager.BatteryEvent) {
         switch event {
@@ -65,14 +59,14 @@ class BatteryStatusViewModel: ObservableObject {
                 didNotifyFullChargeWhilePlugged = false
             }
 
-            self.notifyImportanChangeStatus()
+            notifyImportanChangeStatus()
 
         case let .batteryLevelChanged(level):
             print("🔋 Battery level: \(Int(level))%")
             withAnimation {
                 self.levelBattery = level
             }
-            self.handleBatteryThresholdNotifications(level: level)
+            handleBatteryThresholdNotifications(level: level)
 
         case let .lowPowerModeChanged(isEnabled):
             print("⚡ Low power mode: \(isEnabled ? "Enabled" : "Disabled")")
@@ -80,7 +74,7 @@ class BatteryStatusViewModel: ObservableObject {
                 self.isInLowPowerMode = isEnabled
                 self.statusText = isEnabled ? "Low Power On" : "Low Power Off"
             }
-            self.notifyImportanChangeStatus()
+            notifyImportanChangeStatus()
 
         case let .isChargingChanged(isCharging):
             print("🔌 Charging: \(isCharging ? "Yes" : "No")")
@@ -105,8 +99,6 @@ class BatteryStatusViewModel: ObservableObject {
         }
     }
 
-
-
     private func updateBatteryInfo(_ batteryInfo: BatteryInfo) {
         withAnimation {
             self.levelBattery = batteryInfo.currentCapacity
@@ -121,8 +113,6 @@ class BatteryStatusViewModel: ObservableObject {
         didNotifyLowBatteryAt20 = batteryInfo.isPluggedIn || batteryInfo.currentCapacity <= 20
         didNotifyFullChargeWhilePlugged = batteryInfo.isPluggedIn && batteryInfo.currentCapacity >= 100
     }
-
-
 
     private func handleBatteryThresholdNotifications(level: Float) {
         if !isPluggedIn {

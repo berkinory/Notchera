@@ -11,9 +11,6 @@ enum TempFileType {
 class TemporaryFileStorageService {
     static let shared = TemporaryFileStorageService()
 
-
-
-
     func createTempFile(for type: TempFileType) async -> URL? {
         await withCheckedContinuation { continuation in
             let result = createTempFile(for: type)
@@ -47,8 +44,6 @@ class TemporaryFileStorageService {
             print("Error: \(error.localizedDescription)")
         }
     }
-
-
 
     private func createTempFile(for type: TempFileType) -> URL? {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -132,7 +127,6 @@ class TemporaryFileStorageService {
             return nil
         }
 
-
         func runZip(arguments: [String], currentDirectory: URL) -> Bool {
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
@@ -211,8 +205,6 @@ class TemporaryFileStorageService {
             return nil
         }
     }
-
-
 
     private func createWeblocContent(for url: URL) -> String {
         """

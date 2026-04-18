@@ -12,7 +12,6 @@ final class ShelfSelectionModel: ObservableObject {
 
     @Published private(set) var selectedIDs: Set<UUID> = []
 
-
     private var lastAnchorID: UUID?
 
     func isSelected(_ id: UUID) -> Bool {
@@ -63,7 +62,6 @@ final class ShelfSelectionModel: ObservableObject {
         selectedIDs.removeAll()
         lastAnchorID = nil
     }
-
 
     func ensureValidAnchor(in allItems: [ShelfItem]) {
         if let anchor = lastAnchorID, !allItems.contains(where: { $0.id == anchor }) {

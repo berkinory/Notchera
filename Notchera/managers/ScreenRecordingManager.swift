@@ -1,6 +1,6 @@
+import Darwin
 import Foundation
 import SwiftUI
-import Darwin
 
 @MainActor
 final class ScreenRecordingManager: ObservableObject {
@@ -97,10 +97,10 @@ final class ScreenRecordingManager: ObservableObject {
         durationTask = Task { [weak self] in
             guard let self else { return }
 
-            while !Task.isCancelled, self.isMonitoring, self.isRecording {
+            while !Task.isCancelled, isMonitoring, isRecording {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
-                self.updateDuration()
+                updateDuration()
             }
         }
     }

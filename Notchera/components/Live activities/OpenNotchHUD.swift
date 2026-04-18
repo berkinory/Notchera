@@ -56,7 +56,6 @@ struct OpenNotchHUD: View {
                 })
                 .frame(width: 108)
             }
-
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)

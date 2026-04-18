@@ -86,7 +86,7 @@ class NotcheraViewModel: NSObject, ObservableObject {
             .map(\.newValue)
             .receive(on: RunLoop.main)
             .sink { [weak self, weak detector] isEnabled in
-                guard let self, let detector, let screenUUID = self.screenUUID else { return }
+                guard let self, let detector, let screenUUID else { return }
                 let shouldHide = isEnabled && (detector.fullscreenStatus[screenUUID] ?? false)
                 withAnimation(.smooth) {
                     self.hideOnClosed = shouldHide
@@ -94,7 +94,6 @@ class NotcheraViewModel: NSObject, ObservableObject {
             }
             .store(in: &cancellables)
     }
-
 
     var effectiveClosedNotchHeight: CGFloat {
         let currentScreen = screenUUID.flatMap { NSScreen.screen(withUUID: $0) }

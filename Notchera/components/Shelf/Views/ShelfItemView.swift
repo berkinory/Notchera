@@ -86,8 +86,6 @@ struct ShelfItemView: View {
         .quickLookPresenter(using: quickLookService)
     }
 
-
-
     private var iconView: some View {
         Image(nsImage: viewModel.thumbnail ?? item.icon)
             .resizable()
@@ -148,8 +146,6 @@ struct ShelfItemView: View {
             1
         }
     }
-
-
 
     @MainActor
     private func renderDragPreview() async -> NSImage {
@@ -286,7 +282,6 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
                     return pasteboardItem
                 }
 
-
                 if url.startAccessingSecurityScopedResource() {
                     draggedURLs.append(url)
                     NSLog("🔐 Started security-scoped access for drag: \(url.path)")
@@ -306,8 +301,6 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
                 return pasteboardItem
             }
         }
-
-
 
         func draggingSession(_: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
             if Defaults[.copyOnDrag] {
@@ -330,7 +323,6 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
 
         func draggingSession(_: NSDraggingSession, endedAt _: NSPoint, operation: NSDragOperation) {
             ShelfSelectionModel.shared.endDrag()
-
 
             for url in draggedURLs {
                 url.stopAccessingSecurityScopedResource()

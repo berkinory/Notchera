@@ -8,7 +8,6 @@ private final class MenuActionBox: NSObject {
 }
 
 extension NSMenu {
-
     private static let retainedAction = AssociatedObject<MenuActionBox>()
 
     func retainActionTarget(_ target: AnyObject) {

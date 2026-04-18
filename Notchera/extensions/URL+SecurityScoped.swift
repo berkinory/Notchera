@@ -14,7 +14,6 @@ extension URL {
         return try accessor(self)
     }
 
-
     func accessSecurityScopedResource<Value>(accessor: (URL) async throws -> Value) async rethrows -> Value {
         let didStartAccessing = startAccessingSecurityScopedResource()
         defer {

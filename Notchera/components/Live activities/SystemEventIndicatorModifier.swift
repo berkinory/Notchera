@@ -108,7 +108,7 @@ struct DraggableProgressBar: View {
                         )
                         .frame(width: max(0, min(geo.size.width * value, geo.size.width)))
                         .shadow(color: Defaults[.systemEventIndicatorShadow] ? Color.white : Color.clear,
-                            radius: 4, x: 1)
+                                radius: 4, x: 1)
                         .opacity(value.isZero ? 0 : 1)
                         .animation(.smooth(duration: 0.18), value: value)
                 }

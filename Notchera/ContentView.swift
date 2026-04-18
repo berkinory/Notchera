@@ -52,7 +52,7 @@ struct ContentView: View {
             chinWidth = openNotchSize.width
         } else if !coordinator.expandingView.show,
                   vm.notchState == .closed,
-                  (musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive),
+                  musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive,
                   coordinator.musicLiveActivityEnabled, !vm.hideOnClosed
         {
             chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
@@ -228,7 +228,7 @@ struct ContentView: View {
 
                         ZStack {
                             if !coordinator.expandingView.show,
-                               (musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive),
+                               musicManager.isPlaying || !musicManager.isPlayerIdle || privacyStateManager.state.isActive,
                                coordinator.musicLiveActivityEnabled,
                                !vm.hideOnClosed
                             {
@@ -283,7 +283,6 @@ struct ContentView: View {
                     } else {
                         Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                     }
-
                 }
             }
             .zIndex(2)
@@ -341,8 +340,6 @@ struct ContentView: View {
             vm.open()
         }
     }
-
-
 
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch { return }

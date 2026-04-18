@@ -3,8 +3,6 @@ import Foundation
 import SwiftUI
 
 class AppleMusicController: MediaControllerProtocol {
-
-
     @Published private var playbackState: PlaybackState = .init(
         bundleIdentifier: "com.apple.Music",
         playbackRate: 1
@@ -23,8 +21,6 @@ class AppleMusicController: MediaControllerProtocol {
     }
 
     private var notificationTask: Task<Void, Never>?
-
-
 
     init() {
         setupPlaybackStateChangeObserver()
@@ -50,8 +46,6 @@ class AppleMusicController: MediaControllerProtocol {
     deinit {
         notificationTask?.cancel()
     }
-
-
 
     func play() async {
         await executeCommand("play")
@@ -147,8 +141,6 @@ class AppleMusicController: MediaControllerProtocol {
         playbackState = updatedState
     }
 
-
-
     private func executeCommand(_ command: String) async {
         let script = "tell application \"Music\" to \(command)"
         try? await AppleScriptHelper.executeVoid(script)
@@ -180,7 +172,7 @@ class AppleMusicController: MediaControllerProtocol {
                 on error
                     set artData to ""
                 end try
-                
+
                 set currentVolume to sound volume
                 set favoriteState to favorited of current track
                 return {playerState, currentTrackName, currentTrackArtist, currentTrackAlbum, trackPosition, trackDuration, shuffleState, repeatValue, currentVolume, artData, favoriteState}

@@ -206,21 +206,21 @@ struct WingHUDView: View {
     private var hudIconKey: String {
         switch type {
         case .volume:
-            return icon.isEmpty
+            icon.isEmpty
                 ? "volume:\(speakerSymbol):\(clampedValue > 0 ? 1 : 0)"
                 : "volume-custom:\(icon):\(clampedValue > 0 ? 1 : 0)"
         case .brightness:
-            return "brightness:\(brightnessSymbol)"
+            "brightness:\(brightnessSymbol)"
         case .backlight:
-            return clampedValue > 0.5 ? "backlight:max" : "backlight:min"
+            clampedValue > 0.5 ? "backlight:max" : "backlight:min"
         case .mic:
-            return clampedValue > 0 ? "mic:on" : "mic:off"
+            clampedValue > 0 ? "mic:on" : "mic:off"
         case .recording:
-            return clampedValue > 0 ? "recording:on" : "recording:off"
+            clampedValue > 0 ? "recording:on" : "recording:off"
         case .battery:
-            return "battery:\(batteryMonoSymbol):\(displayValue):\(batteryStatusText ?? "")"
+            "battery:\(batteryMonoSymbol):\(displayValue):\(batteryStatusText ?? "")"
         default:
-            return ""
+            ""
         }
     }
 

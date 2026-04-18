@@ -54,4 +54,3 @@ enum WindowHeightMode: String, Defaults.Serializable {
     case matchRealNotchSize = "Match real notch height"
     case custom = "Custom height"
 }
-

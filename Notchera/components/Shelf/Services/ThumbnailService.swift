@@ -44,8 +44,6 @@ actor ThumbnailService {
         cache = cache.filter { !$0.key.starts(with: url.path) }
     }
 
-
-
     private func generateQuickLookThumbnail(for url: URL, size: CGSize) async -> NSImage? {
         let scale = await MainActor.run { NSScreen.main?.backingScaleFactor ?? 2.0 }
 

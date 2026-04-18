@@ -8,7 +8,7 @@ import SwiftUIIntrospect
 
 struct SettingsView: View {
     @State private var selectedTab = "General"
-        let updaterController: SPUStandardUpdaterController?
+    let updaterController: SPUStandardUpdaterController?
 
     init(updaterController: SPUStandardUpdaterController? = nil) {
         self.updaterController = updaterController
@@ -296,7 +296,6 @@ struct Charge: View {
     }
 }
 
-
 struct HUD: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @Default(.enableGradient) var enableGradient
@@ -501,7 +500,6 @@ struct Media: View {
         .navigationTitle("Media")
     }
 
-
     private var availableMediaControllers: [MediaControllerType] {
         if MusicManager.shared.isNowPlayingDeprecated {
             MediaControllerType.allCases.filter { $0 != .nowPlaying }
@@ -689,7 +687,6 @@ struct Shelf: View {
         .navigationTitle("Shelf")
     }
 }
-
 
 struct Appearance: View {
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared

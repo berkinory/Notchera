@@ -12,7 +12,6 @@ struct BatteryView: View {
 
     var icon: String = "battery.0"
 
-
     var iconStatus: String {
         if isCharging {
             "bolt"
@@ -22,7 +21,6 @@ struct BatteryView: View {
             ""
         }
     }
-
 
     var batteryColor: Color {
         if isInLowPowerMode {
@@ -176,7 +174,7 @@ struct NotcheraBatteryView: View {
     @State private var isPressed: Bool = false
     @State private var isHoveringButton: Bool = false
     @State private var isHoveringPopover: Bool = false
-    @State private var hideTask: Task<Void, Never>? = nil
+    @State private var hideTask: Task<Void, Never>?
 
     @EnvironmentObject var vm: NotcheraViewModel
 

@@ -3,10 +3,7 @@ import Foundation
 import SwiftUI
 
 class SpotifyController: MediaControllerProtocol {
-    func setFavorite(_: Bool) async {
-    }
-
-
+    func setFavorite(_: Bool) async {}
 
     @Published private var playbackState: PlaybackState = .init(
         bundleIdentifier: "com.spotify.client"
@@ -25,7 +22,6 @@ class SpotifyController: MediaControllerProtocol {
     }
 
     private var notificationTask: Task<Void, Never>?
-
 
     private let commandUpdateDelay: Duration = .milliseconds(25)
 
@@ -57,8 +53,6 @@ class SpotifyController: MediaControllerProtocol {
         notificationTask?.cancel()
         artworkFetchTask?.cancel()
     }
-
-
 
     func play() async {
         await executeCommand("play")
@@ -167,8 +161,6 @@ class SpotifyController: MediaControllerProtocol {
             }
         }
     }
-
-
 
     private func executeCommand(_ command: String) async {
         let script = "tell application \"Spotify\" to \(command)"

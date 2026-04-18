@@ -1,5 +1,5 @@
-import Foundation
 import CoreAudio
+import Foundation
 import SwiftUI
 
 private func microphoneActivityPropertyListener(
@@ -29,7 +29,6 @@ final class MicrophoneActivityManager: ObservableObject {
     private var isListenerRegistered = false
 
     private init() {}
-
 
     func startMonitoring() {
         guard !isMonitoring else { return }

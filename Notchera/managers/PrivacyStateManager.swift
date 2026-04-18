@@ -12,7 +12,9 @@ struct PrivacyState: Equatable {
     struct Badge: Identifiable, Equatable {
         let kind: Kind
 
-        var id: Kind { kind }
+        var id: Kind {
+            kind
+        }
 
         var symbol: String {
             switch kind {

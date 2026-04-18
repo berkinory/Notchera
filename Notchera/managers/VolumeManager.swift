@@ -27,8 +27,6 @@ final class VolumeManager: NSObject, ObservableObject {
         Date().timeIntervalSince(lastChangeAt) < visibleDuration
     }
 
-
-
     @MainActor func increase(stepDivisor: Float = 1.0) {
         let divisor = max(stepDivisor, 0.25)
         let delta = step / Float32(divisor)
@@ -95,8 +93,6 @@ final class VolumeManager: NSObject, ObservableObject {
 
         publish(volume: clamped, muted: isMutedInternal(), touchDate: true)
     }
-
-
 
     private func systemOutputDeviceID() -> AudioObjectID {
         var defaultDeviceID = kAudioObjectUnknown
@@ -179,13 +175,13 @@ final class VolumeManager: NSObject, ObservableObject {
             self.fetchCurrentVolume()
         }
 
-        var masterAddr = AudioObjectPropertyAddress(
+        var mainChannelAddress = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyVolumeScalar,
             mScope: kAudioDevicePropertyScopeOutput,
             mElement: kAudioObjectPropertyElementMain
         )
-        if AudioObjectHasProperty(deviceID, &masterAddr) {
-            AudioObjectAddPropertyListenerBlock(deviceID, &masterAddr, nil) { _, _ in
+        if AudioObjectHasProperty(deviceID, &mainChannelAddress) {
+            AudioObjectAddPropertyListenerBlock(deviceID, &mainChannelAddress, nil) { _, _ in
                 self.fetchCurrentVolume()
             }
         } else {
@@ -245,8 +241,7 @@ final class VolumeManager: NSObject, ObservableObject {
             }
             written = any
         }
-        if !written {
-        }
+        if !written {}
     }
 
     private func isMutedInternal() -> Bool {

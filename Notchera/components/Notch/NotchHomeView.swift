@@ -358,8 +358,7 @@ struct VolumeControlView: View {
                 }
             }
         }
-        .onDisappear {
-        }
+        .onDisappear {}
     }
 
     private var volumeIcon: String {

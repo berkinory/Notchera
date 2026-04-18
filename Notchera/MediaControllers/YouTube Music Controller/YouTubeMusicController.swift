@@ -3,8 +3,6 @@ import Foundation
 import SwiftUI
 
 final class YouTubeMusicController: MediaControllerProtocol {
-
-
     @Published var playbackState = PlaybackState(
         bundleIdentifier: YouTubeMusicConfiguration.default.bundleIdentifier
     )
@@ -38,8 +36,6 @@ final class YouTubeMusicController: MediaControllerProtocol {
         }
     }
 
-
-
     private let configuration: YouTubeMusicConfiguration
     private let httpClient: YouTubeMusicHTTPClient
     private let authManager: YouTubeMusicAuthManager
@@ -48,8 +44,6 @@ final class YouTubeMusicController: MediaControllerProtocol {
     private var updateTimer: Timer?
     private var appStateObserver: Task<Void, Never>?
     private var reconnectDelay: TimeInterval = 1.0
-
-
 
     init(configuration: YouTubeMusicConfiguration = .default) {
         self.configuration = configuration
@@ -62,8 +56,6 @@ final class YouTubeMusicController: MediaControllerProtocol {
             await initializeIfAppActive()
         }
     }
-
-
 
     func play() async {
         await sendCommand(endpoint: "/play", method: "POST")
@@ -146,16 +138,13 @@ final class YouTubeMusicController: MediaControllerProtocol {
                     newState.isFavorite = false
                 }
                 playbackState = newState
-            } catch {
-            }
+            } catch {}
         } catch YouTubeMusicError.authenticationRequired {
             await authManager.invalidateToken()
         } catch {
             print("[YouTubeMusicController] Failed to update playback info: \(error)")
         }
     }
-
-
 
     private func setupAppStateObserver() {
         appStateObserver = Task { [weak self] in
@@ -271,7 +260,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
         case .positionChanged:
             guard let data = message.extractData() else { return }
 
-            var position: Double? = nil
+            var position: Double?
             if let pos = data["position"] as? Double {
                 position = pos
             } else if let elapsed = data["elapsedSeconds"] as? Double {
@@ -302,8 +291,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
         case .shuffleChanged:
             guard let data = message.extractData() else { return }
             var copy = playbackState
-            if let shuffle = data["shuffle"] as? Bool { copy.isShuffled = shuffle }
-            else if let shuffle = data["isShuffled"] as? Bool { copy.isShuffled = shuffle }
+            if let shuffle = data["shuffle"] as? Bool { copy.isShuffled = shuffle } else if let shuffle = data["isShuffled"] as? Bool { copy.isShuffled = shuffle }
             copy.lastUpdated = Date()
             if copy != playbackState { playbackState = copy }
 
@@ -485,7 +473,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
     }
 
     private func updateRepeatMode(_ mode: String) {
-        var target: RepeatMode? = nil
+        var target: RepeatMode?
         switch mode {
         case "NONE": target = .off
         case "ALL": target = .all

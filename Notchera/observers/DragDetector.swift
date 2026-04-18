@@ -2,8 +2,6 @@ import Cocoa
 import UniformTypeIdentifiers
 
 final class DragDetector {
-
-
     typealias VoidCallback = () -> Void
     typealias PositionCallback = (_ globalPoint: CGPoint) -> Void
 
@@ -26,9 +24,6 @@ final class DragDetector {
     init(notchRegion: CGRect) {
         self.notchRegion = notchRegion
     }
-
-
-
 
     private func hasValidDragContent() -> Bool {
         let validTypes: [NSPasteboard.PasteboardType] = [

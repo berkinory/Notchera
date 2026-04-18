@@ -47,9 +47,6 @@ final class ImageProcessingService {
     private init() {}
     private let ciContext = CIContext(options: nil)
 
-
-
-
     func removeBackground(from url: URL) async throws -> URL? {
         guard let inputImage = NSImage(contentsOf: url) else {
             throw ImageProcessingError.invalidImage
@@ -113,9 +110,6 @@ final class ImageProcessingService {
 
         return result
     }
-
-
-
 
     func convertImage(from url: URL, options: ImageConversionOptions) async throws -> URL? {
         guard var inputImage = NSImage(contentsOf: url) else {
@@ -225,9 +219,6 @@ final class ImageProcessingService {
         return NSImage(cgImage: dstCG, size: NSSize(width: dstCG.width, height: dstCG.height))
     }
 
-
-
-
     func createPDF(from imageURLs: [URL], outputName: String? = nil) async throws -> URL? {
         guard !imageURLs.isEmpty else {
             throw ImageProcessingError.noImagesProvided
@@ -265,9 +256,6 @@ final class ImageProcessingService {
 
         return tempURL
     }
-
-
-
 
     func isImageFile(_ url: URL) -> Bool {
         guard let contentType = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType else {

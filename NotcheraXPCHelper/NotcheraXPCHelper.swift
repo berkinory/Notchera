@@ -94,8 +94,6 @@ class NotcheraXPCHelper: NSObject, NotcheraXPCHelperProtocol {
         reply(Self.keyboardClient.setBrightness(value))
     }
 
-
-
     @objc func isScreenBrightnessAvailable(with reply: @escaping (Bool) -> Void) {
         var b: Float = 0
         reply(displayServicesGetBrightness(displayID: CGMainDisplayID(), out: &b) || ioServiceFor(displayID: CGMainDisplayID()) != nil)
@@ -134,8 +132,6 @@ class NotcheraXPCHelper: NSObject, NotcheraXPCHelperProtocol {
         reply(false)
     }
 
-
-
     private func displayServicesGetBrightness(displayID: CGDirectDisplayID, out: inout Float) -> Bool {
         guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesGetBrightness") else { return false }
         typealias Fn = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
@@ -171,8 +167,6 @@ class NotcheraXPCHelper: NSObject, NotcheraXPCHelperProtocol {
         }
         return nil
     }
-
-
 
     private enum DisplayServicesHandle {
         static let handle: UnsafeMutableRawPointer? = {

@@ -1,5 +1,5 @@
-import Foundation
 import CoreMediaIO
+import Foundation
 import SwiftUI
 
 private func cameraActivityPropertyListener(
@@ -29,7 +29,6 @@ final class CameraActivityManager: ObservableObject {
     private var isListenerRegistered = false
 
     private init() {}
-
 
     func startMonitoring() {
         guard !isMonitoring else { return }

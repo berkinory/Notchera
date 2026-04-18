@@ -95,8 +95,6 @@ struct FileShareView: View {
         .contentShape(RoundedRectangle(cornerRadius: 12))
     }
 
-
-
     private func handleDrop(_ providers: [NSItemProvider]) async {
         isProcessing = true
         defer { isProcessing = false }

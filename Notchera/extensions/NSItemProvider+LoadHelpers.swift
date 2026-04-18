@@ -7,14 +7,12 @@ extension NSItemProvider {
         await loadFileURL(typeIdentifier: UTType.item.identifier)
     }
 
-
     func extractFileURL() async -> URL? {
         if hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             return await loadFileURL(typeIdentifier: UTType.fileURL.identifier)
         }
         return nil
     }
-
 
     func loadData() async -> Data? {
         NSLog(String(describing: registeredTypeIdentifiers))
@@ -62,7 +60,6 @@ extension NSItemProvider {
         }
     }
 
-
     func extractURL() async -> URL? {
         if hasItemConformingToTypeIdentifier(UTType.url.identifier) {
             if let url = await loadURL(typeIdentifier: UTType.url.identifier) {
@@ -85,7 +82,6 @@ extension NSItemProvider {
 
         return nil
     }
-
 
     func loadFileURL(typeIdentifier: String) async -> URL? {
         await withCheckedContinuation { (cont: CheckedContinuation<URL?, Never>) in
@@ -122,7 +118,6 @@ extension NSItemProvider {
         }
     }
 
-
     func loadURL(typeIdentifier: String) async -> URL? {
         await withCheckedContinuation { (cont: CheckedContinuation<URL?, Never>) in
             self.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { item, error in
@@ -158,7 +153,6 @@ extension NSItemProvider {
             }
         }
     }
-
 
     func loadText(typeIdentifier: String) async -> String? {
         await withCheckedContinuation { (cont: CheckedContinuation<String?, Never>) in

@@ -40,14 +40,10 @@ enum OptionKeyAction: String, CaseIterable, Identifiable, Defaults.Serializable 
 }
 
 extension Defaults.Keys {
-
-
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
     static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: true)
     static let releaseName = Key<String>("releaseName", default: "Flying Rabbit 🐇🪽")
-
-
 
     static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.3)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
@@ -65,8 +61,6 @@ extension Defaults.Keys {
     static let showOnLockScreen = Key<Bool>("showOnLockScreen", default: false)
     static let hideFromScreenRecording = Key<Bool>("hideFromScreenRecording", default: false)
     static let hideNotchInFullscreen = Key<Bool>("hideNotchInFullscreen", default: true)
-
-
 
     static let showEmojis = Key<Bool>("showEmojis", default: false)
     static let showMirror = Key<Bool>("showMirror", default: false)
@@ -86,18 +80,12 @@ extension Defaults.Keys {
         default: MusicControlButton.defaultLayout.count
     )
 
-
-
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
-
-
 
     static let enableDownloadListener = Key<Bool>("enableDownloadListener", default: true)
     static let enableSafariDownloads = Key<Bool>("enableSafariDownloads", default: true)
     static let selectedDownloadIndicatorStyle = Key<DownloadIndicatorStyle>("selectedDownloadIndicatorStyle", default: DownloadIndicatorStyle.progress)
     static let selectedDownloadIconStyle = Key<DownloadIconStyle>("selectedDownloadIconStyle", default: DownloadIconStyle.onlyAppIcon)
-
-
 
     static let hudReplacement = Key<Bool>("hudReplacement", default: false)
     static let enableGradient = Key<Bool>("enableGradient", default: false)
@@ -109,8 +97,6 @@ extension Defaults.Keys {
 
     static let optionKeyAction = Key<OptionKeyAction>("optionKeyAction", default: OptionKeyAction.openSettings)
 
-
-
     static let notchShelf = Key<Bool>("notchShelf", default: true)
     static let openShelfByDefault = Key<Bool>("openShelfByDefault", default: true)
     static let shelfTapToOpen = Key<Bool>("shelfTapToOpen", default: true)
@@ -118,8 +104,6 @@ extension Defaults.Keys {
     static let copyOnDrag = Key<Bool>("copyOnDrag", default: false)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: false)
     static let expandedDragDetection = Key<Bool>("expandedDragDetection", default: true)
-
-
 
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
 

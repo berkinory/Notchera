@@ -2,7 +2,6 @@ import AppKit
 import CoreGraphics
 
 extension NSScreen {
-
     var displayUUID: String? {
         guard let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
             return nil
@@ -14,11 +13,9 @@ extension NSScreen {
         return CFUUIDCreateString(nil, uuid.takeRetainedValue()) as String
     }
 
-
     @MainActor static func screen(withUUID uuid: String) -> NSScreen? {
         NSScreenUUIDCache.shared.screen(forUUID: uuid)
     }
-
 
     @MainActor static var screensByUUID: [String: NSScreen] {
         NSScreenUUIDCache.shared.allScreens

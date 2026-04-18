@@ -87,8 +87,6 @@ struct OnboardingView: View {
         .frame(width: 400, height: 600)
     }
 
-
-
     func requestCameraPermission() async {
         await AVCaptureDevice.requestAccess(for: .video)
     }
