@@ -415,8 +415,6 @@ struct Media: View {
     @Default(.mediaController) var mediaController
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
 
-    @Default(.enableLyrics) var enableLyrics
-
     var body: some View {
         Form {
             Section {
@@ -476,16 +474,10 @@ struct Media: View {
 
             Section {
                 MusicSlotConfigurationView()
-                Defaults.Toggle(key: .enableLyrics) {
-                    HStack {
-                        Text("Show lyrics below artist name")
-                        customBadge(text: "Beta")
-                    }
-                }
             } header: {
                 Text("Media controls")
             } footer: {
-                Text("Customize which controls appear in the music player. Volume expands when active.")
+                Text("Customize which controls appear in the music player.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

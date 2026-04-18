@@ -190,6 +190,7 @@ struct MusicToolbarRowView: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @Default(.musicControlSlots) private var slotConfig
     @Default(.musicControlSlotLimit) private var slotLimit
+    @Default(.enableLyrics) private var enableLyrics
 
     private let slotWidth: CGFloat = 40
 
@@ -231,6 +232,10 @@ struct MusicToolbarRowView: View {
         case .next:
             HoverButton(icon: "forward.fill", scale: .medium) {
                 MusicManager.shared.nextTrack()
+            }
+        case .lyrics:
+            HoverButton(icon: "quote.bubble", iconColor: enableLyrics ? .red : .primary, scale: .medium) {
+                MusicManager.shared.toggleLyrics()
             }
         case .goBackward:
             HoverButton(icon: "gobackward.15", scale: .medium) {

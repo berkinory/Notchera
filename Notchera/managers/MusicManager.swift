@@ -319,6 +319,11 @@ class MusicManager: ObservableObject {
         setFavorite(false)
     }
 
+    func toggleLyrics() {
+        Defaults[.enableLyrics].toggle()
+        fetchLyricsIfAvailable(bundleIdentifier: bundleIdentifier, title: songTitle, artist: artistName)
+    }
+
     private func fetchLyricsIfAvailable(bundleIdentifier: String?, title: String, artist: String) {
         guard Defaults[.enableLyrics], !title.isEmpty else {
             DispatchQueue.main.async {

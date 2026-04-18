@@ -219,6 +219,8 @@ struct MusicSlotConfigurationView: View {
         switch slot {
         case .shuffle:
             musicManager.isShuffled ? .red : .primary
+        case .lyrics:
+            Defaults[.enableLyrics] ? .red : .primary
         case .playPause:
             .primary
         default:
