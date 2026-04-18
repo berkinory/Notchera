@@ -513,7 +513,6 @@ struct NotchHomeView: View {
 
     private var mainContent: some View {
         MusicPlayerView(albumArtNamespace: albumArtNamespace)
-            .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
             .blur(radius: vm.notchState == .closed ? 2 : 0)
     }
 }

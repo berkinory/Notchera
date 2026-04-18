@@ -320,14 +320,17 @@ struct ContentView: View {
             }
             .zIndex(2)
             if vm.notchState == .open {
-                VStack {
+                ZStack {
                     switch coordinator.currentView {
                     case .home:
                         NotchHomeView(albumArtNamespace: albumArtNamespace)
+                            .transition(.opacity)
                     case .shelf:
                         ShelfView()
+                            .transition(.opacity)
                     }
                 }
+                .id(coordinator.currentView)
                 .transition(
                     .asymmetric(
                         insertion: .scale(scale: 0.94, anchor: .top)

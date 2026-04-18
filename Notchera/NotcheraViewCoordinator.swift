@@ -110,10 +110,6 @@ class NotcheraViewCoordinator: ObservableObject {
             return nil
         }
 
-        if rememberedView == .shelf, ShelfStateViewModel.shared.isEmpty {
-            return .home
-        }
-
         return rememberedView
     }
 
