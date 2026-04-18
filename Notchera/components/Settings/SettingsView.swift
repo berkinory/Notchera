@@ -301,8 +301,6 @@ struct HUD: View {
     @Default(.hudReplacement) var hudReplacement
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
-    @Default(.enableCameraPrivacyIndicator) var enableCameraPrivacyIndicator
-    @Default(.enableMicrophonePrivacyIndicator) var enableMicrophonePrivacyIndicator
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @State private var accessibilityAuthorized = false
 
@@ -382,23 +380,15 @@ struct HUD: View {
 
             Section {
                 Defaults.Toggle(key: .enableScreenRecordingDetection) {
-                    Text("Show screen recording status")
+                    Text("Show screen recording toast")
                 }
 
-                Defaults.Toggle(key: .enableCameraPrivacyIndicator) {
-                    Text("Show camera privacy status")
-                }
-
-                Defaults.Toggle(key: .enableMicrophonePrivacyIndicator) {
-                    Text("Show microphone privacy status")
-                }
-
-                Text("Screen recording uses private CoreGraphics APIs. Camera and microphone indicators use low-level device activity signals and may silently stop working if macOS changes them.")
+                Text("Shows a winged toast when screen recording starts or stops. Uses private CoreGraphics APIs.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } header: {
-                Text("Privacy Activities")
+                Text("Screen Recording")
             }
             .disabled(!hudReplacement)
         }

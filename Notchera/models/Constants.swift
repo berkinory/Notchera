@@ -91,8 +91,6 @@ extension Defaults.Keys {
     static let showOpenNotchHUD = Key<Bool>("showOpenNotchHUD", default: true)
     static let showCapsLockIndicator = Key<Bool>("showCapsLockIndicator", default: true)
     static let enableScreenRecordingDetection = Key<Bool>("enableScreenRecordingDetection", default: true)
-    static let enableCameraPrivacyIndicator = Key<Bool>("enableCameraPrivacyIndicator", default: true)
-    static let enableMicrophonePrivacyIndicator = Key<Bool>("enableMicrophonePrivacyIndicator", default: true)
 
     static let optionKeyAction = Key<OptionKeyAction>("optionKeyAction", default: OptionKeyAction.openSettings)
 

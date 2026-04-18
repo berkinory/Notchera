@@ -93,6 +93,14 @@ final class ScreenRecordingManager: ObservableObject {
         recordingStartedAt = Date()
         recordingDuration = 0
 
+        NotcheraViewCoordinator.shared.toggleHUD(
+            status: true,
+            type: .recording,
+            duration: 1.6,
+            value: 1,
+            label: "Started"
+        )
+
         durationTask?.cancel()
         durationTask = Task { [weak self] in
             guard let self else { return }
@@ -114,6 +122,14 @@ final class ScreenRecordingManager: ObservableObject {
         withAnimation(.interactiveSpring(response: 0.45, dampingFraction: 0.9, blendDuration: 0)) {
             isRecording = false
         }
+
+        NotcheraViewCoordinator.shared.toggleHUD(
+            status: true,
+            type: .recording,
+            duration: 1.6,
+            value: 0,
+            label: "Stopped"
+        )
     }
 
     private func updateDuration() {
