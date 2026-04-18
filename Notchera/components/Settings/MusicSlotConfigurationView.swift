@@ -4,10 +4,11 @@ import UniformTypeIdentifiers
 
 struct MusicSlotConfigurationView: View {
     @Default(.musicControlSlots) private var musicControlSlots
+    @Default(.musicControlSlotLimit) private var musicControlSlotLimit
     @ObservedObject private var musicManager = MusicManager.shared
     @State private var draggedSlot: MusicControlButton?
 
-    private let fixedSlotCount: Int = 5
+    private let fixedSlotCount: Int = 7
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -18,6 +19,7 @@ struct MusicSlotConfigurationView: View {
                 Button("Reset to Defaults") {
                     withAnimation {
                         musicControlSlots = MusicControlButton.defaultLayout
+                        musicControlSlotLimit = fixedSlotCount
                     }
                 }
                 .buttonStyle(.borderless)
@@ -25,6 +27,7 @@ struct MusicSlotConfigurationView: View {
         }
         .onAppear {
             ensureSlotCapacity(fixedSlotCount)
+            ensureSlotLimit(fixedSlotCount)
         }
     }
 
@@ -218,7 +221,7 @@ struct MusicSlotConfigurationView: View {
     private func previewIconColor(for slot: MusicControlButton) -> Color {
         switch slot {
         case .shuffle:
-            musicManager.isShuffled ? .red : .primary
+            musicManager.isShuffled ? .effectiveAccentForeground : .primary
         case .playPause:
             .primary
         default:
@@ -230,6 +233,11 @@ struct MusicSlotConfigurationView: View {
         guard target > musicControlSlots.count else { return }
         let missing = target - musicControlSlots.count
         musicControlSlots.append(contentsOf: Array(repeating: .none, count: missing))
+    }
+
+    private func ensureSlotLimit(_ target: Int) {
+        guard musicControlSlotLimit < target else { return }
+        musicControlSlotLimit = target
     }
 
     private func slotBinding(for index: Int) -> Binding<MusicControlButton> {

@@ -11,22 +11,18 @@ struct HoverButton: View {
 
     var body: some View {
         let size = CGFloat(scale == .large ? 40 : 30)
+        let cornerRadius = size * 0.28
 
         Button(action: action) {
-            Rectangle()
-                .fill(.clear)
-                .contentShape(Rectangle())
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
+                .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .frame(width: size, height: size)
                 .overlay {
-                    Capsule()
-                        .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
-                        .frame(width: size, height: size)
-                        .overlay {
-                            Image(systemName: icon)
-                                .foregroundColor(iconColor)
-                                .contentTransition(contentTransition)
-                                .font(scale == .large ? .largeTitle : .body)
-                        }
+                    Image(systemName: icon)
+                        .foregroundColor(iconColor)
+                        .contentTransition(contentTransition)
+                        .font(scale == .large ? .largeTitle : .body)
                 }
         }
         .buttonStyle(PlainButtonStyle())

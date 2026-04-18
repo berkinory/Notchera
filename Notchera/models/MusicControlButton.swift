@@ -15,6 +15,8 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
 
     static let defaultLayout: [MusicControlButton] = [
         .none,
+        .none,
+        .none,
         .previous,
         .playPause,
         .next,
@@ -22,7 +24,7 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
     ]
 
     static let minSlotCount: Int = 3
-    static let maxSlotCount: Int = 5
+    static let maxSlotCount: Int = 7
 
     static let pickerOptions: [MusicControlButton] = [
         .shuffle,

@@ -285,7 +285,7 @@ struct MusicToolbarRowView: View {
 
     private var activeSlots: [MusicControlButton] {
         let sanitizedLimit = min(
-            max(slotLimit, MusicControlButton.minSlotCount),
+            max(slotLimit, MusicControlButton.defaultLayout.count),
             MusicControlButton.maxSlotCount
         )
         let padded = slotConfig.padded(to: sanitizedLimit, filler: .none)
@@ -296,7 +296,7 @@ struct MusicToolbarRowView: View {
     private func slotView(for slot: MusicControlButton) -> some View {
         switch slot {
         case .shuffle:
-            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? .red : .primary, scale: .medium) {
+            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? .effectiveAccentForeground : .primary, scale: .medium) {
                 MusicManager.shared.toggleShuffle()
             }
         case .previous:
