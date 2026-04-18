@@ -56,6 +56,18 @@ struct ContentView: View {
         return chinWidth
     }
 
+    private var closedNotchHoverEffectActive: Bool {
+        guard vm.notchState == .closed,
+              isHovering,
+              !coordinator.hud.show else { return false }
+
+        if !Defaults[.openNotchOnHover] {
+            return true
+        }
+
+        return Defaults[.minimumHoverDuration] > 0.01
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
@@ -71,15 +83,32 @@ struct ContentView: View {
                     .background(.black)
                     .clipShape(currentNotchShape)
                     .overlay(alignment: .top) {
-                        Rectangle()
-                            .fill(.black)
-                            .frame(height: 1)
-                            .padding(.horizontal, topCornerRadius)
+                        ZStack(alignment: .top) {
+                            Rectangle()
+                                .fill(.black)
+                                .frame(height: 1)
+                                .padding(.horizontal, topCornerRadius)
+                                .allowsHitTesting(false)
+
+                            Rectangle()
+                                .fill(.clear)
+                                .contentShape(Rectangle())
+                                .frame(height: 12)
+                                .allowsHitTesting(vm.notchState == .closed)
+                                .onTapGesture {
+                                    doOpen()
+                                }
+                        }
                     }
+                    .scaleEffect(closedNotchHoverEffectActive ? 1.020 : 1, anchor: .top)
                     .shadow(
-                        color: (vm.notchState == .open || isHovering)
-                            ? .black.opacity(0.4) : .clear,
-                        radius: 1
+                        color: closedNotchHoverEffectActive
+                            ? .black.opacity(0.72)
+                            : (vm.notchState == .open || isHovering)
+                                ? .black.opacity(0.4)
+                                : .clear,
+                        radius: closedNotchHoverEffectActive ? 16 : 1,
+                        y: closedNotchHoverEffectActive ? 4 : 0
                     )
                     .padding(
                         .bottom,
@@ -93,6 +122,7 @@ struct ContentView: View {
 
                         return view
                             .animation(shellAnimation, value: vm.notchState)
+                            .animation(.easeOut(duration: 0.18), value: closedNotchHoverEffectActive)
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in

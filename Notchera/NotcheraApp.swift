@@ -261,7 +261,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let isPointerInside = collapsedInteractiveRect(for: viewModel, on: screen).contains(mouseLocation)
+        let normalizedMouseLocation = CGPoint(
+            x: mouseLocation.x,
+            y: min(mouseLocation.y, screen.frame.maxY - 1)
+        )
+        let isPointerInside = collapsedInteractiveRect(for: viewModel, on: screen).contains(normalizedMouseLocation)
         window.ignoresMouseEvents = !isPointerInside
 
         guard Defaults[.openNotchOnHover], !coordinator.hud.show, !coordinator.firstLaunch else {
