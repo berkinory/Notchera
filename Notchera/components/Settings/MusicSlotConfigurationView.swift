@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct MusicSlotConfigurationView: View {
     @Default(.musicControlSlots) private var musicControlSlots
     @Default(.musicControlSlotLimit) private var musicControlSlotLimit
+    @Default(.matchAlbumArtColor) private var matchAlbumArtColor
     @ObservedObject private var musicManager = MusicManager.shared
     @State private var draggedSlot: MusicControlButton?
 
@@ -218,10 +219,20 @@ struct MusicSlotConfigurationView: View {
         .contentShape(RoundedRectangle(cornerRadius: 8))
     }
 
+    private var activeControlColor: Color {
+        matchAlbumArtColor
+            ? Color(nsColor: musicManager.avgColor)
+            : .white
+    }
+
+    private var inactiveControlColor: Color {
+        .secondary.opacity(0.6)
+    }
+
     private func previewIconColor(for slot: MusicControlButton) -> Color {
         switch slot {
         case .shuffle:
-            musicManager.isShuffled ? .effectiveAccentForeground : .primary
+            musicManager.isShuffled ? activeControlColor : inactiveControlColor
         case .playPause:
             .primary
         default:

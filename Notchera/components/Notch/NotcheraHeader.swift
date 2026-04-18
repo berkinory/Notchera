@@ -5,6 +5,8 @@ struct NotcheraHeader: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @StateObject var tvm = ShelfStateViewModel.shared
+    @State private var isHoveringSettings = false
+
     var body: some View {
         HStack(spacing: 0) {
             HStack {
@@ -35,19 +37,24 @@ struct NotcheraHeader: View {
                             DispatchQueue.main.async {
                                 SettingsWindowController.shared.showWindow()
                             }
-
                         }) {
-                            Capsule()
-                                .fill(.black)
-                                .frame(width: 30, height: 30)
+                            RoundedRectangle(cornerRadius: 28 * 0.28, style: .continuous)
+                                .fill(isHoveringSettings ? Color.gray.opacity(0.2) : .clear)
+                                .frame(width: 28, height: 28)
                                 .overlay {
                                     Image(systemName: "gear")
-                                        .foregroundColor(.white)
-                                        .padding()
-                                        .imageScale(.medium)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Color.white.opacity(0.5))
                                 }
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
+                        .contentShape(RoundedRectangle(cornerRadius: 28 * 0.28, style: .continuous))
+                        .onHover { hovering in
+                            withAnimation(.smooth(duration: 0.18)) {
+                                isHoveringSettings = hovering
+                            }
+                        }
+                        .accessibilityLabel("Settings")
                     }
                 }
             }

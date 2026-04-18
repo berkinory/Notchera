@@ -269,6 +269,7 @@ struct MusicToolbarRowView: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @Default(.musicControlSlots) private var slotConfig
     @Default(.musicControlSlotLimit) private var slotLimit
+    @Default(.matchAlbumArtColor) private var matchAlbumArtColor
 
     private let slotWidth: CGFloat = 40
 
@@ -292,11 +293,21 @@ struct MusicToolbarRowView: View {
         return Array(padded.prefix(sanitizedLimit))
     }
 
+    private var activeControlColor: Color {
+        matchAlbumArtColor
+            ? Color(nsColor: musicManager.avgColor)
+            : .white
+    }
+
+    private var inactiveControlColor: Color {
+        .secondary.opacity(0.6)
+    }
+
     @ViewBuilder
     private func slotView(for slot: MusicControlButton) -> some View {
         switch slot {
         case .shuffle:
-            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? .effectiveAccentForeground : .primary, scale: .medium) {
+            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? activeControlColor : inactiveControlColor, scale: .medium) {
                 MusicManager.shared.toggleShuffle()
             }
         case .previous:
