@@ -8,7 +8,6 @@ class AudioSpectrum: NSView {
     private let barCount = 4
     private var isPlaying: Bool = true
     private var animationTimer: Timer?
-    private var hasStartedAnimation = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -72,17 +71,13 @@ class AudioSpectrum: NSView {
         animationTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             self?.updateBars()
         }
-
-        if !hasStartedAnimation {
-            hasStartedAnimation = true
-            updateBars()
-        }
+        updateBars()
     }
 
     private func stopAnimating() {
         animationTimer?.invalidate()
         animationTimer = nil
-        resetBars()
+        freezeBars()
     }
 
     private func updateBars() {
@@ -104,12 +99,18 @@ class AudioSpectrum: NSView {
         }
     }
 
-    private func resetBars() {
+    private func freezeBars() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+
         for (i, barLayer) in barLayers.enumerated() {
+            let frozenScale = barLayer.presentation().map { CGFloat($0.transform.m22) } ?? barScales[i]
             barLayer.removeAllAnimations()
-            barLayer.transform = CATransform3DMakeScale(1, 0.35, 1)
-            barScales[i] = 0.35
+            barLayer.transform = CATransform3DMakeScale(1, frozenScale, 1)
+            barScales[i] = frozenScale
         }
+
+        CATransaction.commit()
     }
 
     func setPlaying(_ playing: Bool) {
@@ -125,7 +126,7 @@ class AudioSpectrum: NSView {
 }
 
 struct AudioSpectrumView: NSViewRepresentable {
-    @Binding var isPlaying: Bool
+    let isPlaying: Bool
 
     func makeNSView(context _: Context) -> AudioSpectrum {
         let spectrum = AudioSpectrum()
@@ -139,7 +140,7 @@ struct AudioSpectrumView: NSViewRepresentable {
 }
 
 #Preview {
-    AudioSpectrumView(isPlaying: .constant(true))
+    AudioSpectrumView(isPlaying: true)
         .frame(width: 16, height: 20)
         .padding()
 }

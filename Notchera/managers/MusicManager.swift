@@ -9,6 +9,11 @@ let defaultImage: NSImage = {
     return image
 }()
 
+private struct PendingSeek {
+    let position: TimeInterval
+    let requestedAt: Date
+}
+
 class MusicManager: ObservableObject {
     static let shared = MusicManager()
     private var cancellables = Set<AnyCancellable>()
@@ -46,6 +51,7 @@ class MusicManager: ObservableObject {
     @Published var isFavoriteTrack: Bool = false
 
     private var artworkData: Data?
+    private var pendingSeek: PendingSeek?
 
     private var lastArtworkTitle: String = "I'm Handsome"
     private var lastArtworkArtist: String = "Me"
@@ -192,6 +198,8 @@ class MusicManager: ObservableObject {
             fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
         }
 
+        let seekState = resolvedPendingSeek(for: state)
+        let shouldApplyTimeState = seekState.shouldApply
         let timeChanged = state.currentTime != elapsedTime
         let durationChanged = state.duration != songDuration
         let playbackRateChanged = state.playbackRate != playbackRate
@@ -211,7 +219,7 @@ class MusicManager: ObservableObject {
             album = state.album
         }
 
-        if timeChanged {
+        if shouldApplyTimeState, timeChanged {
             elapsedTime = state.currentTime
         }
 
@@ -243,7 +251,25 @@ class MusicManager: ObservableObject {
             volume = state.volume
         }
 
-        timestampDate = state.lastUpdated
+        if shouldApplyTimeState {
+            timestampDate = state.lastUpdated
+        }
+
+        pendingSeek = seekState.pendingSeek
+    }
+
+    private func resolvedPendingSeek(for state: PlaybackState) -> (shouldApply: Bool, pendingSeek: PendingSeek?) {
+        guard let pendingSeek else { return (true, nil) }
+
+        let age = Date().timeIntervalSince(pendingSeek.requestedAt)
+        let matchesPendingSeek = abs(state.currentTime - pendingSeek.position) <= 1
+        let isFreshState = state.lastUpdated >= pendingSeek.requestedAt
+
+        if matchesPendingSeek || isFreshState || age > 2 {
+            return (true, nil)
+        }
+
+        return (false, pendingSeek)
     }
 
     func toggleFavoriteTrack() {
@@ -572,8 +598,19 @@ class MusicManager: ObservableObject {
     }
 
     func seek(to position: TimeInterval) {
-        Task {
-            await activeController?.seek(to: position)
+        let clampedPosition = min(max(0, position), songDuration)
+
+        Task { [weak self] in
+            guard let self else { return }
+
+            let requestedAt = Date()
+            await MainActor.run {
+                self.pendingSeek = PendingSeek(position: clampedPosition, requestedAt: requestedAt)
+                self.elapsedTime = clampedPosition
+                self.timestampDate = requestedAt
+            }
+
+            await self.activeController?.seek(to: clampedPosition)
         }
     }
 

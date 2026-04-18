@@ -455,6 +455,8 @@ struct MusicCompactActivityView: View {
 
             MusicSpectrumIndicatorView(
                 albumArtNamespace: albumArtNamespace,
+                isPlaying: musicManager.isPlaying,
+                avgColor: musicManager.avgColor,
                 barWidth: 50,
                 spectrumSize: CGSize(width: 16, height: 12),
                 containerSize: CGSize(

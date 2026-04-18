@@ -144,6 +144,8 @@ struct MusicControlsView: View {
 
             MusicSpectrumIndicatorView(
                 albumArtNamespace: albumArtNamespace,
+                isPlaying: musicManager.isPlaying,
+                avgColor: musicManager.avgColor,
                 barWidth: 68,
                 spectrumSize: CGSize(width: 26, height: 16),
                 containerSize: CGSize(width: 28, height: 24),
@@ -270,9 +272,10 @@ struct MusicToolbarRowView: View {
 }
 
 struct MusicSpectrumIndicatorView: View {
-    @ObservedObject var musicManager = MusicManager.shared
     @Default(.matchAlbumArtColor) private var matchAlbumArtColor
     let albumArtNamespace: Namespace.ID
+    let isPlaying: Bool
+    let avgColor: NSColor
     let barWidth: CGFloat
     let spectrumSize: CGSize
     let containerSize: CGSize
@@ -283,19 +286,19 @@ struct MusicSpectrumIndicatorView: View {
             Rectangle()
                 .fill(
                     matchAlbumArtColor
-                        ? Color(nsColor: musicManager.avgColor).gradient
+                        ? Color(nsColor: avgColor).gradient
                         : Color.white.gradient
                 )
                 .frame(width: barWidth, alignment: .center)
                 .mask {
-                    AudioSpectrumView(isPlaying: $musicManager.isPlaying)
+                    AudioSpectrumView(isPlaying: isPlaying)
                         .frame(width: spectrumSize.width, height: spectrumSize.height)
                 }
         }
         .frame(width: containerSize.width, height: containerSize.height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
-        .opacity(musicManager.isPlaying ? 1 : 0.55)
+        .opacity(isPlaying ? 1 : 0.55)
     }
 }
 
@@ -490,6 +493,7 @@ struct MusicSliderView: View {
             Text(value)
         }
         .monospacedDigit()
+        .offset(y: 1)
     }
 
     func timeString(from seconds: Double) -> String {
@@ -547,9 +551,9 @@ struct CustomSlider: View {
                         onDragChange?(value)
                     }
                     .onEnded { _ in
+                        lastDragged = Date()
                         onValueChange?(value)
                         dragging = false
-                        lastDragged = Date()
                     }
             )
             .animation(.spring(response: 0.35, dampingFraction: 0.7), value: dragging)
