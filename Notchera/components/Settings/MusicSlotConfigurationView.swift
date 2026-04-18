@@ -219,10 +219,6 @@ struct MusicSlotConfigurationView: View {
         switch slot {
         case .shuffle:
             musicManager.isShuffled ? .red : .primary
-        case .repeatMode:
-            musicManager.repeatMode != .off ? .red : .primary
-        case .favorite:
-            musicManager.isFavoriteTrack ? .red : .primary
         case .playPause:
             .primary
         default:

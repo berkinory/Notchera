@@ -191,12 +191,14 @@ struct MusicToolbarRowView: View {
     @Default(.musicControlSlots) private var slotConfig
     @Default(.musicControlSlotLimit) private var slotLimit
 
+    private let slotWidth: CGFloat = 40
+
     var body: some View {
         let slots = activeSlots
         return HStack(spacing: 6) {
             ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
                 slotView(for: slot)
-                    .frame(alignment: .center)
+                    .frame(width: slotWidth, alignment: .center)
             }
         }
         .frame(maxWidth: .infinity, minHeight: 24, alignment: .center)
@@ -230,14 +232,6 @@ struct MusicToolbarRowView: View {
             HoverButton(icon: "forward.fill", scale: .medium) {
                 MusicManager.shared.nextTrack()
             }
-        case .repeatMode:
-            HoverButton(icon: repeatIcon, iconColor: repeatIconColor, scale: .medium) {
-                MusicManager.shared.toggleRepeat()
-            }
-        case .volume:
-            VolumeControlView()
-        case .favorite:
-            FavoriteControlButton()
         case .goBackward:
             HoverButton(icon: "gobackward.15", scale: .medium) {
                 MusicManager.shared.skip(seconds: -15)
@@ -247,29 +241,10 @@ struct MusicToolbarRowView: View {
                 MusicManager.shared.skip(seconds: 15)
             }
         case .none:
-            Color.clear.frame(height: 1)
+            Color.clear.frame(width: slotWidth, height: 1)
         }
     }
 
-    private var repeatIcon: String {
-        switch musicManager.repeatMode {
-        case .off:
-            "repeat"
-        case .all:
-            "repeat"
-        case .one:
-            "repeat.1"
-        }
-    }
-
-    private var repeatIconColor: Color {
-        switch musicManager.repeatMode {
-        case .off:
-            .primary
-        case .all, .one:
-            .red
-        }
-    }
 }
 
 struct MusicSpectrumIndicatorView: View {
@@ -303,117 +278,10 @@ struct MusicSpectrumIndicatorView: View {
     }
 }
 
-struct FavoriteControlButton: View {
-    @ObservedObject var musicManager = MusicManager.shared
-
-    var body: some View {
-        HoverButton(icon: iconName, iconColor: iconColor, scale: .medium) {
-            MusicManager.shared.toggleFavoriteTrack()
-        }
-        .disabled(!musicManager.canFavoriteTrack)
-        .opacity(musicManager.canFavoriteTrack ? 1 : 0.35)
-    }
-
-    private var iconName: String {
-        musicManager.isFavoriteTrack ? "heart.fill" : "heart"
-    }
-
-    private var iconColor: Color {
-        musicManager.isFavoriteTrack ? .red : .primary
-    }
-}
-
 private extension [MusicControlButton] {
     func padded(to length: Int, filler: MusicControlButton) -> [MusicControlButton] {
         if count >= length { return self }
         return self + Array(repeating: filler, count: length - count)
-    }
-}
-
-// MARK: - Volume Control View
-
-struct VolumeControlView: View {
-    @ObservedObject var musicManager = MusicManager.shared
-    @State private var volumeSliderValue: Double = 0.5
-    @State private var dragging: Bool = false
-    @State private var showVolumeSlider: Bool = false
-    @State private var lastVolumeUpdateTime: Date = .distantPast
-    private let volumeUpdateThrottle: TimeInterval = 0.1
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Button(action: {
-                if musicManager.volumeControlSupported {
-                    withAnimation(.easeInOut(duration: 0.12)) {
-                        showVolumeSlider.toggle()
-                    }
-                }
-            }) {
-                Image(systemName: volumeIcon)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(musicManager.volumeControlSupported ? .white : .gray)
-            }
-            .buttonStyle(PlainButtonStyle())
-            .disabled(!musicManager.volumeControlSupported)
-            .frame(width: 24)
-
-            if showVolumeSlider, musicManager.volumeControlSupported {
-                CustomSlider(
-                    value: $volumeSliderValue,
-                    range: 0.0 ... 1.0,
-                    color: .white,
-                    dragging: $dragging,
-                    lastDragged: .constant(Date.distantPast),
-                    onValueChange: { newValue in
-                        MusicManager.shared.setVolume(to: newValue)
-                    },
-                    onDragChange: { newValue in
-                        let now = Date()
-                        if now.timeIntervalSince(lastVolumeUpdateTime) > volumeUpdateThrottle {
-                            MusicManager.shared.setVolume(to: newValue)
-                            lastVolumeUpdateTime = now
-                        }
-                    }
-                )
-                .frame(width: 48, height: 8)
-                .transition(.scale.combined(with: .opacity))
-            }
-        }
-        .clipped()
-        .onReceive(musicManager.$volume) { volume in
-            if !dragging {
-                volumeSliderValue = volume
-            }
-        }
-        .onReceive(musicManager.$volumeControlSupported) { supported in
-            if !supported {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showVolumeSlider = false
-                }
-            }
-        }
-        .onChange(of: showVolumeSlider) { _, isShowing in
-            if isShowing {
-                Task {
-                    await MusicManager.shared.syncVolumeFromActiveApp()
-                }
-            }
-        }
-        .onDisappear {}
-    }
-
-    private var volumeIcon: String {
-        if !musicManager.volumeControlSupported {
-            "speaker.slash"
-        } else if volumeSliderValue == 0 {
-            "speaker.slash.fill"
-        } else if volumeSliderValue < 0.33 {
-            "speaker.1.fill"
-        } else if volumeSliderValue < 0.66 {
-            "speaker.2.fill"
-        } else {
-            "speaker.3.fill"
-        }
     }
 }
 
