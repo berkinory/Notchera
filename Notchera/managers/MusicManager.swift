@@ -176,20 +176,18 @@ class MusicManager: ObservableObject {
 
             if artworkChanged, let artwork = state.artwork {
                 updateArtwork(artwork)
-            } else if state.artwork == nil {
+                artworkData = artwork
+            } else if state.artwork == nil, artworkData == nil {
                 if let appIconImage = AppIconAsNSImage(for: state.bundleIdentifier) {
                     usingAppIconForArtwork = true
                     updateAlbumArt(newAlbumArt: appIconImage)
                 }
             }
-            artworkData = state.artwork
 
-            if artworkChanged || state.artwork == nil {
-                lastArtworkTitle = state.title
-                lastArtworkArtist = state.artist
-                lastArtworkAlbum = state.album
-                lastArtworkBundleIdentifier = state.bundleIdentifier
-            }
+            lastArtworkTitle = state.title
+            lastArtworkArtist = state.artist
+            lastArtworkAlbum = state.album
+            lastArtworkBundleIdentifier = state.bundleIdentifier
 
             fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
         }
