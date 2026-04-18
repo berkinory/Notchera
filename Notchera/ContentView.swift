@@ -189,6 +189,7 @@ struct ContentView: View {
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
         .animation(liveActivityAnimation, value: musicManager.isPlaying || !musicManager.isPlayerIdle)
         .background(dragDetector)
+        .forceArrowCursor()
         .preferredColorScheme(.dark)
         .environmentObject(vm)
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in

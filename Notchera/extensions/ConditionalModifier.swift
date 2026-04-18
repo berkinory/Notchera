@@ -1,4 +1,50 @@
+import AppKit
 import SwiftUI
+
+private final class ArrowCursorNSView: NSView {
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+
+        let trackingArea = NSTrackingArea(
+            rect: bounds,
+            options: [.activeAlways, .inVisibleRect, .cursorUpdate, .mouseMoved],
+            owner: self,
+            userInfo: nil
+        )
+
+        addTrackingArea(trackingArea)
+        self.trackingArea = trackingArea
+    }
+
+    override func resetCursorRects() {
+        discardCursorRects()
+        addCursorRect(bounds, cursor: .arrow)
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.arrow.set()
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        NSCursor.arrow.set()
+    }
+}
+
+private struct ArrowCursorRegion: NSViewRepresentable {
+    func makeNSView(context: Context) -> ArrowCursorNSView {
+        ArrowCursorNSView()
+    }
+
+    func updateNSView(_ nsView: ArrowCursorNSView, context: Context) {
+        nsView.window?.invalidateCursorRects(for: nsView)
+    }
+}
 
 extension View {
     @ViewBuilder func conditionalModifier(_ condition: Bool, transform: (Self) -> some View) -> some View {
@@ -6,6 +52,13 @@ extension View {
             transform(self)
         } else {
             self
+        }
+    }
+
+    func forceArrowCursor() -> some View {
+        overlay {
+            ArrowCursorRegion()
+                .allowsHitTesting(false)
         }
     }
 }
