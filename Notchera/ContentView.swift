@@ -129,6 +129,7 @@ struct ContentView: View {
                         handleHover(hovering)
                     }
                     .onTapGesture {
+                        guard vm.notchState == .closed else { return }
                         doOpen()
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
@@ -194,9 +195,12 @@ struct ContentView: View {
             anyDropDebounceTask?.cancel()
 
             if isTargeted {
+                guard Defaults[.notchShelf] else { return }
+
+                coordinator.showShelf()
+
                 if vm.notchState == .closed {
-                    coordinator.currentView = .shelf
-                    doOpen()
+                    doOpen(forceView: .shelf)
                 }
                 return
             }
@@ -361,12 +365,12 @@ struct ContentView: View {
         }
     }
 
-    private func doOpen() {
+    private func doOpen(forceView: NotchViews? = nil) {
         suppressAutoCloseUntil = Date().addingTimeInterval(0.5)
         postOpenHoverValidationTask?.cancel()
 
         withAnimation(animationSpring) {
-            vm.open()
+            vm.open(forceView: forceView)
         }
 
         postOpenHoverValidationTask = Task {

@@ -95,11 +95,9 @@ extension Defaults.Keys {
     static let optionKeyAction = Key<OptionKeyAction>("optionKeyAction", default: OptionKeyAction.openSettings)
 
     static let notchShelf = Key<Bool>("notchShelf", default: true)
-    static let openShelfByDefault = Key<Bool>("openShelfByDefault", default: true)
     static let shelfTapToOpen = Key<Bool>("shelfTapToOpen", default: true)
     static let copyOnDrag = Key<Bool>("copyOnDrag", default: false)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: false)
-    static let expandedDragDetection = Key<Bool>("expandedDragDetection", default: true)
 
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
 

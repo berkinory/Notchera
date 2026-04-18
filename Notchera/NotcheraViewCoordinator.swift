@@ -45,7 +45,14 @@ struct ExpandedItem {
 class NotcheraViewCoordinator: ObservableObject {
     static let shared = NotcheraViewCoordinator()
 
-    @Published var currentView: NotchViews = .home
+    @AppStorage("lastView") private var lastViewRaw: String = NotchViews.home.rawValue
+
+    @Published var currentView: NotchViews = .home {
+        didSet {
+            lastViewRaw = currentView.rawValue
+        }
+    }
+
     @Published var helloAnimationRunning: Bool = false
     private let hudHidePollInterval: Duration = .milliseconds(100)
     private var hudEnableTask: Task<Void, Never>?
@@ -61,7 +68,7 @@ class NotcheraViewCoordinator: ObservableObject {
         didSet {
             if !alwaysShowTabs {
                 openLastTabByDefault = false
-                if ShelfStateViewModel.shared.isEmpty || !Defaults[.openShelfByDefault] {
+                if currentView != .shelf {
                     currentView = .home
                 }
             }
@@ -94,6 +101,25 @@ class NotcheraViewCoordinator: ObservableObject {
     @Published var optionKeyPressed: Bool = true
     private var accessibilityObserver: Any?
     private var hudReplacementCancellable: AnyCancellable?
+    private var shelfStateCancellable: AnyCancellable?
+
+    private var rememberedView: NotchViews? {
+        guard openLastTabByDefault,
+              let rememberedView = NotchViews(rawValue: lastViewRaw)
+        else {
+            return nil
+        }
+
+        if rememberedView == .shelf, ShelfStateViewModel.shared.isEmpty {
+            return .home
+        }
+
+        return rememberedView
+    }
+
+    var preferredExpandedView: NotchViews {
+        rememberedView ?? .home
+    }
 
     private init() {
         if preferredScreenUUID == nil, let legacyName = legacyPreferredScreenName {
@@ -112,6 +138,16 @@ class NotcheraViewCoordinator: ObservableObject {
         }
 
         selectedScreenUUID = preferredScreenUUID ?? NSScreen.main?.displayUUID ?? ""
+        currentView = preferredExpandedView
+
+        shelfStateCancellable = ShelfStateViewModel.shared.$items
+            .map(\.isEmpty)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] isEmpty in
+                guard let self, isEmpty, self.currentView == .shelf else { return }
+                self.currentView = .home
+            }
 
         accessibilityObserver = NotificationCenter.default.addObserver(
             forName: Notification.Name.accessibilityAuthorizationChanged,
@@ -324,6 +360,18 @@ class NotcheraViewCoordinator: ObservableObject {
                 expandingViewTask?.cancel()
             }
         }
+    }
+
+    func prepareViewForOpen() {
+        currentView = preferredExpandedView
+    }
+
+    func showShelf() {
+        currentView = .shelf
+    }
+
+    func resetViewAfterClose() {
+        currentView = preferredExpandedView
     }
 
     func showEmpty() {

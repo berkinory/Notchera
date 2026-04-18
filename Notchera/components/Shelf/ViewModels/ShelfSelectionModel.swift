@@ -13,6 +13,7 @@ final class ShelfSelectionModel: ObservableObject {
     @Published private(set) var selectedIDs: Set<UUID> = []
 
     private var lastAnchorID: UUID?
+    private var backgroundClearSuppressedUntil: Date = .distantPast
 
     func isSelected(_ id: UUID) -> Bool {
         selectedIDs.contains(id)
@@ -56,6 +57,19 @@ final class ShelfSelectionModel: ObservableObject {
         let upper = max(startIndex, endIndex)
         let rangeIDs = allItems[lower ... upper].map(\.id)
         selectedIDs = Set(rangeIDs)
+    }
+
+    func selectAll(in allItems: [ShelfItem]) {
+        selectedIDs = Set(allItems.map(\.id))
+        lastAnchorID = allItems.last?.id
+    }
+
+    func suppressBackgroundClear(for duration: TimeInterval = 0.2) {
+        backgroundClearSuppressedUntil = Date().addingTimeInterval(duration)
+    }
+
+    var shouldClearOnBackgroundTap: Bool {
+        Date() >= backgroundClearSuppressedUntil
     }
 
     func clear() {

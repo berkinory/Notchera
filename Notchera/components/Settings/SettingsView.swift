@@ -578,26 +578,11 @@ struct About: View {
 }
 
 struct Shelf: View {
-    @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
-    @Default(.expandedDragDetection) var expandedDragDetection: Bool
-
     var body: some View {
         Form {
             Section {
                 Defaults.Toggle(key: .notchShelf) {
                     Text("Enable shelf")
-                }
-                Defaults.Toggle(key: .openShelfByDefault) {
-                    Text("Open shelf by default if items are present")
-                }
-                Defaults.Toggle(key: .expandedDragDetection) {
-                    Text("Expanded drag detection area")
-                }
-                .onChange(of: expandedDragDetection) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.expandedDragDetectionChanged,
-                        object: nil
-                    )
                 }
                 Defaults.Toggle(key: .copyOnDrag) {
                     Text("Copy items on drag")

@@ -29,13 +29,14 @@ struct ShelfItemView: View {
     var body: some View {
         ZStack {
             if !shouldHideDuringDrag {
-                VStack(alignment: .center, spacing: 2) {
+                HStack(spacing: 5) {
                     iconView
                     textView
                 }
-                .frame(width: 105)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 35)
+                .padding(.vertical, 1)
+                .padding(.horizontal, 4)
                 .background(backgroundView)
                 .contentShape(Rectangle())
                 .animation(.easeInOut(duration: 0.1), value: debouncedDropTarget)
@@ -55,9 +56,8 @@ struct ShelfItemView: View {
                 )
             } else {
                 Color.clear
-                    .frame(width: 105)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 5)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 37)
             }
         }
         .onChange(of: viewModel.isDropTargeted) { _, targeted in
@@ -89,27 +89,27 @@ struct ShelfItemView: View {
     private var iconView: some View {
         Image(nsImage: viewModel.thumbnail ?? item.icon)
             .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 56, height: 56)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 2)
+            .aspectRatio(contentMode: .fill)
+            .frame(width: 30, height: 30)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .shadow(color: .black.opacity(0.1), radius: 1.5, x: 0, y: 1)
     }
 
     private var textView: some View {
-        Text(item.displayName)
-            .font(.system(size: 12, weight: .medium))
+        Text(item.displayName.trimmingCharacters(in: .whitespacesAndNewlines))
+            .font(.system(size: 9, weight: .medium))
             .foregroundStyle(.primary)
-            .lineLimit(2)
+            .lineLimit(1)
             .truncationMode(.middle)
-            .multilineTextAlignment(.center)
-            .frame(height: 30, alignment: .top)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var backgroundView: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        RoundedRectangle(cornerRadius: 7, style: .continuous)
             .fill(backgroundColor)
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .strokeBorder(
                         strokeColor,
                         lineWidth: strokeWidth
@@ -119,9 +119,9 @@ struct ShelfItemView: View {
 
     private var backgroundColor: Color {
         if debouncedDropTarget {
-            Color.accentColor.opacity(0.25)
+            Color.accentColor.opacity(0.18)
         } else if isSelected {
-            Color.accentColor.opacity(0.15)
+            Color.white.opacity(0.11)
         } else {
             Color.clear
         }
@@ -129,9 +129,9 @@ struct ShelfItemView: View {
 
     private var strokeColor: Color {
         if debouncedDropTarget {
-            Color.accentColor.opacity(0.9)
+            Color.accentColor.opacity(0.72)
         } else if isSelected {
-            Color.accentColor.opacity(0.8)
+            Color.white.opacity(0.22)
         } else {
             Color.clear
         }
@@ -139,9 +139,9 @@ struct ShelfItemView: View {
 
     private var strokeWidth: CGFloat {
         if debouncedDropTarget {
-            3
-        } else if isSelected {
             2
+        } else if isSelected {
+            1
         } else {
             1
         }
@@ -239,12 +239,10 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
         }
 
         private func startDragSession(with event: NSEvent) {
-            let selectedItems = ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items)
-            let itemsToDrag: [ShelfItem] = if selectedItems.count > 1, selectedItems.contains(where: { $0.id == item.id }) {
-                selectedItems
-            } else {
-                [item]
-            }
+            let selection = ShelfSelectionModel.shared
+            let selectedItems = selection.selectedItems(in: ShelfStateViewModel.shared.items)
+            let shouldDragSelection = !selectedItems.isEmpty && selection.isSelected(item.id)
+            let itemsToDrag = shouldDragSelection ? selectedItems : [item]
 
             draggedItems = itemsToDrag
 

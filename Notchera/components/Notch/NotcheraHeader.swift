@@ -7,10 +7,18 @@ struct NotcheraHeader: View {
     @StateObject var tvm = ShelfStateViewModel.shared
     @State private var isHoveringSettings = false
 
+    private var showHeaderControls: Bool {
+        vm.notchState == .open
+    }
+
+    private var shouldShowTabs: Bool {
+        !tvm.isEmpty || coordinator.alwaysShowTabs
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             HStack {
-                if !tvm.isEmpty || coordinator.alwaysShowTabs, Defaults[.notchShelf] {
+                if showHeaderControls, shouldShowTabs, Defaults[.notchShelf] {
                     TabSelectionView()
                 } else if vm.notchState == .open {
                     EmptyView()
@@ -31,31 +39,29 @@ struct NotcheraHeader: View {
             }
 
             HStack(spacing: 4) {
-                if vm.notchState == .open {
-                    if Defaults[.settingsIconInNotch] {
-                        Button(action: {
-                            DispatchQueue.main.async {
-                                SettingsWindowController.shared.showWindow()
-                            }
-                        }) {
-                            RoundedRectangle(cornerRadius: 28 * 0.28, style: .continuous)
-                                .fill(isHoveringSettings ? Color.gray.opacity(0.2) : .clear)
-                                .frame(width: 28, height: 28)
-                                .overlay {
-                                    Image(systemName: "gear")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundStyle(Color.white.opacity(0.5))
-                                }
+                if showHeaderControls, Defaults[.settingsIconInNotch] {
+                    Button(action: {
+                        DispatchQueue.main.async {
+                            SettingsWindowController.shared.showWindow()
                         }
-                        .buttonStyle(.plain)
-                        .contentShape(RoundedRectangle(cornerRadius: 28 * 0.28, style: .continuous))
-                        .onHover { hovering in
-                            withAnimation(.smooth(duration: 0.18)) {
-                                isHoveringSettings = hovering
+                    }) {
+                        RoundedRectangle(cornerRadius: 28 * 0.28, style: .continuous)
+                            .fill(isHoveringSettings ? Color.gray.opacity(0.2) : .clear)
+                            .frame(width: 28, height: 28)
+                            .overlay {
+                                Image(systemName: "gear")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.white.opacity(0.5))
                             }
-                        }
-                        .accessibilityLabel("Settings")
                     }
+                    .buttonStyle(.plain)
+                    .contentShape(RoundedRectangle(cornerRadius: 28 * 0.28, style: .continuous))
+                    .onHover { hovering in
+                        withAnimation(.smooth(duration: 0.18)) {
+                            isHoveringSettings = hovering
+                        }
+                    }
+                    .accessibilityLabel("Settings")
                 }
             }
             .font(.system(.headline, design: .rounded))

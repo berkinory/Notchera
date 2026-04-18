@@ -31,7 +31,7 @@ final class ShelfItemViewModel: ObservableObject {
 
     func loadThumbnail() async {
         guard let url = item.fileURL else { return }
-        if let image = await ThumbnailService.shared.thumbnail(for: url, size: CGSize(width: 56, height: 56)) {
+        if let image = await ThumbnailService.shared.thumbnail(for: url, size: CGSize(width: 30, height: 30)) {
             thumbnail = image
         }
     }
@@ -91,6 +91,8 @@ final class ShelfItemViewModel: ObservableObject {
     }
 
     func handleClick(event: NSEvent, view: NSView) {
+        selection.suppressBackgroundClear()
+
         let flags = event.modifierFlags
         if flags.contains(.shift) {
             selection.shiftSelect(to: item, in: ShelfStateViewModel.shared.items)
@@ -105,12 +107,27 @@ final class ShelfItemViewModel: ObservableObject {
     }
 
     func handleRightClick(event: NSEvent, view: NSView) {
+        selection.suppressBackgroundClear()
+
         if !selection.isSelected(item.id) { selection.selectSingle(item) }
         presentContextMenu(event: event, in: view)
     }
 
     func handleDoubleClick() {
         let selected = ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items)
+        guard !selected.isEmpty else { return }
+
+        if selected.count > 1 {
+            let alert = NSAlert()
+            alert.messageText = "Open \(selected.count) items?"
+            alert.informativeText = "This will open all selected shelf items."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Open All")
+            alert.addButton(withTitle: "Cancel")
+
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+
         for it in selected {
             ShelfActionService.open(it)
         }

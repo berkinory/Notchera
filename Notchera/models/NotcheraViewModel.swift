@@ -123,7 +123,13 @@ class NotcheraViewModel: NSObject, ObservableObject {
         return false
     }
 
-    func open() {
+    func open(forceView: NotchViews? = nil) {
+        if let forceView {
+            coordinator.currentView = forceView
+        } else {
+            coordinator.prepareViewForOpen()
+        }
+
         notchSize = openNotchSize
         notchState = .open
 
@@ -140,12 +146,7 @@ class NotcheraViewModel: NSObject, ObservableObject {
         isBatteryPopoverActive = false
         coordinator.hud.show = false
         edgeAutoOpenActive = false
-
-        if !ShelfStateViewModel.shared.isEmpty, Defaults[.openShelfByDefault] {
-            coordinator.currentView = .shelf
-        } else if !coordinator.openLastTabByDefault {
-            coordinator.currentView = .home
-        }
+        coordinator.resetViewAfterClose()
     }
 
     func closeHello() {

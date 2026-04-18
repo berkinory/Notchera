@@ -297,7 +297,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        guard Defaults[.expandedDragDetection] else { return }
+        guard Defaults[.notchShelf] else { return }
 
         if Defaults[.showOnAllDisplays] {
             for screen in NSScreen.screens {
@@ -318,8 +318,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
 
         let screenFrame = screen.frame
-        let notchHeight = openNotchSize.height
-        let notchWidth = openNotchSize.width
+        let notchHeight = max(72, openNotchSize.height / 2)
+        let notchWidth = max(220, openNotchSize.width / 2)
 
         let notchRegion = CGRect(
             x: screenFrame.midX - notchWidth / 2,
@@ -344,11 +344,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
 
         if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-            viewModel.open()
-            coordinator.currentView = .shelf
+            viewModel.open(forceView: .shelf)
         } else if !Defaults[.showOnAllDisplays], let windowScreen = window?.screen, screen == windowScreen {
-            vm.open()
-            coordinator.currentView = .shelf
+            vm.open(forceView: .shelf)
         }
     }
 
@@ -446,14 +444,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        NotificationCenter.default.addObserver(
-            forName: Notification.Name.expandedDragDetectionChanged, object: nil, queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.setupDragDetectors()
-            }
-        }
-
         screenLockedObserver = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name(rawValue: "com.apple.screenIsLocked"),
             object: nil, queue: .main
@@ -486,6 +476,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 } else {
                     ScreenRecordingManager.shared.stopMonitoring()
                 }
+            }
+            .store(in: &appCancellables)
+
+        Defaults.publisher(.notchShelf)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.setupDragDetectors()
             }
             .store(in: &appCancellables)
 
@@ -738,7 +737,6 @@ extension Notification.Name {
     static let notchHeightChanged = Notification.Name("NotchHeightChanged")
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
     static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
-    static let expandedDragDetectionChanged = Notification.Name("expandedDragDetectionChanged")
 }
 
 extension CGRect: @retroactive Hashable {
