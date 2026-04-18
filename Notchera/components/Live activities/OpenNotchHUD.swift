@@ -46,7 +46,7 @@ struct OpenNotchHUD: View {
                     .foregroundStyle(.white)
                     .fixedSize()
             } else if type == .recording {
-                Text(value > 0 ? "Screen Recording" : "Inactive")
+                Text(value > 0 ? "Recording" : "Recorded")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white)
                     .fixedSize()

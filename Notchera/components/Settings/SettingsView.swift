@@ -388,7 +388,7 @@ struct HUD: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } header: {
-                Text("Screen Recording")
+                Text("Recording")
             }
             .disabled(!hudReplacement)
         }

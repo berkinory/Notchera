@@ -29,7 +29,7 @@ struct WingHUDView: View {
 
     private var wingWidth: CGFloat {
         let scale: CGFloat = isOpen ? 1.04 : 1.0
-        return 110 * scale
+        return 108 * scale
     }
 
     private var titleWidth: CGFloat {
@@ -180,10 +180,8 @@ struct WingHUDView: View {
             "Backlight"
         case .capsLock:
             "Caps Lock"
-        case .mic:
-            "Mic"
         case .recording:
-            "Screen Record"
+            "Recording"
         case .battery:
             batteryStatusText ?? "Battery"
         default:
