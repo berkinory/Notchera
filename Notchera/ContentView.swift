@@ -15,14 +15,13 @@ struct ContentView: View {
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
+    @State private var suppressAutoCloseUntil: Date = .distantPast
+    @State private var postOpenHoverValidationTask: Task<Void, Never>?
 
     @Namespace var albumArtNamespace
 
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
     private let liveActivityAnimation = Animation.interactiveSpring(response: 0.42, dampingFraction: 0.82, blendDuration: 0)
-
-    private let extendedHoverPadding: CGFloat = 30
-    private let zeroHeightHoverPadding: CGFloat = 10
 
     private var topCornerRadius: CGFloat {
         vm.notchState == .open
@@ -97,54 +96,57 @@ struct ContentView: View {
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in
-                        handleHover(hovering)
-                    }
-                    .onTapGesture {
-                        doOpen()
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
-                        if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive {
-                            hoverTask?.cancel()
-                            hoverTask = Task {
-                                try? await Task.sleep(for: .milliseconds(100))
-                                guard !Task.isCancelled else { return }
-                                await MainActor.run {
-                                    if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
-                                        vm.close()
-                                    }
+                    handleHover(hovering)
+                }
+                .onTapGesture {
+                    doOpen()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
+                    if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive {
+                        hoverTask?.cancel()
+                        hoverTask = Task {
+                            try? await Task.sleep(for: .milliseconds(100))
+                            guard !Task.isCancelled else { return }
+                            await MainActor.run {
+                                guard Date() >= suppressAutoCloseUntil else { return }
+                                if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
+                                    vm.close()
                                 }
                             }
                         }
                     }
-                    .onChange(of: vm.notchState) { _, newState in
-                        if newState == .closed, isHovering {
-                            withAnimation {
-                                isHovering = false
-                            }
+                }
+                .onChange(of: vm.notchState) { _, newState in
+                    if newState == .closed, isHovering {
+                        withAnimation {
+                            isHovering = false
                         }
                     }
-                    .onChange(of: vm.isBatteryPopoverActive) {
-                        if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
-                            hoverTask?.cancel()
-                            hoverTask = Task {
-                                try? await Task.sleep(for: .milliseconds(100))
-                                guard !Task.isCancelled else { return }
-                                await MainActor.run {
-                                    if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
-                                        vm.close()
-                                    }
+                }
+                .onChange(of: vm.isBatteryPopoverActive) {
+                    if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
+                        hoverTask?.cancel()
+                        hoverTask = Task {
+                            try? await Task.sleep(for: .milliseconds(100))
+                            guard !Task.isCancelled else { return }
+                            await MainActor.run {
+                                guard Date() >= suppressAutoCloseUntil else { return }
+                                if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
+                                    vm.close()
                                 }
                             }
                         }
                     }
-                    .contextMenu {
-                        Button("Settings") {
-                            DispatchQueue.main.async {
-                                SettingsWindowController.shared.showWindow()
-                            }
+                }
+                .contextMenu {
+                    Button("Settings") {
+                        DispatchQueue.main.async {
+                            SettingsWindowController.shared.showWindow()
                         }
-                        .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
                     }
+                    .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
+                }
+
                 if vm.chinHeight > 0 {
                     Rectangle()
                         .fill(Color.black.opacity(0.01))
@@ -330,9 +332,51 @@ struct ContentView: View {
     }
 
     private func doOpen() {
+        suppressAutoCloseUntil = Date().addingTimeInterval(0.5)
+        postOpenHoverValidationTask?.cancel()
+
         withAnimation(animationSpring) {
             vm.open()
         }
+
+        postOpenHoverValidationTask = Task {
+            try? await Task.sleep(for: .milliseconds(360))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                guard vm.notchState == .open else { return }
+                guard !isPointerWithinTopNotchRegion() else { return }
+
+                withAnimation(animationSpring) {
+                    isHovering = false
+                }
+
+                if !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
+                    vm.close()
+                }
+            }
+        }
+    }
+
+    private func isPointerWithinTopNotchRegion() -> Bool {
+        guard let screenFrame = getScreenFrame(coordinator.selectedScreenUUID) else { return false }
+
+        let mouse = NSEvent.mouseLocation
+        let normalizedPoint = CGPoint(
+            x: mouse.x,
+            y: min(mouse.y, screenFrame.maxY - 1)
+        )
+
+        let width = openNotchSize.width + 36
+        let height = openNotchSize.height + 32
+        let region = CGRect(
+            x: screenFrame.midX - (width / 2),
+            y: screenFrame.maxY - height,
+            width: width,
+            height: height
+        )
+
+        return region.contains(normalizedPoint)
     }
 
     private func handleHover(_ hovering: Bool) {
@@ -362,13 +406,15 @@ struct ContentView: View {
             }
         } else {
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(100))
+                try? await Task.sleep(for: .milliseconds(120))
                 guard !Task.isCancelled else { return }
 
                 await MainActor.run {
                     withAnimation(animationSpring) {
                         isHovering = false
                     }
+
+                    guard Date() >= suppressAutoCloseUntil else { return }
 
                     if vm.notchState == .open, !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
                         vm.close()

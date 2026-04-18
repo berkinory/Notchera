@@ -8,10 +8,23 @@ struct MusicPlayerView: View {
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
-        HStack {
-            AlbumArtView(albumArtNamespace: albumArtNamespace).padding(.all, 5)
-            MusicControlsView(albumArtNamespace: albumArtNamespace)
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(alignment: .bottom, spacing: 10) {
+                AlbumArtView(albumArtNamespace: albumArtNamespace)
+                    .frame(width: 52, height: 52)
+
+                MusicControlsView(albumArtNamespace: albumArtNamespace)
+            }
+            .padding(.top, 2)
+            .padding(.horizontal, 5)
+
+            MusicSliderRowView()
+                .padding(.horizontal, 7)
+
+            MusicToolbarRowView()
+                .padding(.horizontal, 7)
         }
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 }
 
@@ -64,50 +77,35 @@ struct AlbumArtView: View {
 
 struct MusicControlsView: View {
     @ObservedObject var musicManager = MusicManager.shared
-    @EnvironmentObject var vm: NotcheraViewModel
-    @State private var sliderValue: Double = 0
-    @State private var dragging: Bool = false
-    @State private var lastDragged: Date = .distantPast
-    @Default(.musicControlSlots) private var slotConfig
-    @Default(.musicControlSlotLimit) private var slotLimit
+    @Default(.matchAlbumArtColor) private var matchAlbumArtColor
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
-        VStack(alignment: .leading) {
-            songInfoAndSlider
-            slotToolbar
+        GeometryReader { geo in
+            songInfo(width: geo.size.width)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         }
+        .frame(height: 30)
         .buttonStyle(PlainButtonStyle())
     }
 
-    private var songInfoAndSlider: some View {
-        GeometryReader { geo in
-            VStack(alignment: .leading, spacing: 2) {
-                songInfo(width: geo.size.width)
-                musicSlider
-            }
-        }
-        .padding(.top, 2)
-        .padding(.leading, 5)
-    }
-
     private func songInfo(width: CGFloat) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 6) {
             VStack(alignment: .leading, spacing: 0) {
                 MarqueeText(
                     $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: .white,
-                    frameWidth: max(0, width - 32)
+                    frameWidth: max(0, width - 44)
                 )
                 MarqueeText(
                     $musicManager.artistName,
                     font: .headline,
                     nsFont: .headline,
-                    textColor: Defaults[.matchAlbumArtColor]
+                    textColor: matchAlbumArtColor
                         ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
                         : .gray,
-                    frameWidth: max(0, width - 32)
+                    frameWidth: max(0, width - 44)
                 )
-                .fontWeight(.medium)
+                .fontWeight(.regular)
                 if false, Defaults[.enableLyrics] {
                     TimelineView(.animation(minimumInterval: 0.25)) { timeline in
                         let currentElapsed: Double = {
@@ -133,7 +131,7 @@ struct MusicControlsView: View {
                             font: .subheadline,
                             nsFont: .subheadline,
                             textColor: musicManager.isFetchingLyrics ? .gray.opacity(0.7) : .gray,
-                            frameWidth: max(0, width - 32)
+                            frameWidth: max(0, width - 36)
                         )
                         .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
                         .lineLimit(1)
@@ -147,16 +145,24 @@ struct MusicControlsView: View {
 
             MusicSpectrumIndicatorView(
                 albumArtNamespace: albumArtNamespace,
-                barWidth: 72,
-                spectrumSize: CGSize(width: 24, height: 16),
+                barWidth: 68,
+                spectrumSize: CGSize(width: 24, height: 15),
                 containerSize: CGSize(width: 30, height: 30),
                 cornerRadius: 8
             )
-            .padding(.top, 2)
         }
+        .frame(height: 30, alignment: .bottom)
     }
 
-    private var musicSlider: some View {
+}
+
+struct MusicSliderRowView: View {
+    @ObservedObject var musicManager = MusicManager.shared
+    @State private var sliderValue: Double = 0
+    @State private var dragging: Bool = false
+    @State private var lastDragged: Date = .distantPast
+
+    var body: some View {
         TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : nil)) { timeline in
             MusicSliderView(
                 sliderValue: $sliderValue,
@@ -172,12 +178,19 @@ struct MusicControlsView: View {
             ) { newValue in
                 MusicManager.shared.seek(to: newValue)
             }
-            .padding(.top, 3)
-            .frame(height: 36)
+            .padding(.top, 4)
+            .frame(height: 24)
         }
     }
+}
 
-    private var slotToolbar: some View {
+struct MusicToolbarRowView: View {
+    @ObservedObject var musicManager = MusicManager.shared
+    @EnvironmentObject var vm: NotcheraViewModel
+    @Default(.musicControlSlots) private var slotConfig
+    @Default(.musicControlSlotLimit) private var slotLimit
+
+    var body: some View {
         let slots = activeSlots
         return HStack(spacing: 6) {
             ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
@@ -185,7 +198,7 @@ struct MusicControlsView: View {
                     .frame(alignment: .center)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, minHeight: 24, alignment: .center)
     }
 
     private var activeSlots: [MusicControlButton] {
@@ -260,6 +273,7 @@ struct MusicControlsView: View {
 
 struct MusicSpectrumIndicatorView: View {
     @ObservedObject var musicManager = MusicManager.shared
+    @Default(.matchAlbumArtColor) private var matchAlbumArtColor
     let albumArtNamespace: Namespace.ID
     let barWidth: CGFloat
     let spectrumSize: CGSize
@@ -273,7 +287,7 @@ struct MusicSpectrumIndicatorView: View {
             .overlay {
                 Rectangle()
                     .fill(
-                        Defaults[.matchAlbumArtColor]
+                        matchAlbumArtColor
                             ? Color(nsColor: musicManager.avgColor).gradient
                             : Color.white.gradient
                     )
@@ -447,7 +461,9 @@ struct MusicSliderView: View {
             CustomSlider(
                 value: $sliderValue,
                 range: 0 ... duration,
-                color: .white,
+                color: Defaults[.matchAlbumArtColor]
+                    ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.6)
+                    : .white,
                 dragging: $dragging,
                 lastDragged: $lastDragged,
                 onValueChange: onValueChange
@@ -458,7 +474,7 @@ struct MusicSliderView: View {
                 .frame(minWidth: 38, alignment: .trailing)
         }
         .fontWeight(.medium)
-        .foregroundColor(.gray)
+        .foregroundColor(.gray.opacity(0.72))
         .font(.caption)
         .onChange(of: currentDate) {
             guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
