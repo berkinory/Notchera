@@ -413,6 +413,7 @@ struct HUD: View {
 struct Media: View {
     @Default(.waitInterval) var waitInterval
     @Default(.mediaController) var mediaController
+    @Default(.enableLyrics) var enableLyrics
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
 
     var body: some View {
@@ -474,6 +475,15 @@ struct Media: View {
 
             Section {
                 MusicSlotConfigurationView()
+                Toggle(isOn: $enableLyrics) {
+                    HStack {
+                        Text("Show lyrics below artist name")
+                        customBadge(text: "Beta")
+                    }
+                }
+                .onChange(of: enableLyrics) { _, isEnabled in
+                    MusicManager.shared.setLyricsEnabled(isEnabled)
+                }
             } header: {
                 Text("Media controls")
             } footer: {

@@ -319,8 +319,8 @@ class MusicManager: ObservableObject {
         setFavorite(false)
     }
 
-    func toggleLyrics() {
-        Defaults[.enableLyrics].toggle()
+    func setLyricsEnabled(_ enabled: Bool) {
+        Defaults[.enableLyrics] = enabled
         fetchLyricsIfAvailable(bundleIdentifier: bundleIdentifier, title: songTitle, artist: artistName)
     }
 
@@ -466,8 +466,8 @@ class MusicManager: ObservableObject {
         return result.sorted { $0.0 < $1.0 }
     }
 
-    func lyricLine(at elapsed: Double) -> String {
-        guard !syncedLyrics.isEmpty else { return currentLyrics }
+    func lyricIndex(at elapsed: Double) -> Int? {
+        guard !syncedLyrics.isEmpty else { return nil }
         var low = 0
         var high = syncedLyrics.count - 1
         var idx = 0
@@ -480,6 +480,11 @@ class MusicManager: ObservableObject {
                 high = mid - 1
             }
         }
+        return idx
+    }
+
+    func lyricLine(at elapsed: Double) -> String {
+        guard let idx = lyricIndex(at: elapsed) else { return currentLyrics }
         return syncedLyrics[idx].text
     }
 
