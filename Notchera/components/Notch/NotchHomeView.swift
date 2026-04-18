@@ -82,6 +82,41 @@ struct AlbumArtView: View {
                     style: .continuous
                 )
             )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
+                    style: .continuous
+                )
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(musicManager.isFlipping ? 0.06 : 0),
+                            .white.opacity(musicManager.isFlipping ? 0.018 : 0),
+                            .black.opacity(musicManager.isFlipping ? 0.025 : 0)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            }
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
+                    style: .continuous
+                )
+                .strokeBorder(.white.opacity(musicManager.isFlipping ? 0.08 : 0), lineWidth: 0.7)
+            }
+            .blur(radius: musicManager.isFlipping ? 2.2 : 0)
+            .saturation(musicManager.isFlipping ? 0.965 : 1)
+            .contrast(musicManager.isFlipping ? 0.985 : 1)
+            .brightness(musicManager.isFlipping ? 0.012 : 0)
+            .scaleEffect(musicManager.isFlipping ? 0.982 : 1)
+            .shadow(
+                color: .black.opacity(musicManager.isFlipping ? 0.16 : 0.1),
+                radius: musicManager.isFlipping ? 14 : 10,
+                y: musicManager.isFlipping ? 4 : 2
+            )
+            .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.isFlipping)
     }
 }
 

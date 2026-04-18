@@ -24,6 +24,7 @@ class MusicManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var controllerCancellables = Set<AnyCancellable>()
     private var debounceIdleTask: Task<Void, Never>?
+    private var artworkFallbackTask: Task<Void, Never>?
 
     private(set) var isNowPlayingDeprecated: Bool = false
     private let mediaChecker = MediaChecker()
@@ -96,6 +97,7 @@ class MusicManager: ObservableObject {
 
     func destroy() {
         debounceIdleTask?.cancel()
+        artworkFallbackTask?.cancel()
         cancellables.removeAll()
         controllerCancellables.removeAll()
         flipWorkItem?.cancel()
@@ -168,6 +170,13 @@ class MusicManager: ObservableObject {
 
     @MainActor
     private func updateFromPlaybackState(_ state: PlaybackState) {
+        let incomingTrackIdentifier = trackIdentifier(
+            bundleIdentifier: state.bundleIdentifier,
+            title: state.title,
+            artist: state.artist,
+            album: state.album
+        )
+
         if state.isPlaying != isPlaying {
             NSLog("Playback state changed: \(state.isPlaying ? "Playing" : "Paused")")
             withAnimation(.smooth) {
@@ -185,15 +194,15 @@ class MusicManager: ObservableObject {
         let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged
 
         if hasContentChange {
-            triggerFlipAnimation()
-
             if artworkChanged, let artwork = state.artwork {
+                artworkFallbackTask?.cancel()
+                triggerFlipAnimation()
                 updateArtwork(artwork)
                 artworkData = artwork
             } else if state.artwork == nil {
                 usingAppIconForArtwork = false
                 artworkData = nil
-                updateAlbumArt(newAlbumArt: defaultImage)
+                scheduleArtworkFallback(for: incomingTrackIdentifier)
             }
 
             lastArtworkTitle = state.title
@@ -554,6 +563,21 @@ class MusicManager: ObservableObject {
 
         flipWorkItem = workItem
         DispatchQueue.main.async(execute: workItem)
+    }
+
+    private func scheduleArtworkFallback(for trackIdentifier: String) {
+        artworkFallbackTask?.cancel()
+        artworkFallbackTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                guard self.currentTrackIdentifier == trackIdentifier else { return }
+                guard self.artworkData == nil else { return }
+                self.updateAlbumArt(newAlbumArt: defaultImage)
+            }
+        }
     }
 
     private func updateArtwork(_ artworkData: Data) {

@@ -471,7 +471,18 @@ struct MusicCompactActivityView: View {
                         style: .continuous
                     )
                 )
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
+                        style: .continuous
+                    )
+                    .fill(.white.opacity(musicManager.isFlipping ? 0.05 : 0))
+                }
+                .blur(radius: musicManager.isFlipping ? 2.2 : 0)
+                .saturation(musicManager.isFlipping ? 0.94 : 1)
+                .brightness(musicManager.isFlipping ? 0.015 : 0)
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
+                .animation(.easeInOut(duration: 0.18), value: musicManager.isFlipping)
                 .frame(
                     width: max(0, vm.effectiveClosedNotchHeight - 10),
                     height: max(0, vm.effectiveClosedNotchHeight - 10)
