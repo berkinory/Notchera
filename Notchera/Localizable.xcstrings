@@ -1310,16 +1310,6 @@
         }
       }
     },
-    "Option key behaviour": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Option key behaviour"
-          }
-        }
-      }
-    },
     "Pick a Color": {
       "localizations": {
         "en": {

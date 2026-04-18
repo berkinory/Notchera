@@ -28,17 +28,6 @@ enum MediaControllerType: String, CaseIterable, Identifiable, Defaults.Serializa
     }
 }
 
-/// Action to perform when Option (⌥) is held while pressing media keys
-enum OptionKeyAction: String, CaseIterable, Identifiable, Defaults.Serializable {
-    case openSettings = "Open System Settings"
-    case showHUD = "Show HUD"
-    case none = "No Action"
-
-    var id: String {
-        rawValue
-    }
-}
-
 extension Defaults.Keys {
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
@@ -94,8 +83,6 @@ extension Defaults.Keys {
     static let showInputSourceIndicator = Key<Bool>("showInputSourceIndicator", default: true)
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
     static let enableScreenRecordingDetection = Key<Bool>("enableScreenRecordingDetection", default: true)
-
-    static let optionKeyAction = Key<OptionKeyAction>("optionKeyAction", default: OptionKeyAction.openSettings)
 
     static let notchShelf = Key<Bool>("notchShelf", default: true)
     static let shelfTapToOpen = Key<Bool>("shelfTapToOpen", default: true)

@@ -270,7 +270,6 @@ struct GeneralSettings: View {
 struct HUD: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @Default(.enableGradient) var enableGradient
-    @Default(.optionKeyAction) var optionKeyAction
     @Default(.hudReplacement) var hudReplacement
     @Default(.showVolumeIndicator) var showVolumeIndicator
     @Default(.showBrightnessIndicator) var showBrightnessIndicator
@@ -320,12 +319,6 @@ struct HUD: View {
             }
 
             Section {
-                Picker("Option key behaviour", selection: $optionKeyAction) {
-                    ForEach(OptionKeyAction.allCases) { opt in
-                        Text(opt.rawValue).tag(opt)
-                    }
-                }
-
                 Picker("Progress bar style", selection: $enableGradient) {
                     Text("Hierarchical")
                         .tag(false)

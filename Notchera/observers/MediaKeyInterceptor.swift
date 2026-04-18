@@ -118,16 +118,13 @@ final class MediaKeyInterceptor {
 
         let flags = nsEvent.modifierFlags
         let option = flags.contains(.option)
-        let shift = flags.contains(.shift)
         let command = flags.contains(.command)
 
-        if option, !shift {
-            if handleOptionAction(for: keyType, command: command) {
-                return nil
-            }
+        if option {
+            return Unmanaged.passRetained(cgEvent)
         }
 
-        handleKeyPress(keyType: keyType, option: option, shift: shift, command: command)
+        handleKeyPress(keyType: keyType, command: command)
         return nil
     }
 
@@ -145,21 +142,6 @@ final class MediaKeyInterceptor {
                 duration: 1.0,
                 value: nextCapsLockState ? 1 : 0
             )
-        }
-    }
-
-    private func handleOptionAction(for keyType: NXKeyType, command: Bool) -> Bool {
-        let action = Defaults[.optionKeyAction]
-
-        switch action {
-        case .openSettings:
-            openSystemSettings(for: keyType, command: command)
-            return true
-        case .showHUD:
-            showHUD(for: keyType, command: command)
-            return true
-        case .none:
-            return true
         }
     }
 
@@ -206,30 +188,26 @@ final class MediaKeyInterceptor {
         player.play()
     }
 
-    private func handleKeyPress(keyType: NXKeyType, option: Bool, shift: Bool, command: Bool) {
-        let stepDivisor: Float = (option && shift) ? 4.0 : 1.0
-
+    private func handleKeyPress(keyType: NXKeyType, command: Bool) {
         switch keyType {
         case .soundUp:
             Task { @MainActor in
                 self.playFeedbackSound()
-                VolumeManager.shared.increase(stepDivisor: stepDivisor)
+                VolumeManager.shared.increase(stepDivisor: 1.0)
             }
         case .soundDown:
             Task { @MainActor in
                 self.playFeedbackSound()
-                VolumeManager.shared.decrease(stepDivisor: stepDivisor)
+                VolumeManager.shared.decrease(stepDivisor: 1.0)
             }
         case .mute:
             Task { @MainActor in
                 VolumeManager.shared.toggleMuteAction()
             }
         case .brightnessUp, .keyboardBrightnessUp:
-            let delta = step / stepDivisor
-            adjustBrightness(delta: delta, keyboard: keyType == .keyboardBrightnessUp || command)
+            adjustBrightness(delta: step, keyboard: keyType == .keyboardBrightnessUp || command)
         case .brightnessDown, .keyboardBrightnessDown:
-            let delta = -(step / stepDivisor)
-            adjustBrightness(delta: delta, keyboard: keyType == .keyboardBrightnessDown || command)
+            adjustBrightness(delta: -step, keyboard: keyType == .keyboardBrightnessDown || command)
         }
     }
 
@@ -243,42 +221,4 @@ final class MediaKeyInterceptor {
         }
     }
 
-    private func showHUD(for keyType: NXKeyType, command: Bool) {
-        Task { @MainActor in
-            switch keyType {
-            case .soundUp, .soundDown, .mute:
-                let v = VolumeManager.shared.rawVolume
-                NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .volume, value: CGFloat(v))
-            case .brightnessUp, .brightnessDown:
-                if command {
-                    let v = KeyboardBacklightManager.shared.rawBrightness
-                    NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .backlight, value: CGFloat(v))
-                } else {
-                    let v = BrightnessManager.shared.rawBrightness
-                    NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .brightness, value: CGFloat(v))
-                }
-            case .keyboardBrightnessUp, .keyboardBrightnessDown:
-                let v = KeyboardBacklightManager.shared.rawBrightness
-                NotcheraViewCoordinator.shared.toggleHUD(status: true, type: .backlight, value: CGFloat(v))
-            }
-        }
-    }
-
-    private func openSystemSettings(for keyType: NXKeyType, command: Bool) {
-        let urlString = switch keyType {
-        case .soundUp, .soundDown, .mute:
-            "x-apple.systempreferences:com.apple.preference.sound"
-        case .brightnessUp, .brightnessDown:
-            if command {
-                "x-apple.systempreferences:com.apple.preference.keyboard"
-            } else {
-                "x-apple.systempreferences:com.apple.preference.displays"
-            }
-        case .keyboardBrightnessUp, .keyboardBrightnessDown:
-            "x-apple.systempreferences:com.apple.preference.keyboard"
-        }
-
-        guard let url = URL(string: urlString) else { return }
-        NSWorkspace.shared.open(url)
-    }
 }
