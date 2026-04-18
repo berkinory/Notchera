@@ -36,9 +36,9 @@ class AudioSpectrum: NSView {
             barLayer.backgroundColor = NSColor.white.cgColor
             barLayer.allowsGroupOpacity = false
             barLayer.masksToBounds = true
-            barLayer.transform = CATransform3DMakeScale(1, 0.35, 1)
+            barLayer.transform = CATransform3DMakeScale(1, 0.22, 1)
             barLayers.append(barLayer)
-            barScales.append(0.35)
+            barScales.append(0.22)
             layer?.addSublayer(barLayer)
         }
 
@@ -49,7 +49,7 @@ class AudioSpectrum: NSView {
         guard !barLayers.isEmpty else { return }
 
         let size = bounds.size == .zero ? CGSize(width: 16, height: 14) : bounds.size
-        let barWidth = max(2, floor(size.width / 8))
+        let barWidth = max(1.8, floor(size.width / 8.5))
         let spacing = barWidth
         let contentWidth = CGFloat(barCount) * barWidth + CGFloat(barCount - 1) * spacing
         let startX = (size.width - contentWidth) / 2
@@ -83,7 +83,7 @@ class AudioSpectrum: NSView {
     private func updateBars() {
         for (i, barLayer) in barLayers.enumerated() {
             let currentScale = barScales[i]
-            let targetScale = CGFloat.random(in: 0.35 ... 1.0)
+            let targetScale = CGFloat.random(in: 0.22 ... 1.0)
             barScales[i] = targetScale
             let animation = CABasicAnimation(keyPath: "transform.scale.y")
             animation.fromValue = currentScale

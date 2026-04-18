@@ -2,6 +2,16 @@ import Combine
 import Defaults
 import SwiftUI
 
+private extension VerticalAlignment {
+    private enum MusicTitleRowAlignment: AlignmentID {
+        static func defaultValue(in dimensions: ViewDimensions) -> CGFloat {
+            dimensions[VerticalAlignment.center]
+        }
+    }
+
+    static let musicTitleRow = VerticalAlignment(MusicTitleRowAlignment.self)
+}
+
 // MARK: - Music Player Components
 
 struct MusicPlayerView: View {
@@ -100,7 +110,7 @@ struct MusicControlsView: View {
     }
 
     private func songInfo(width: CGFloat, currentDate: Date? = nil) -> some View {
-        HStack(alignment: .center, spacing: 6) {
+        HStack(alignment: .musicTitleRow, spacing: 6) {
             metadataView(width: width, currentDate: currentDate)
 
             Spacer(minLength: 0)
@@ -109,12 +119,14 @@ struct MusicControlsView: View {
                 albumArtNamespace: albumArtNamespace,
                 isPlaying: musicManager.isPlaying,
                 avgColor: musicManager.avgColor,
-                barWidth: 68,
-                spectrumSize: CGSize(width: 26, height: 16),
-                containerSize: CGSize(width: 28, height: 24),
+                barWidth: 54,
+                spectrumSize: CGSize(width: 16, height: 12),
+                containerSize: CGSize(width: 24, height: 22),
                 cornerRadius: 8
             )
-            .frame(maxHeight: .infinity, alignment: .bottom)
+            .alignmentGuide(.musicTitleRow) { dimensions in
+                dimensions[VerticalAlignment.center]
+            }
         }
         .frame(height: controlHeight, alignment: .bottom)
     }
@@ -148,6 +160,9 @@ struct MusicControlsView: View {
             frameWidth: width
         )
         .fontWeight(.medium)
+        .alignmentGuide(.musicTitleRow) { dimensions in
+            dimensions[VerticalAlignment.center]
+        }
     }
 
     private func artistView(width: CGFloat) -> some View {
