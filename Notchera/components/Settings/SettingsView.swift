@@ -106,9 +106,7 @@ struct GeneralSettings: View {
 
     @Default(.showEmojis) var showEmojis
     @Default(.minimumHoverDuration) var minimumHoverDuration
-    @Default(.nonNotchHeight) var nonNotchHeight
     @Default(.nonNotchHeightMode) var nonNotchHeightMode
-    @Default(.notchHeight) var notchHeight
     @Default(.notchHeightMode) var notchHeightMode
     @Default(.showOnAllDisplays) var showOnAllDisplays
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
@@ -168,62 +166,23 @@ struct GeneralSettings: View {
                         .tag(WindowHeightMode.matchRealNotchSize)
                     Text("Match menu bar height")
                         .tag(WindowHeightMode.matchMenuBar)
-                    Text("Custom height")
-                        .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: notchHeightMode) {
-                    switch notchHeightMode {
-                    case .matchRealNotchSize:
-                        notchHeight = 38
-                    case .matchMenuBar:
-                        notchHeight = 44
-                    case .custom:
-                        notchHeight = 38
-                    }
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil
                     )
                 }
-                if notchHeightMode == .custom {
-                    Slider(value: $notchHeight, in: 15 ... 45, step: 1) {
-                        Text("Custom notch size - \(notchHeight, specifier: "%.0f")")
-                    }
-                    .onChange(of: notchHeight) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.notchHeightChanged, object: nil
-                        )
-                    }
-                }
+
                 Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
                     Text("Match menubar height")
                         .tag(WindowHeightMode.matchMenuBar)
                     Text("Match real notch height")
                         .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Custom height")
-                        .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: nonNotchHeightMode) {
-                    switch nonNotchHeightMode {
-                    case .matchMenuBar:
-                        nonNotchHeight = 24
-                    case .matchRealNotchSize:
-                        nonNotchHeight = 32
-                    case .custom:
-                        nonNotchHeight = 32
-                    }
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil
                     )
-                }
-                if nonNotchHeightMode == .custom {
-                    Slider(value: $nonNotchHeight, in: 0 ... 40, step: 1) {
-                        Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
-                    }
-                    .onChange(of: nonNotchHeight) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.notchHeightChanged, object: nil
-                        )
-                    }
                 }
             } header: {
                 Text("Notch sizing")
@@ -371,17 +330,6 @@ struct HUD: View {
             }
             .disabled(!hudReplacement)
 
-            Section {
-                Defaults.Toggle(key: .showOpenNotchHUD) {
-                    Text("Show HUD in open notch")
-                }
-            } header: {
-                HStack {
-                    Text("Open Notch")
-                    customBadge(text: "Beta")
-                }
-            }
-            .disabled(!hudReplacement)
         }
         .navigationTitle("HUDs")
         .task {
@@ -503,12 +451,6 @@ struct About: View {
         VStack {
             Form {
                 Section {
-                    HStack {
-                        Text("Release name")
-                        Spacer()
-                        Text(Defaults[.releaseName])
-                            .foregroundStyle(.secondary)
-                    }
                     HStack {
                         Text("Version")
                         Spacer()

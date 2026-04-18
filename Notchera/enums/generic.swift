@@ -47,5 +47,4 @@ enum DownloadIconStyle: String, Defaults.Serializable {
 enum WindowHeightMode: String, Defaults.Serializable {
     case matchMenuBar = "Match menubar height"
     case matchRealNotchSize = "Match real notch height"
-    case custom = "Custom height"
 }

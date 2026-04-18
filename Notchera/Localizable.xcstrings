@@ -552,26 +552,6 @@
         }
       }
     },
-    "Custom height": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom height"
-          }
-        }
-      }
-    },
-    "Custom notch size - %.0f": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom notch size - %.0f"
-          }
-        }
-      }
-    },
     "Customize in Settings": {
       "localizations": {
         "en": {
@@ -1538,16 +1518,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show battery percentage"
-          }
-        }
-      }
-    },
-    "Show HUD in open notch": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show HUD in open notch"
           }
         }
       }

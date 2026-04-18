@@ -32,9 +32,8 @@ extension Defaults.Keys {
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
     static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: true)
-    static let releaseName = Key<String>("releaseName", default: "Flying Rabbit 🐇🪽")
 
-    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.3)
+    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.2)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
     static let extendHoverArea = Key<Bool>("extendHoverArea", default: false)
     static let notchHeightMode = Key<WindowHeightMode>(
@@ -45,8 +44,6 @@ extension Defaults.Keys {
         "nonNotchHeightMode",
         default: WindowHeightMode.matchMenuBar
     )
-    static let nonNotchHeight = Key<CGFloat>("nonNotchHeight", default: 32)
-    static let notchHeight = Key<CGFloat>("notchHeight", default: 32)
     static let showOnLockScreen = Key<Bool>("showOnLockScreen", default: false)
     static let hideFromScreenRecording = Key<Bool>("hideFromScreenRecording", default: false)
     static let hideNotchInFullscreen = Key<Bool>("hideNotchInFullscreen", default: true)
@@ -75,7 +72,6 @@ extension Defaults.Keys {
     static let hudReplacement = Key<Bool>("hudReplacement", default: false)
     static let enableGradient = Key<Bool>("enableGradient", default: false)
     static let systemEventIndicatorShadow = Key<Bool>("systemEventIndicatorShadow", default: false)
-    static let showOpenNotchHUD = Key<Bool>("showOpenNotchHUD", default: true)
     static let showVolumeIndicator = Key<Bool>("showVolumeIndicator", default: true)
     static let showBrightnessIndicator = Key<Bool>("showBrightnessIndicator", default: true)
     static let showBacklightIndicator = Key<Bool>("showBacklightIndicator", default: true)

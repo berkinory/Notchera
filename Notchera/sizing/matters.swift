@@ -30,7 +30,7 @@ enum MusicPlayerImageSizes {
 }
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
-    var notchHeight: CGFloat = Defaults[.nonNotchHeight]
+    var notchHeight: CGFloat = 32
     var notchWidth: CGFloat = 185
 
     var selectedScreen = NSScreen.main
@@ -47,17 +47,13 @@ enum MusicPlayerImageSizes {
         }
 
         if screen.safeAreaInsets.top > 0 {
-            notchHeight = Defaults[.notchHeight]
-            if Defaults[.notchHeightMode] == .matchRealNotchSize {
-                notchHeight = screen.safeAreaInsets.top
-            } else if Defaults[.notchHeightMode] == .matchMenuBar {
-                notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
-            }
+            notchHeight = Defaults[.notchHeightMode] == .matchRealNotchSize
+                ? screen.safeAreaInsets.top
+                : screen.frame.maxY - screen.visibleFrame.maxY
         } else {
-            notchHeight = Defaults[.nonNotchHeight]
-            if Defaults[.nonNotchHeightMode] == .matchMenuBar {
-                notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
-            }
+            notchHeight = Defaults[.nonNotchHeightMode] == .matchMenuBar
+                ? screen.frame.maxY - screen.visibleFrame.maxY
+                : 32
         }
     }
 

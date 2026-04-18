@@ -285,7 +285,7 @@ struct ContentView: View {
                                 .frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                         }
                     } else if vm.notchState == .open {
-                        if coordinator.hud.show, coordinator.hud.type != .battery, Defaults[.showOpenNotchHUD] {
+                        if coordinator.hud.show, coordinator.hud.type != .battery {
                             WingHUDView(
                                 type: $coordinator.hud.type,
                                 value: $coordinator.hud.value,
