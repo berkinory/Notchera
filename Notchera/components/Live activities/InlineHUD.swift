@@ -112,14 +112,14 @@ struct WingHUDView: View {
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
-        } else if type == .mic || type == .recording {
+        } else if type == .mic || type == .recording || type == .capsLock {
             Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.gray)
                 .lineLimit(1)
                 .monospacedDigit()
-                .frame(width: type == .recording ? 44 : 28, alignment: .trailing)
+                .frame(width: statusWidth, alignment: .trailing)
                 .padding(.trailing, 6)
         } else {
             HStack(spacing: 3) {
@@ -154,6 +154,8 @@ struct WingHUDView: View {
             Image(systemName: brightnessSymbol)
         case .backlight:
             Image(systemName: clampedValue > 0.5 ? "light.max" : "light.min")
+        case .capsLock:
+            Image(systemName: clampedValue > 0 ? "capslock.fill" : "capslock")
         case .mic:
             Image(systemName: "mic")
                 .symbolVariant(clampedValue > 0 ? .none : .slash)
@@ -176,6 +178,8 @@ struct WingHUDView: View {
             "Brightness"
         case .backlight:
             "Backlight"
+        case .capsLock:
+            "Caps Lock"
         case .mic:
             "Mic"
         case .recording:
@@ -194,12 +198,25 @@ struct WingHUDView: View {
 
     private var statusText: String {
         switch type {
-        case .mic:
+        case .mic, .capsLock:
             clampedValue > 0 ? "On" : "Off"
         case .recording:
             label.isEmpty ? "00:00" : label
         default:
             displayValue
+        }
+    }
+
+    private var statusWidth: CGFloat {
+        switch type {
+        case .recording:
+            44
+        case .capsLock:
+            24
+        case .mic:
+            28
+        default:
+            24
         }
     }
 
@@ -213,6 +230,8 @@ struct WingHUDView: View {
             "brightness:\(brightnessSymbol)"
         case .backlight:
             clampedValue > 0.5 ? "backlight:max" : "backlight:min"
+        case .capsLock:
+            clampedValue > 0 ? "capslock:on" : "capslock:off"
         case .mic:
             clampedValue > 0 ? "mic:on" : "mic:off"
         case .recording:

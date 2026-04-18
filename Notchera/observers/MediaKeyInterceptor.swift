@@ -23,6 +23,7 @@ final class MediaKeyInterceptor {
     private var runLoopSource: CFRunLoopSource?
     private let step: Float = 1.0 / 16.0
     private var audioPlayer: AVAudioPlayer?
+    private var capsLockState = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlphaShift)
 
     private init() {}
 
@@ -52,7 +53,9 @@ final class MediaKeyInterceptor {
             }
         }
 
-        let mask = CGEventMask(1 << kSystemDefinedEventType.rawValue)
+        capsLockState = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlphaShift)
+
+        let mask = CGEventMask((1 << kSystemDefinedEventType.rawValue) | (1 << CGEventType.flagsChanged.rawValue))
         eventTap = CGEvent.tapCreate(
             tap: .cghidEventTap,
             place: .headInsertEventTap,
@@ -90,6 +93,12 @@ final class MediaKeyInterceptor {
         guard cgEvent.type != .null else {
             return Unmanaged.passRetained(cgEvent)
         }
+
+        if cgEvent.type == .flagsChanged {
+            handleFlagsChanged(cgEvent)
+            return Unmanaged.passRetained(cgEvent)
+        }
+
         guard let nsEvent = NSEvent(cgEvent: cgEvent),
               nsEvent.type == .systemDefined,
               nsEvent.subtype.rawValue == 8
@@ -120,6 +129,23 @@ final class MediaKeyInterceptor {
 
         handleKeyPress(keyType: keyType, option: option, shift: shift, command: command)
         return nil
+    }
+
+    private func handleFlagsChanged(_ cgEvent: CGEvent) {
+        let nextCapsLockState = cgEvent.flags.contains(.maskAlphaShift)
+        guard nextCapsLockState != capsLockState else { return }
+
+        capsLockState = nextCapsLockState
+        guard Defaults[.showCapsLockIndicator] else { return }
+
+        Task { @MainActor in
+            NotcheraViewCoordinator.shared.toggleHUD(
+                status: true,
+                type: .capsLock,
+                duration: 1.0,
+                value: nextCapsLockState ? 1 : 0
+            )
+        }
     }
 
     private func handleOptionAction(for keyType: NXKeyType, command: Bool) -> Bool {

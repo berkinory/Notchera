@@ -7,6 +7,7 @@ enum SneakContentType {
     case brightness
     case volume
     case backlight
+    case capsLock
     case mic
     case recording
     case battery

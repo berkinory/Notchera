@@ -1592,6 +1592,16 @@
         }
       }
     },
+    "Show Caps Lock indicator": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Caps Lock indicator"
+          }
+        }
+      }
+    },
     "Show lyrics below artist name": {
       "localizations": {
         "en": {

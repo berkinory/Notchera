@@ -301,6 +301,7 @@ struct HUD: View {
     @Default(.enableGradient) var enableGradient
     @Default(.optionKeyAction) var optionKeyAction
     @Default(.hudReplacement) var hudReplacement
+    @Default(.showCapsLockIndicator) var showCapsLockIndicator
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @Default(.enableCameraPrivacyIndicator) var enableCameraPrivacyIndicator
     @Default(.enableMicrophonePrivacyIndicator) var enableMicrophonePrivacyIndicator
@@ -368,6 +369,10 @@ struct HUD: View {
             Section {
                 Defaults.Toggle(key: .showOpenNotchHUD) {
                     Text("Show HUD in open notch")
+                }
+
+                Defaults.Toggle(key: .showCapsLockIndicator) {
+                    Text("Show Caps Lock indicator")
                 }
             } header: {
                 HStack {
