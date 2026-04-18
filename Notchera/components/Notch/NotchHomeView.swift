@@ -307,27 +307,30 @@ struct MusicToolbarRowView: View {
     private func slotView(for slot: MusicControlButton) -> some View {
         switch slot {
         case .shuffle:
-            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? activeControlColor : inactiveControlColor, scale: .medium) {
+            HoverButton(
+                icon: "shuffle",
+                iconColor: musicManager.isShuffled ? activeControlColor : inactiveControlColor,
+                scale: .medium,
+                tapEffect: .rotateCounterClockwise
+            ) {
                 MusicManager.shared.toggleShuffle()
             }
         case .previous:
-            HoverButton(icon: "backward.fill", scale: .medium) {
+            HoverButton(icon: "backward.fill", scale: .medium, tapEffect: .nudgeLeft) {
                 MusicManager.shared.previousTrack()
             }
         case .playPause:
-            HoverButton(icon: musicManager.isPlaying ? "pause.fill" : "play.fill", scale: .large) {
-                MusicManager.shared.togglePlay()
-            }
+            OptimisticPlayPauseButton()
         case .next:
-            HoverButton(icon: "forward.fill", scale: .medium) {
+            HoverButton(icon: "forward.fill", scale: .medium, tapEffect: .nudgeRight) {
                 MusicManager.shared.nextTrack()
             }
         case .goBackward:
-            HoverButton(icon: "gobackward.15", scale: .medium) {
+            HoverButton(icon: "gobackward.15", scale: .medium, tapEffect: .rotateCounterClockwise) {
                 MusicManager.shared.skip(seconds: -15)
             }
         case .goForward:
-            HoverButton(icon: "goforward.15", scale: .medium) {
+            HoverButton(icon: "goforward.15", scale: .medium, tapEffect: .rotateClockwise) {
                 MusicManager.shared.skip(seconds: 15)
             }
         case .none:
@@ -335,6 +338,79 @@ struct MusicToolbarRowView: View {
         }
     }
 
+}
+
+struct OptimisticPlayPauseButton: View {
+    @ObservedObject private var musicManager = MusicManager.shared
+
+    @State private var isHovering = false
+    @State private var optimisticIsPlaying: Bool?
+    @State private var optimisticGeneration = 0
+
+    private let size: CGFloat = 40
+    private var cornerRadius: CGFloat { size * 0.28 }
+
+    private var displayedIsPlaying: Bool {
+        optimisticIsPlaying ?? musicManager.isPlaying
+    }
+
+    private var iconName: String {
+        displayedIsPlaying ? "pause.fill" : "play.fill"
+    }
+
+    var body: some View {
+        Button {
+            togglePlayback()
+        } label: {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
+                .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .frame(width: size, height: size)
+                .overlay {
+                    Image(systemName: iconName)
+                        .foregroundColor(.primary)
+                        .font(.largeTitle)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isHovering ? 1.02 : 1)
+        .animation(.smooth(duration: 0.14), value: displayedIsPlaying)
+        .onHover { hovering in
+            withAnimation(.smooth(duration: 0.22)) {
+                isHovering = hovering
+            }
+        }
+        .onChange(of: musicManager.isPlaying) { _, _ in
+            withAnimation(.smooth(duration: 0.12)) {
+                optimisticIsPlaying = nil
+            }
+        }
+    }
+
+    private func togglePlayback() {
+        let targetState = !displayedIsPlaying
+        optimisticGeneration += 1
+        let currentGeneration = optimisticGeneration
+
+        withAnimation(.smooth(duration: 0.12)) {
+            optimisticIsPlaying = targetState
+        }
+
+        MusicManager.shared.togglePlay()
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+
+            guard optimisticGeneration == currentGeneration else { return }
+            guard optimisticIsPlaying == targetState else { return }
+            guard musicManager.isPlaying != targetState else { return }
+
+            withAnimation(.smooth(duration: 0.12)) {
+                optimisticIsPlaying = nil
+            }
+        }
+    }
 }
 
 struct MusicSpectrumIndicatorView: View {
