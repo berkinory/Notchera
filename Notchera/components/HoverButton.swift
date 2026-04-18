@@ -12,6 +12,7 @@ enum HoverButtonTapEffect {
 struct HoverButton: View {
     var icon: String
     var iconColor: Color = .primary
+    var backgroundColor: Color = .clear
     var scale: Image.Scale = .medium
     var contentTransition: ContentTransition = .symbolEffect
     var tapEffect: HoverButtonTapEffect = .none
@@ -31,7 +32,13 @@ struct HoverButton: View {
             action()
         } label: {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
+                .fill(backgroundColor)
+                .overlay {
+                    if isHovering {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(Color.gray.opacity(0.2))
+                    }
+                }
                 .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .frame(width: size, height: size)
                 .overlay {

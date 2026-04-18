@@ -14,6 +14,11 @@ private struct PendingSeek {
     let requestedAt: Date
 }
 
+private struct PendingTrackChange {
+    let requestedAt: Date
+    let previousTrackIdentifier: String
+}
+
 class MusicManager: ObservableObject {
     static let shared = MusicManager()
     private var cancellables = Set<AnyCancellable>()
@@ -52,6 +57,7 @@ class MusicManager: ObservableObject {
 
     private var artworkData: Data?
     private var pendingSeek: PendingSeek?
+    private var pendingTrackChange: PendingTrackChange?
 
     private var lastArtworkTitle: String = "I'm Handsome"
     private var lastArtworkArtist: String = "Me"
@@ -198,8 +204,8 @@ class MusicManager: ObservableObject {
             fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
         }
 
-        let seekState = resolvedPendingSeek(for: state)
-        let shouldApplyTimeState = seekState.shouldApply
+        let playbackTimeState = resolvedPlaybackTimeState(for: state)
+        let shouldApplyTimeState = playbackTimeState.shouldApply
         let timeChanged = state.currentTime != elapsedTime
         let durationChanged = state.duration != songDuration
         let playbackRateChanged = state.playbackRate != playbackRate
@@ -255,21 +261,69 @@ class MusicManager: ObservableObject {
             timestampDate = state.lastUpdated
         }
 
-        pendingSeek = seekState.pendingSeek
+        pendingSeek = playbackTimeState.pendingSeek
+        pendingTrackChange = playbackTimeState.pendingTrackChange
     }
 
-    private func resolvedPendingSeek(for state: PlaybackState) -> (shouldApply: Bool, pendingSeek: PendingSeek?) {
-        guard let pendingSeek else { return (true, nil) }
+    private func resolvedPlaybackTimeState(for state: PlaybackState) -> (
+        shouldApply: Bool,
+        pendingSeek: PendingSeek?,
+        pendingTrackChange: PendingTrackChange?
+    ) {
+        let now = Date()
+        let incomingTrackIdentifier = trackIdentifier(
+            bundleIdentifier: state.bundleIdentifier,
+            title: state.title,
+            artist: state.artist,
+            album: state.album
+        )
 
-        let age = Date().timeIntervalSince(pendingSeek.requestedAt)
-        let matchesPendingSeek = abs(state.currentTime - pendingSeek.position) <= 1
-        let isFreshState = state.lastUpdated >= pendingSeek.requestedAt
+        if let pendingTrackChange {
+            let age = now.timeIntervalSince(pendingTrackChange.requestedAt)
+            let trackChanged = incomingTrackIdentifier != pendingTrackChange.previousTrackIdentifier
+            let isStaleState = state.lastUpdated < pendingTrackChange.requestedAt
+            let restartedCurrentTrack = !isStaleState && !trackChanged && state.currentTime <= 1.5
 
-        if matchesPendingSeek || isFreshState || age > 2 {
-            return (true, nil)
+            if trackChanged || restartedCurrentTrack || age > 1.25 {
+                return (true, pendingSeek, nil)
+            }
+
+            if isStaleState || state.currentTime > 2 {
+                return (false, pendingSeek, pendingTrackChange)
+            }
+
+            return (true, pendingSeek, nil)
         }
 
-        return (false, pendingSeek)
+        guard let pendingSeek else { return (true, nil, nil) }
+
+        let age = now.timeIntervalSince(pendingSeek.requestedAt)
+        let matchesPendingSeek = abs(state.currentTime - pendingSeek.position) <= 0.75
+        let isStaleState = state.lastUpdated < pendingSeek.requestedAt
+        let trackChanged = incomingTrackIdentifier != currentTrackIdentifier
+
+        if matchesPendingSeek || trackChanged || age > 1.5 {
+            return (true, nil, nil)
+        }
+
+        if isStaleState || abs(state.currentTime - pendingSeek.position) > 0.75 {
+            return (false, pendingSeek, nil)
+        }
+
+        return (true, nil, nil)
+    }
+
+    private var currentTrackIdentifier: String {
+        trackIdentifier(
+            bundleIdentifier: bundleIdentifier ?? "",
+            title: songTitle,
+            artist: artistName,
+            album: album
+        )
+    }
+
+    private func trackIdentifier(bundleIdentifier: String, title: String, artist: String, album: String) -> String {
+        [bundleIdentifier, title, artist, album].joined(separator: "\u{1F}")
     }
 
     func toggleFavoriteTrack() {
@@ -596,12 +650,30 @@ class MusicManager: ObservableObject {
     }
 
     func nextTrack() {
+        let requestedAt = Date()
+        pendingSeek = nil
+        pendingTrackChange = PendingTrackChange(
+            requestedAt: requestedAt,
+            previousTrackIdentifier: currentTrackIdentifier
+        )
+        elapsedTime = 0
+        timestampDate = requestedAt
+
         Task {
             await activeController?.nextTrack()
         }
     }
 
     func previousTrack() {
+        let requestedAt = Date()
+        pendingSeek = nil
+        pendingTrackChange = PendingTrackChange(
+            requestedAt: requestedAt,
+            previousTrackIdentifier: currentTrackIdentifier
+        )
+        elapsedTime = 0
+        timestampDate = requestedAt
+
         Task {
             await activeController?.previousTrack()
         }
@@ -615,6 +687,7 @@ class MusicManager: ObservableObject {
 
             let requestedAt = Date()
             await MainActor.run {
+                self.pendingTrackChange = nil
                 self.pendingSeek = PendingSeek(position: clampedPosition, requestedAt: requestedAt)
                 self.elapsedTime = clampedPosition
                 self.timestampDate = requestedAt

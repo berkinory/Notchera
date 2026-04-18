@@ -2,6 +2,7 @@ import Defaults
 
 enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.Serializable {
     case shuffle
+    case lyrics
     case previous
     case playPause
     case next
@@ -28,6 +29,7 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
 
     static let pickerOptions: [MusicControlButton] = [
         .shuffle,
+        .lyrics,
         .previous,
         .playPause,
         .next,
@@ -39,6 +41,8 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
         switch self {
         case .shuffle:
             "Shuffle"
+        case .lyrics:
+            "Lyrics"
         case .previous:
             "Previous"
         case .playPause:
@@ -58,6 +62,8 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
         switch self {
         case .shuffle:
             "shuffle"
+        case .lyrics:
+            "quote.bubble"
         case .previous:
             "backward.fill"
         case .playPause:

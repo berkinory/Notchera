@@ -238,12 +238,16 @@ struct MusicControlsView: View {
 
 struct MusicSliderRowView: View {
     @ObservedObject var musicManager = MusicManager.shared
-    @State private var sliderValue: Double = 0
+    @State private var sliderValue: Double
     @State private var dragging: Bool = false
     @State private var lastDragged: Date = .distantPast
 
+    init() {
+        _sliderValue = State(initialValue: MusicManager.shared.estimatedPlaybackPosition())
+    }
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : nil)) { timeline in
+        TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.2 : nil)) { timeline in
             MusicSliderView(
                 sliderValue: $sliderValue,
                 duration: $musicManager.songDuration,
@@ -261,6 +265,23 @@ struct MusicSliderRowView: View {
             .padding(.top, 4)
             .frame(height: 24)
         }
+        .onAppear {
+            syncSliderValue()
+        }
+        .onChange(of: musicManager.elapsedTime) {
+            syncSliderValue()
+        }
+        .onChange(of: musicManager.songDuration) {
+            syncSliderValue()
+        }
+        .onChange(of: musicManager.timestampDate) {
+            syncSliderValue()
+        }
+    }
+
+    private func syncSliderValue() {
+        guard !dragging, musicManager.timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
+        sliderValue = min(musicManager.estimatedPlaybackPosition(), musicManager.songDuration)
     }
 }
 
@@ -270,6 +291,7 @@ struct MusicToolbarRowView: View {
     @Default(.musicControlSlots) private var slotConfig
     @Default(.musicControlSlotLimit) private var slotLimit
     @Default(.matchAlbumArtColor) private var matchAlbumArtColor
+    @Default(.enableLyrics) private var enableLyrics
 
     private let slotWidth: CGFloat = 40
 
@@ -299,8 +321,16 @@ struct MusicToolbarRowView: View {
             : .white
     }
 
+    private var activeToggleBackgroundColor: Color {
+        activeControlColor.opacity(matchAlbumArtColor ? 0.18 : 0.14)
+    }
+
     private var inactiveControlColor: Color {
-        .secondary.opacity(0.6)
+        .secondary.opacity(0.5)
+    }
+
+    private var inactiveToggleBackgroundColor: Color {
+        Color.white.opacity(0.04)
     }
 
     @ViewBuilder
@@ -310,10 +340,23 @@ struct MusicToolbarRowView: View {
             HoverButton(
                 icon: "shuffle",
                 iconColor: musicManager.isShuffled ? activeControlColor : inactiveControlColor,
+                backgroundColor: musicManager.isShuffled ? activeToggleBackgroundColor : inactiveToggleBackgroundColor,
                 scale: .medium,
                 tapEffect: .rotateCounterClockwise
             ) {
                 MusicManager.shared.toggleShuffle()
+            }
+        case .lyrics:
+            HoverButton(
+                icon: "quote.bubble",
+                iconColor: enableLyrics ? activeControlColor : inactiveControlColor,
+                backgroundColor: enableLyrics ? activeToggleBackgroundColor : inactiveToggleBackgroundColor,
+                scale: .medium,
+                tapEffect: .bounce
+            ) {
+                let nextValue = !enableLyrics
+                enableLyrics = nextValue
+                MusicManager.shared.setLyricsEnabled(nextValue)
             }
         case .previous:
             HoverButton(icon: "backward.fill", scale: .medium, tapEffect: .nudgeLeft) {
@@ -509,10 +552,26 @@ struct MusicSliderView: View {
         .fontWeight(.medium)
         .foregroundColor(.gray.opacity(0.72))
         .font(.caption)
-        .onChange(of: currentDate) {
-            guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
-            sliderValue = MusicManager.shared.estimatedPlaybackPosition(at: currentDate)
+        .onAppear {
+            syncSliderValue(at: currentDate)
         }
+        .onChange(of: currentDate) {
+            syncSliderValue(at: currentDate)
+        }
+        .onChange(of: elapsedTime) {
+            syncSliderValue(at: currentDate)
+        }
+        .onChange(of: duration) {
+            syncSliderValue(at: currentDate)
+        }
+        .onChange(of: timestampDate) {
+            syncSliderValue(at: currentDate)
+        }
+    }
+
+    private func syncSliderValue(at date: Date) {
+        guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
+        sliderValue = min(MusicManager.shared.estimatedPlaybackPosition(at: date), duration)
     }
 
     private var timeLabelTemplate: String {
@@ -556,31 +615,35 @@ struct CustomSlider: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let width = geometry.size.width
-            let height = CGFloat(dragging ? 10 : 6)
+            let width = max(geometry.size.width, 1)
+            let height = CGFloat(dragging ? 8 : 6)
             let rangeSpan = range.upperBound - range.lowerBound
 
-            let progress = rangeSpan == .zero ? 0 : (value - range.lowerBound) / rangeSpan
-            let filledTrackWidth = min(max(progress, 0), 1) * width
+            let progress = min(max(rangeSpan == .zero ? 0 : (value - range.lowerBound) / rangeSpan, 0), 1)
+            let filledTrackWidth = progress * width
+            let visibleFilledTrackWidth = progress == 0 ? 0 : max(filledTrackWidth, height)
 
             ZStack(alignment: .leading) {
-                Rectangle()
+                Capsule(style: .continuous)
                     .fill(.gray.opacity(0.3))
                     .frame(height: height)
 
-                Rectangle()
+                Capsule(style: .continuous)
                     .fill(color)
-                    .frame(width: filledTrackWidth, height: height)
+                    .frame(width: visibleFilledTrackWidth, height: height)
+                    .opacity(progress == 0 ? 0 : 1)
             }
-            .cornerRadius(height / 2)
             .frame(height: 12)
             .contentShape(Rectangle())
+            .animation(dragging ? nil : .linear(duration: 0.12), value: value)
+            .animation(.easeOut(duration: 0.08), value: dragging)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        withAnimation {
+                        if !dragging {
                             dragging = true
                         }
+
                         let newValue = range.lowerBound + Double(gesture.location.x / width) * rangeSpan
                         value = min(max(newValue, range.lowerBound), range.upperBound)
                         onDragChange?(value)
@@ -591,7 +654,6 @@ struct CustomSlider: View {
                         dragging = false
                     }
             )
-            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: dragging)
         }
     }
 }
