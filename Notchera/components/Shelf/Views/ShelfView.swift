@@ -82,63 +82,60 @@ struct ShelfView: View {
     }
 
     var content: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 0) {
-                Button(allSelected ? "Unselect All" : "Select All") {
-                    toggleSelectAll()
+        Group {
+            if tvm.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "tray.and.arrow.down")
+                        .symbolVariant(.fill)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white, .gray)
+                        .imageScale(.large)
+
+                    Text("Drop files here")
+                        .foregroundStyle(.gray)
+                        .font(.system(.title3, design: .rounded))
+                        .fontWeight(.medium)
                 }
-                .buttonStyle(.plain)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(tvm.isEmpty ? Color.white.opacity(0.28) : Color.white.opacity(0.72))
-                .disabled(tvm.isEmpty)
-                .padding(.horizontal, 2)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(.vertical) {
+                    VStack(spacing: spacing) {
+                        HStack(spacing: 0) {
+                            Button(allSelected ? "Unselect All" : "Select All") {
+                                toggleSelectAll()
+                            }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.72))
+                            .padding(.horizontal, 2)
 
-                Spacer(minLength: 0)
-            }
-            .frame(height: 16)
+                            Spacer(minLength: 0)
+                        }
+                        .frame(height: 14)
 
-            Group {
-                if tvm.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "tray.and.arrow.down")
-                            .symbolVariant(.fill)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(.white, .gray)
-                            .imageScale(.large)
+                        ForEach(Array(itemRows.enumerated()), id: \.offset) { _, row in
+                            HStack(spacing: spacing) {
+                                ForEach(row) { item in
+                                    ShelfItemView(item: item)
+                                        .environmentObject(quickLookService)
+                                }
 
-                        Text("Drop files here")
-                            .foregroundStyle(.gray)
-                            .font(.system(.title3, design: .rounded))
-                            .fontWeight(.medium)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView(.vertical) {
-                        VStack(spacing: spacing) {
-                            ForEach(Array(itemRows.enumerated()), id: \.offset) { _, row in
-                                HStack(spacing: spacing) {
-                                    ForEach(row) { item in
-                                        ShelfItemView(item: item)
-                                            .environmentObject(quickLookService)
-                                    }
-
-                                    if row.count == 1 {
-                                        Color.clear
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 37)
-                                    }
+                                if row.count == 1 {
+                                    Color.clear
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 37)
                                 }
                             }
                         }
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .transaction { transaction in
-                            transaction.animation = nil
-                        }
                     }
-                    .scrollIndicators(.never)
-                    .onDrop(of: [.fileURL], isTargeted: $vm.dragDetectorTargeting) { providers in
-                        handleDrop(providers: providers)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .transaction { transaction in
+                        transaction.animation = nil
                     }
+                }
+                .scrollIndicators(.never)
+                .onDrop(of: [.fileURL], isTargeted: $vm.dragDetectorTargeting) { providers in
+                    handleDrop(providers: providers)
                 }
             }
         }

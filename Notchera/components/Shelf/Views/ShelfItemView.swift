@@ -301,10 +301,6 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
         }
 
         func draggingSession(_: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-            if Defaults[.copyOnDrag] {
-                return [.copy]
-            }
-
             switch context {
             case .outsideApplication:
                 return [.copy, .move]
