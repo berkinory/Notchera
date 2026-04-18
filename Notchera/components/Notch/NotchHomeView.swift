@@ -145,8 +145,8 @@ struct MusicControlsView: View {
             MusicSpectrumIndicatorView(
                 albumArtNamespace: albumArtNamespace,
                 barWidth: 68,
-                spectrumSize: CGSize(width: 24, height: 15),
-                containerSize: CGSize(width: 30, height: 30),
+                spectrumSize: CGSize(width: 26, height: 16),
+                containerSize: CGSize(width: 28, height: 24),
                 cornerRadius: 8
             )
         }
@@ -452,8 +452,7 @@ struct MusicSliderView: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(timeString(from: sliderValue))
-                .frame(minWidth: 38, alignment: .leading)
+            timeLabel(timeString(from: sliderValue), alignment: .leading)
 
             CustomSlider(
                 value: $sliderValue,
@@ -467,8 +466,7 @@ struct MusicSliderView: View {
             )
             .frame(height: 10, alignment: .center)
 
-            Text(timeString(from: duration))
-                .frame(minWidth: 38, alignment: .trailing)
+            timeLabel(timeString(from: duration), alignment: .trailing)
         }
         .fontWeight(.medium)
         .foregroundColor(.gray.opacity(0.72))
@@ -477,6 +475,21 @@ struct MusicSliderView: View {
             guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
             sliderValue = MusicManager.shared.estimatedPlaybackPosition(at: currentDate)
         }
+    }
+
+    private var timeLabelTemplate: String {
+        timeString(from: max(duration, sliderValue))
+    }
+
+    @ViewBuilder
+    private func timeLabel(_ value: String, alignment: Alignment) -> some View {
+        ZStack(alignment: alignment) {
+            Text(timeLabelTemplate)
+                .hidden()
+
+            Text(value)
+        }
+        .monospacedDigit()
     }
 
     func timeString(from seconds: Double) -> String {
@@ -505,7 +518,7 @@ struct CustomSlider: View {
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            let height = CGFloat(dragging ? 9 : 5)
+            let height = CGFloat(dragging ? 10 : 6)
             let rangeSpan = range.upperBound - range.lowerBound
 
             let progress = rangeSpan == .zero ? 0 : (value - range.lowerBound) / rangeSpan
@@ -521,7 +534,7 @@ struct CustomSlider: View {
                     .frame(width: filledTrackWidth, height: height)
             }
             .cornerRadius(height / 2)
-            .frame(height: 10)
+            .frame(height: 12)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
