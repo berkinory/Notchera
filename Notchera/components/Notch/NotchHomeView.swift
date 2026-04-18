@@ -5,12 +5,11 @@ import SwiftUI
 // MARK: - Music Player Components
 
 struct MusicPlayerView: View {
-    @EnvironmentObject var vm: NotcheraViewModel
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
         HStack {
-            AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace).padding(.all, 5)
+            AlbumArtView(albumArtNamespace: albumArtNamespace).padding(.all, 5)
             MusicControlsView()
         }
     }
@@ -18,7 +17,6 @@ struct MusicPlayerView: View {
 
 struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
-    @ObservedObject var vm: NotcheraViewModel
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
@@ -32,10 +30,7 @@ struct AlbumArtView: View {
             Button {
                 musicManager.openMusicApp()
             } label: {
-                ZStack(alignment: .bottomTrailing) {
-                    albumArtImage
-                    appIconOverlay
-                }
+                albumArtImage
             }
             .buttonStyle(PlainButtonStyle())
             .scaleEffect(musicManager.isPlaying ? 1 : 0.85)
@@ -65,18 +60,6 @@ struct AlbumArtView: View {
             )
     }
 
-    @ViewBuilder
-    private var appIconOverlay: some View {
-        if vm.notchState == .open, !musicManager.usingAppIconForArtwork {
-            AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 30, height: 30)
-                .offset(x: 10, y: 10)
-                .transition(.scale.combined(with: .opacity))
-                .zIndex(2)
-        }
-    }
 }
 
 struct MusicControlsView: View {
@@ -413,7 +396,10 @@ struct MusicSliderView: View {
     var onValueChange: (Double) -> Void
 
     var body: some View {
-        VStack {
+        HStack(spacing: 8) {
+            Text(timeString(from: sliderValue))
+                .frame(minWidth: 38, alignment: .leading)
+
             CustomSlider(
                 value: $sliderValue,
                 range: 0 ... duration,
@@ -424,15 +410,12 @@ struct MusicSliderView: View {
             )
             .frame(height: 10, alignment: .center)
 
-            HStack {
-                Text(timeString(from: sliderValue))
-                Spacer()
-                Text(timeString(from: duration))
-            }
-            .fontWeight(.medium)
-            .foregroundColor(.gray)
-            .font(.caption)
+            Text(timeString(from: duration))
+                .frame(minWidth: 38, alignment: .trailing)
         }
+        .fontWeight(.medium)
+        .foregroundColor(.gray)
+        .font(.caption)
         .onChange(of: currentDate) {
             guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
             sliderValue = MusicManager.shared.estimatedPlaybackPosition(at: currentDate)

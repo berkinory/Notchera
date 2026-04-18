@@ -3,10 +3,11 @@ import Combine
 import Defaults
 import SwiftUI
 
-let defaultImage: NSImage = .init(
-    systemSymbolName: "heart.fill",
-    accessibilityDescription: "Album Art"
-)!
+let defaultImage: NSImage = {
+    let image = NSImage(size: NSSize(width: 256, height: 256))
+    image.isTemplate = false
+    return image
+}()
 
 class MusicManager: ObservableObject {
     static let shared = MusicManager()
@@ -177,11 +178,10 @@ class MusicManager: ObservableObject {
             if artworkChanged, let artwork = state.artwork {
                 updateArtwork(artwork)
                 artworkData = artwork
-            } else if state.artwork == nil, artworkData == nil {
-                if let appIconImage = AppIconAsNSImage(for: state.bundleIdentifier) {
-                    usingAppIconForArtwork = true
-                    updateAlbumArt(newAlbumArt: appIconImage)
-                }
+            } else if state.artwork == nil {
+                usingAppIconForArtwork = false
+                artworkData = nil
+                updateAlbumArt(newAlbumArt: defaultImage)
             }
 
             lastArtworkTitle = state.title
