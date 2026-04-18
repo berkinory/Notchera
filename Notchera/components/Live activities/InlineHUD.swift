@@ -102,13 +102,13 @@ struct WingHUDView: View {
                 .scaleEffect(0.78)
                 .frame(width: 20, height: 14)
 
-                Text(displayValue)
+                Text("%\(displayValue)")
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.gray)
                     .lineLimit(1)
                     .monospacedDigit()
-                    .frame(width: 24, alignment: .trailing)
+                    .fixedSize()
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)

@@ -63,8 +63,6 @@ final class BrightnessManager: ObservableObject {
     }
 }
 
-// (DisplayServices helpers moved into XPC helper)
-
 // MARK: - Keyboard Backlight Controller
 
 final class KeyboardBacklightManager: ObservableObject {

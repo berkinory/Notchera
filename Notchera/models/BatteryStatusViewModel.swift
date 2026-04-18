@@ -72,7 +72,7 @@ class BatteryStatusViewModel: ObservableObject {
             print("⚡ Low power mode: \(isEnabled ? "Enabled" : "Disabled")")
             withAnimation {
                 self.isInLowPowerMode = isEnabled
-                self.statusText = isEnabled ? "Low Power" : "Low Power Off"
+                self.statusText = isEnabled ? "Low Power On" : "Low Power Off"
             }
             notifyImportanChangeStatus()
 
