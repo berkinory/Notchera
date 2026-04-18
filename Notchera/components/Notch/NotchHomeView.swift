@@ -46,7 +46,7 @@ struct AlbumArtView: View {
                 albumArtImage
             }
             .buttonStyle(PlainButtonStyle())
-            .scaleEffect(musicManager.isPlaying ? 1 : 0.85)
+            .scaleEffect(musicManager.isPlaying ? 1 : 0.92)
 
             albumArtDarkOverlay
         }
@@ -56,8 +56,8 @@ struct AlbumArtView: View {
         Rectangle()
             .aspectRatio(1, contentMode: .fit)
             .foregroundColor(Color.black)
-            .opacity(musicManager.isPlaying ? 0 : 0.8)
-            .blur(radius: 8)
+            .opacity(musicManager.isPlaying ? 0 : 0.45)
+            .blur(radius: 5)
     }
 
     private var albumArtImage: some View {
@@ -68,7 +68,8 @@ struct AlbumArtView: View {
             .clipped()
             .clipShape(
                 RoundedRectangle(
-                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened
+                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
+                    style: .continuous
                 )
             )
     }

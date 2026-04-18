@@ -437,7 +437,8 @@ struct MusicCompactActivityView: View {
                 .clipped()
                 .clipShape(
                     RoundedRectangle(
-                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed
+                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
+                        style: .continuous
                     )
                 )
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
