@@ -279,24 +279,23 @@ struct MusicSpectrumIndicatorView: View {
     let cornerRadius: CGFloat
 
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(.clear)
-            .frame(width: containerSize.width, height: containerSize.height)
-            .overlay {
-                Rectangle()
-                    .fill(
-                        matchAlbumArtColor
-                            ? Color(nsColor: musicManager.avgColor).gradient
-                            : Color.white.gradient
-                    )
-                    .frame(width: barWidth, alignment: .center)
-                    .mask {
-                        AudioSpectrumView(isPlaying: $musicManager.isPlaying)
-                            .frame(width: spectrumSize.width, height: spectrumSize.height)
-                    }
-            }
-            .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
-            .opacity(musicManager.isPlaying ? 1 : 0.55)
+        ZStack {
+            Rectangle()
+                .fill(
+                    matchAlbumArtColor
+                        ? Color(nsColor: musicManager.avgColor).gradient
+                        : Color.white.gradient
+                )
+                .frame(width: barWidth, alignment: .center)
+                .mask {
+                    AudioSpectrumView(isPlaying: $musicManager.isPlaying)
+                        .frame(width: spectrumSize.width, height: spectrumSize.height)
+                }
+        }
+        .frame(width: containerSize.width, height: containerSize.height)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
+        .opacity(musicManager.isPlaying ? 1 : 0.55)
     }
 }
 
