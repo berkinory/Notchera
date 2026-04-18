@@ -9,19 +9,14 @@ struct ShelfView: View {
     private let spacing: CGFloat = 8
 
     var body: some View {
-        HStack(spacing: 12) {
-            FileShareView()
-                .aspectRatio(1, contentMode: .fit)
-                .environmentObject(vm)
-            panel
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
-                    handleDrop(providers: providers)
-                }
-        }
-        .onChange(of: selection.selectedIDs) {
-            updateQuickLookSelection()
-        }
-        .quickLookPresenter(using: quickLookService)
+        panel
+            .onDrop(of: [.fileURL], isTargeted: $vm.dragDetectorTargeting) { providers in
+                handleDrop(providers: providers)
+            }
+            .onChange(of: selection.selectedIDs) {
+                updateQuickLookSelection()
+            }
+            .quickLookPresenter(using: quickLookService)
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -35,15 +30,7 @@ struct ShelfView: View {
         guard quickLookService.isQuickLookOpen, !selection.selectedIDs.isEmpty else { return }
 
         let selectedItems = selection.selectedItems(in: tvm.items)
-        let urls: [URL] = selectedItems.compactMap { item in
-            if let fileURL = item.fileURL {
-                return fileURL
-            }
-            if case let .link(url) = item.kind {
-                return url
-            }
-            return nil
-        }
+        let urls = selectedItems.compactMap(\.fileURL)
 
         if !urls.isEmpty {
             quickLookService.updateSelection(urls: urls)
@@ -95,7 +82,7 @@ struct ShelfView: View {
                 }
                 .padding(-spacing)
                 .scrollIndicators(.never)
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
+                .onDrop(of: [.fileURL], isTargeted: $vm.dragDetectorTargeting) { providers in
                     handleDrop(providers: providers)
                 }
             }

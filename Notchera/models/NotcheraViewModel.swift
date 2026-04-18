@@ -14,7 +14,6 @@ class NotcheraViewModel: NSObject, ObservableObject {
 
     @Published var dragDetectorTargeting: Bool = false
     @Published var generalDropTargeting: Bool = false
-    @Published var dropZoneTargeting: Bool = false
     @Published var dropEvent: Bool = false
     @Published var anyDropZoneTargeting: Bool = false
     var cancellables: Set<AnyCancellable> = []
@@ -47,9 +46,9 @@ class NotcheraViewModel: NSObject, ObservableObject {
         notchSize = getClosedNotchSize(screenUUID: screenUUID)
         closedNotchSize = notchSize
 
-        Publishers.CombineLatest3($dropZoneTargeting, $dragDetectorTargeting, $generalDropTargeting)
-            .map { shelf, drag, general in
-                shelf || drag || general
+        Publishers.CombineLatest($dragDetectorTargeting, $generalDropTargeting)
+            .map { drag, general in
+                drag || general
             }
             .assign(to: \.anyDropZoneTargeting, on: self)
             .store(in: &cancellables)
