@@ -125,13 +125,22 @@ struct WingHUDView: View {
             HStack(spacing: 3) {
                 DraggableProgressBar(value: $value, onChange: setSystemValue)
 
-                Text(displayValue)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.gray)
-                    .lineLimit(1)
-                    .monospacedDigit()
-                    .frame(width: 24, alignment: .trailing)
+                ZStack {
+                    Text(displayValue)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.gray)
+                        .lineLimit(1)
+                        .monospacedDigit()
+                        .id(displayValue)
+                        .transition(.asymmetric(
+                            insertion: .offset(y: 2).combined(with: .opacity),
+                            removal: .offset(y: -2).combined(with: .opacity)
+                        ))
+                }
+                .frame(width: 24, height: 14, alignment: .trailing)
+                .clipped()
+                .animation(.easeOut(duration: 0.12), value: displayValue)
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
