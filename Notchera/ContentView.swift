@@ -257,40 +257,32 @@ struct ContentView: View {
                         .fixedSize()
                         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
                     } else if vm.notchState == .closed {
-                        let closedContentOpacity: Double = vm.notchState == .open ? 0 : 1
-
-                        ZStack {
-                            if !coordinator.expandingView.show,
-                               musicManager.isPlaying || !musicManager.isPlayerIdle,
-                               coordinator.musicLiveActivityEnabled,
-                               !vm.hideOnClosed
-                            {
-                                CompactActivityHost()
-                                    .frame(alignment: .center)
-                                    .opacity(closedHUDVisible ? 0.0 : closedContentOpacity)
-                                    .animation(.easeIn(duration: 0.08), value: vm.notchState)
-                            } else {
-                                Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
-                                    .opacity(closedHUDVisible ? 0.0 : closedContentOpacity)
-                                    .animation(.easeIn(duration: 0.08), value: vm.notchState)
-                            }
-
-                            if closedHUDVisible {
-                                WingHUDView(
-                                    type: $coordinator.hud.type,
-                                    value: $coordinator.hud.value,
-                                    icon: $coordinator.hud.icon,
-                                    label: $coordinator.hud.label,
-                                    showsPercentage: false,
-                                    isOpen: false,
-                                    batteryStatusText: nil,
-                                    batteryIsCharging: false,
-                                    batteryIsPluggedIn: false,
-                                    batteryIsInLowPowerMode: false
-                                )
-                                .fixedSize()
-                                .transition(.opacity)
-                            }
+                        if closedHUDVisible {
+                            WingHUDView(
+                                type: $coordinator.hud.type,
+                                value: $coordinator.hud.value,
+                                icon: $coordinator.hud.icon,
+                                label: $coordinator.hud.label,
+                                showsPercentage: false,
+                                isOpen: false,
+                                batteryStatusText: nil,
+                                batteryIsCharging: false,
+                                batteryIsPluggedIn: false,
+                                batteryIsInLowPowerMode: false
+                            )
+                            .fixedSize()
+                            .transition(.opacity)
+                        } else if !coordinator.expandingView.show,
+                                  musicManager.isPlaying || !musicManager.isPlayerIdle,
+                                  coordinator.musicLiveActivityEnabled,
+                                  !vm.hideOnClosed
+                        {
+                            CompactActivityHost()
+                                .frame(alignment: .center)
+                        } else {
+                            Rectangle()
+                                .fill(.clear)
+                                .frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                         }
                     } else if vm.notchState == .open {
                         if coordinator.hud.show, coordinator.hud.type != .battery, Defaults[.showOpenNotchHUD] {
