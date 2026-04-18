@@ -300,6 +300,7 @@ struct HUD: View {
     @Default(.optionKeyAction) var optionKeyAction
     @Default(.hudReplacement) var hudReplacement
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
+    @Default(.showInputSourceIndicator) var showInputSourceIndicator
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @State private var accessibilityAuthorized = false
@@ -369,6 +370,10 @@ struct HUD: View {
 
                 Defaults.Toggle(key: .showCapsLockIndicator) {
                     Text("Show Caps Lock indicator")
+                }
+
+                Defaults.Toggle(key: .showInputSourceIndicator) {
+                    Text("Show input language indicator")
                 }
             } header: {
                 HStack {

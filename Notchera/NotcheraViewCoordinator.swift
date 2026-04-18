@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import Combine
 import Defaults
 import SwiftUI
@@ -8,6 +9,7 @@ enum SneakContentType {
     case volume
     case backlight
     case capsLock
+    case inputSource
     case mic
     case recording
     case battery
@@ -135,6 +137,8 @@ class NotcheraViewCoordinator: ObservableObject {
 
         selectedScreenUUID = preferredScreenUUID ?? NSScreen.main?.displayUUID ?? ""
         currentView = preferredExpandedView
+
+        InputSourceMonitor.shared.start()
 
         shelfStateCancellable = ShelfStateViewModel.shared.$items
             .map(\.isEmpty)
@@ -372,5 +376,100 @@ class NotcheraViewCoordinator: ObservableObject {
 
     func showEmpty() {
         currentView = .home
+    }
+}
+
+private final class InputSourceMonitor {
+    static let shared = InputSourceMonitor()
+
+    private var observer: NSObjectProtocol?
+    private var currentLabel = ""
+
+    private init() {}
+
+    func start() {
+        guard observer == nil else { return }
+
+        currentLabel = Self.currentInputSourceLabel()
+        observer = DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name(rawValue: kTISNotifySelectedKeyboardInputSourceChanged as String),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleInputSourceChange()
+            }
+        }
+    }
+
+    @MainActor
+    private func handleInputSourceChange() {
+        let nextLabel = Self.currentInputSourceLabel()
+        guard !nextLabel.isEmpty, nextLabel != currentLabel else { return }
+
+        currentLabel = nextLabel
+        guard Defaults[.showInputSourceIndicator] else { return }
+
+        NotcheraViewCoordinator.shared.toggleHUD(
+            status: true,
+            type: .inputSource,
+            duration: 1.0,
+            value: 1,
+            icon: "translate",
+            label: nextLabel
+        )
+    }
+
+    private static func currentInputSourceLabel() -> String {
+        let source = TISCopyCurrentKeyboardInputSource().takeRetainedValue()
+
+        if let languagesPointer = TISGetInputSourceProperty(source, kTISPropertyInputSourceLanguages) {
+            let languages = Unmanaged<CFArray>.fromOpaque(languagesPointer).takeUnretainedValue() as NSArray
+            if let language = languages.firstObject as? String {
+                let normalized = normalizeLanguageCode(language)
+                if !normalized.isEmpty {
+                    return normalized
+                }
+            }
+        }
+
+        if let sourceIDPointer = TISGetInputSourceProperty(source, kTISPropertyInputSourceID) {
+            let sourceID = Unmanaged<CFString>.fromOpaque(sourceIDPointer).takeUnretainedValue() as String
+            let normalized = normalizeSourceID(sourceID)
+            if !normalized.isEmpty {
+                return normalized
+            }
+        }
+
+        if let localizedNamePointer = TISGetInputSourceProperty(source, kTISPropertyLocalizedName) {
+            let localizedName = Unmanaged<CFString>.fromOpaque(localizedNamePointer).takeUnretainedValue() as String
+            let trimmedName = localizedName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedName.isEmpty {
+                return trimmedName.prefix(4).uppercased()
+            }
+        }
+
+        return ""
+    }
+
+    private static func normalizeLanguageCode(_ language: String) -> String {
+        let trimmedLanguage = language.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedLanguage.isEmpty else { return "" }
+
+        let locale = Locale(identifier: trimmedLanguage)
+        let baseCode = locale.language.languageCode?.identifier ?? trimmedLanguage
+        return String(baseCode.prefix(4)).uppercased()
+    }
+
+    private static func normalizeSourceID(_ sourceID: String) -> String {
+        let candidate = sourceID
+            .split(separator: ".")
+            .reversed()
+            .first(where: { $0.rangeOfCharacter(from: .letters) != nil })?
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: "_", with: "")
+            .uppercased() ?? ""
+
+        return String(candidate.prefix(4))
     }
 }

@@ -112,7 +112,7 @@ struct WingHUDView: View {
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
-        } else if type == .mic || type == .recording || type == .capsLock {
+        } else if type == .mic || type == .recording || type == .capsLock || type == .inputSource {
             Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -156,6 +156,8 @@ struct WingHUDView: View {
             Image(systemName: clampedValue > 0.5 ? "light.max" : "light.min")
         case .capsLock:
             Image(systemName: clampedValue > 0 ? "capslock.fill" : "capslock")
+        case .inputSource:
+            Image(systemName: icon.isEmpty ? "globe" : icon)
         case .mic:
             Image(systemName: "mic")
                 .symbolVariant(clampedValue > 0 ? .none : .slash)
@@ -180,6 +182,8 @@ struct WingHUDView: View {
             "Backlight"
         case .capsLock:
             "Caps Lock"
+        case .inputSource:
+            "Input Changed"
         case .recording:
             "Recording"
         case .battery:
@@ -198,6 +202,8 @@ struct WingHUDView: View {
         switch type {
         case .mic, .capsLock:
             clampedValue > 0 ? "On" : "Off"
+        case .inputSource:
+            label.isEmpty ? "--" : label
         case .recording:
             label.isEmpty ? "00:00" : label
         default:
@@ -209,6 +215,8 @@ struct WingHUDView: View {
         switch type {
         case .recording:
             44
+        case .inputSource:
+            36
         case .capsLock:
             24
         case .mic:
@@ -222,6 +230,8 @@ struct WingHUDView: View {
         switch type {
         case .capsLock:
             clampedValue > 0 ? .green : .gray
+        case .inputSource:
+            .white
         default:
             .gray
         }
@@ -239,6 +249,8 @@ struct WingHUDView: View {
             clampedValue > 0.5 ? "backlight:max" : "backlight:min"
         case .capsLock:
             clampedValue > 0 ? "capslock:on" : "capslock:off"
+        case .inputSource:
+            "input-source:\(icon):\(label)"
         case .mic:
             clampedValue > 0 ? "mic:on" : "mic:off"
         case .recording:
