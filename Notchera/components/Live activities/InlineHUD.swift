@@ -116,7 +116,7 @@ struct WingHUDView: View {
             Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundStyle(.gray)
+                .foregroundStyle(statusColor)
                 .lineLimit(1)
                 .monospacedDigit()
                 .frame(width: statusWidth, alignment: .trailing)
@@ -215,6 +215,15 @@ struct WingHUDView: View {
             28
         default:
             24
+        }
+    }
+
+    private var statusColor: Color {
+        switch type {
+        case .capsLock:
+            clampedValue > 0 ? .green : .gray
+        default:
+            .gray
         }
     }
 
