@@ -81,7 +81,7 @@ struct MusicControlsView: View {
 
     private var songInfoAndSlider: some View {
         GeometryReader { geo in
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 songInfo(width: geo.size.width)
                 musicSlider
             }
@@ -106,7 +106,7 @@ struct MusicControlsView: View {
                 frameWidth: width
             )
             .fontWeight(.medium)
-            if Defaults[.enableLyrics] {
+            if false, Defaults[.enableLyrics] {
                 TimelineView(.animation(minimumInterval: 0.25)) { timeline in
                     let currentElapsed: Double = {
                         guard musicManager.isPlaying else { return musicManager.elapsedTime }
@@ -158,7 +158,7 @@ struct MusicControlsView: View {
             ) { newValue in
                 MusicManager.shared.seek(to: newValue)
             }
-            .padding(.top, 5)
+            .padding(.top, 3)
             .frame(height: 36)
         }
     }
@@ -396,7 +396,7 @@ struct MusicSliderView: View {
     var onValueChange: (Double) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text(timeString(from: sliderValue))
                 .frame(minWidth: 38, alignment: .leading)
 
