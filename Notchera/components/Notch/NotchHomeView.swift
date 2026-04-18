@@ -95,6 +95,7 @@ struct MusicControlsView: View {
                     $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: .white,
                     frameWidth: max(0, width - 44)
                 )
+                .fontWeight(.medium)
                 MarqueeText(
                     $musicManager.artistName,
                     font: .headline,
