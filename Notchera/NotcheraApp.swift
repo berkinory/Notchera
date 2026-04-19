@@ -61,6 +61,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:]
+    private var mouseMoveMonitor: Any?
+    private var mouseDragMonitor: Any?
     private var windowVisibilityObservers: [String: AnyCancellable] = [:]
     private var appCancellables: Set<AnyCancellable> = []
     private let windowInteractivityPollingInterval: TimeInterval = 1 / 15
@@ -81,6 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         timer?.invalidate()
         timer = nil
+        stopCursorMonitoring()
         MusicManager.shared.destroy()
         cleanupDragDetectors()
         cleanupWindows()
@@ -227,6 +230,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return baseRect.insetBy(dx: -16, dy: -10)
     }
 
+    private func setupCursorMonitoring() {
+        stopCursorMonitoring()
+
+        let handler: @MainActor (NSEvent) -> Void = { [weak self] _ in
+            self?.updateWindowInteractivity()
+        }
+
+        mouseMoveMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { event in
+            Task { @MainActor in
+                handler(event)
+            }
+        }
+
+        mouseDragMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged, .rightMouseDragged, .otherMouseDragged]) { event in
+            Task { @MainActor in
+                handler(event)
+            }
+        }
+    }
+
+    private func stopCursorMonitoring() {
+        for monitor in [mouseMoveMonitor, mouseDragMonitor] {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+            }
+        }
+
+        mouseMoveMonitor = nil
+        mouseDragMonitor = nil
+    }
+
     @MainActor
     private func updateWindowInteractivity() {
         let mouseLocation = NSEvent.mouseLocation
@@ -258,6 +292,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if window.ignoresMouseEvents {
                 window.ignoresMouseEvents = false
             }
+            if window.frame.contains(mouseLocation) {
+                NSCursor.arrow.set()
+            }
             return
         }
 
@@ -267,6 +304,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let isPointerInside = collapsedInteractiveRect(for: viewModel, on: screen).contains(normalizedMouseLocation)
         window.ignoresMouseEvents = !isPointerInside
+
+        if isPointerInside {
+            NSCursor.arrow.set()
+        }
 
         guard Defaults[.openNotchOnHover], !coordinator.hud.show, !coordinator.firstLaunch else {
             collapsedHoverStartDates[key] = nil
@@ -558,6 +599,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             RunLoop.main.add(timer, forMode: .common)
         }
 
+        setupCursorMonitoring()
         setupDragDetectors()
 
         if coordinator.firstLaunch {

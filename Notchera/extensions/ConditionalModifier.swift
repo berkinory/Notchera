@@ -4,6 +4,10 @@ import SwiftUI
 private final class ArrowCursorNSView: NSView {
     private var trackingArea: NSTrackingArea?
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
 
@@ -58,7 +62,6 @@ extension View {
     func forceArrowCursor() -> some View {
         overlay {
             ArrowCursorRegion()
-                .allowsHitTesting(false)
         }
     }
 }
