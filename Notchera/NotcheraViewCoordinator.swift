@@ -12,6 +12,7 @@ enum SneakContentType {
     case inputSource
     case recording
     case battery
+    case hudEnabled
     case download
 }
 
@@ -159,6 +160,7 @@ class NotcheraViewCoordinator: ObservableObject {
         }
 
         hudReplacementCancellable = Defaults.publisher(.hudReplacement)
+            .dropFirst()
             .sink { [weak self] change in
                 Task { @MainActor in
                     guard let self else { return }
@@ -173,6 +175,7 @@ class NotcheraViewCoordinator: ObservableObject {
 
                             if granted {
                                 await MediaKeyInterceptor.shared.start()
+                                self.toggleHUD(status: true, type: .hudEnabled, duration: 1.6, value: 1)
                             } else {
                                 Defaults[.hudReplacement] = false
                             }
@@ -314,7 +317,7 @@ class NotcheraViewCoordinator: ObservableObject {
             Defaults[.enableScreenRecordingDetection]
         case .battery:
             Defaults[.showPowerStatusNotifications]
-        case .download:
+        case .hudEnabled, .download:
             true
         }
     }

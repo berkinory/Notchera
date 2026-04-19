@@ -112,7 +112,7 @@ struct WingHUDView: View {
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
-        } else if type == .recording || type == .capsLock || type == .inputSource {
+        } else if type == .recording || type == .capsLock || type == .inputSource || type == .hudEnabled {
             Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -173,6 +173,9 @@ struct WingHUDView: View {
         case .battery:
             Image(systemName: batteryMonoSymbol)
                 .foregroundStyle(.white)
+        case .hudEnabled:
+            Image(systemName: "switch.2")
+                .foregroundStyle(.green)
         default:
             EmptyView()
         }
@@ -194,6 +197,8 @@ struct WingHUDView: View {
             "Recording"
         case .battery:
             batteryStatusText ?? "Battery"
+        case .hudEnabled:
+            "HUD Enabled"
         default:
             ""
         }
@@ -212,6 +217,8 @@ struct WingHUDView: View {
             label.isEmpty ? "--" : label
         case .recording:
             label.isEmpty ? "00:00" : label
+        case .hudEnabled:
+            "On"
         default:
             displayValue
         }
@@ -225,6 +232,8 @@ struct WingHUDView: View {
             36
         case .capsLock:
             24
+        case .hudEnabled:
+            24
         default:
             24
         }
@@ -236,6 +245,8 @@ struct WingHUDView: View {
             clampedValue > 0 ? .green : .gray
         case .inputSource:
             .white
+        case .hudEnabled:
+            .green
         default:
             .gray
         }
@@ -259,6 +270,8 @@ struct WingHUDView: View {
             clampedValue > 0 ? "recording:on" : "recording:off"
         case .battery:
             "battery:\(batteryMonoSymbol):\(displayValue):\(batteryStatusText ?? "")"
+        case .hudEnabled:
+            "hud-enabled"
         default:
             ""
         }
