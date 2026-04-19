@@ -269,7 +269,7 @@ struct WingHUDView: View {
         case .recording:
             clampedValue > 0 ? "recording:on" : "recording:off"
         case .battery:
-            "battery:\(batteryMonoSymbol):\(displayValue):\(batteryStatusText ?? "")"
+            "battery:\(batteryLevelBucket):\(batteryIsPowerConnected ? 1 : 0):\(batteryIsInLowPowerMode ? 1 : 0):\(batteryStatusText ?? "")"
         case .hudEnabled:
             "hud-enabled"
         default:
@@ -307,8 +307,27 @@ struct WingHUDView: View {
         }
     }
 
+    private var batteryIsPowerConnected: Bool {
+        batteryIsCharging || batteryIsPluggedIn
+    }
+
     private var batteryMonoSymbol: String {
         "battery.100"
+    }
+
+    private var batteryLevelBucket: String {
+        switch Float(clampedValue * 100) {
+        case ...10:
+            "0"
+        case ...20:
+            "25"
+        case ...50:
+            "50"
+        case ...75:
+            "75"
+        default:
+            "100"
+        }
     }
 
     private func setSystemValue(_ newValue: CGFloat) {

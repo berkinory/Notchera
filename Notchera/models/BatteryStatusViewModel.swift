@@ -107,7 +107,7 @@ class BatteryStatusViewModel: ObservableObject {
             self.isInLowPowerMode = batteryInfo.isInLowPowerMode
             self.timeToFullCharge = batteryInfo.timeToFullCharge
             self.maxCapacity = batteryInfo.maxCapacity
-            self.statusText = batteryInfo.isPluggedIn ? "Plugged In" : "Unplugged"
+            self.statusText = batteryInfo.isPluggedIn ? "Charging" : "Unplugged"
         }
 
         didNotifyLowBatteryAt20 = batteryInfo.isPluggedIn || batteryInfo.currentCapacity <= 20

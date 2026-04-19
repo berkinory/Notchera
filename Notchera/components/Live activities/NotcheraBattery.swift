@@ -10,26 +10,33 @@ struct BatteryView: View {
     var batteryWidth: CGFloat = 26
     var isForNotification: Bool
 
-    var icon: String = "battery.0"
+    private var isPowerConnected: Bool {
+        isCharging || isPluggedIn
+    }
 
-    var iconStatus: String {
-        if isCharging {
-            "bolt"
-        } else if isPluggedIn {
-            "plug"
-        } else {
-            ""
+    private var batterySymbol: String {
+        switch levelBattery {
+        case ...10:
+            "battery.0percent"
+        case ...20:
+            "battery.25percent"
+        case ...50:
+            "battery.50percent"
+        case ...75:
+            "battery.75percent"
+        default:
+            "battery.100percent"
         }
     }
 
-    var batteryColor: Color {
+    private var batteryColor: Color {
         if isInLowPowerMode {
             .yellow
-        } else if isCharging || isPluggedIn {
+        } else if isPowerConnected {
             .green
-        } else if levelBattery < 10 {
+        } else if levelBattery <= 10 {
             .red
-        } else if levelBattery < 20 {
+        } else if levelBattery <= 20 {
             .yellow
         } else {
             .green
@@ -37,36 +44,19 @@ struct BatteryView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            Image(systemName: icon)
+        ZStack {
+            Image(systemName: batterySymbol)
                 .resizable()
-                .fontWeight(.thin)
                 .aspectRatio(contentMode: .fit)
-                .foregroundColor(.white.opacity(0.5))
-                .frame(
-                    width: batteryWidth + 1
-                )
+                .foregroundColor(batteryColor)
+                .frame(width: batteryWidth)
 
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(batteryColor)
-                .frame(
-                    width: CGFloat((CGFloat(CFloat(levelBattery)) / 100) * (batteryWidth - 6)),
-                    height: (batteryWidth - 2.75) - 18
-                )
-                .padding(.leading, 2)
-
-            if iconStatus != "" {
-                ZStack {
-                    Image(iconStatus)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .foregroundColor(.white)
-                        .frame(
-                            width: 17,
-                            height: 17
-                        )
-                }
-                .frame(width: batteryWidth, height: batteryWidth)
+            if isPowerConnected {
+                Image(systemName: "bolt.fill")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .foregroundColor(.white)
+                    .frame(width: batteryWidth * 0.34, height: batteryWidth * 0.34)
             }
         }
     }
