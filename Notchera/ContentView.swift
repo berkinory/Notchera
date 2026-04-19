@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Defaults
 import KeyboardShortcuts
@@ -66,6 +67,18 @@ struct ContentView: View {
         }
 
         return Defaults[.minimumHoverDuration] > 0.01
+    }
+
+    private var availableTabs: [TabModel] {
+        guard Defaults[.notchShelf], coordinator.alwaysShowTabs || !ShelfStateViewModel.shared.isEmpty else {
+            return tabs.filter { $0.view == .home }
+        }
+
+        return tabs
+    }
+
+    private var trackpadTabSwitchEnabled: Bool {
+        vm.notchState == .open && Defaults[.trackpadTabSwitch] && availableTabs.count > 1
     }
 
     var body: some View {
@@ -192,6 +205,13 @@ struct ContentView: View {
         .forceArrowCursor()
         .preferredColorScheme(.dark)
         .environmentObject(vm)
+        .overlay {
+            TrackpadTabSwitchRegion(
+                isEnabled: trackpadTabSwitchEnabled,
+                shouldHandle: isPointerWithinExpandedNotchBounds,
+                onHorizontalSwipe: handleTrackpadTabSwitch
+            )
+        }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
@@ -409,6 +429,45 @@ struct ContentView: View {
         return region.contains(normalizedPoint)
     }
 
+    private func isPointerWithinExpandedNotchBounds() -> Bool {
+        guard vm.notchState == .open,
+              let screenFrame = getScreenFrame(coordinator.selectedScreenUUID)
+        else {
+            return false
+        }
+
+        let mouse = NSEvent.mouseLocation
+        let normalizedPoint = CGPoint(
+            x: mouse.x,
+            y: min(mouse.y, screenFrame.maxY - 1)
+        )
+
+        let region = CGRect(
+            x: screenFrame.midX - (vm.notchSize.width / 2),
+            y: screenFrame.maxY - vm.notchSize.height,
+            width: vm.notchSize.width,
+            height: vm.notchSize.height
+        )
+
+        return region.contains(normalizedPoint)
+    }
+
+    private func handleTrackpadTabSwitch(_ horizontalDelta: CGFloat) {
+        guard horizontalDelta != 0,
+              availableTabs.count > 1,
+              let currentIndex = availableTabs.firstIndex(where: { $0.view == coordinator.currentView })
+        else {
+            return
+        }
+
+        let step = horizontalDelta > 0 ? -1 : 1
+        let nextIndex = (currentIndex + step + availableTabs.count) % availableTabs.count
+
+        withAnimation(.smooth) {
+            coordinator.currentView = availableTabs[nextIndex].view
+        }
+    }
+
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch { return }
         hoverTask?.cancel()
@@ -548,6 +607,164 @@ struct GeneralDropTargetDelegate: DropDelegate {
 
     func performDrop(info _: DropInfo) -> Bool {
         false
+    }
+}
+
+private struct TrackpadTabSwitchRegion: NSViewRepresentable {
+    let isEnabled: Bool
+    let shouldHandle: () -> Bool
+    let onHorizontalSwipe: (CGFloat) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(
+            isEnabled: isEnabled,
+            shouldHandle: shouldHandle,
+            onHorizontalSwipe: onHorizontalSwipe
+        )
+    }
+
+    func makeNSView(context: Context) -> MonitorHostView {
+        let view = MonitorHostView()
+        view.coordinator = context.coordinator
+        context.coordinator.start()
+        return view
+    }
+
+    func updateNSView(_ nsView: MonitorHostView, context: Context) {
+        context.coordinator.isEnabled = isEnabled
+        context.coordinator.shouldHandle = shouldHandle
+        context.coordinator.onHorizontalSwipe = onHorizontalSwipe
+    }
+
+    static func dismantleNSView(_ nsView: MonitorHostView, coordinator: Coordinator) {
+        coordinator.stop()
+    }
+}
+
+private final class MonitorHostView: NSView {
+    weak var coordinator: TrackpadTabSwitchRegion.Coordinator?
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+}
+
+extension TrackpadTabSwitchRegion {
+    final class Coordinator {
+        var isEnabled: Bool
+        var shouldHandle: () -> Bool
+        var onHorizontalSwipe: (CGFloat) -> Void
+
+        private var monitor: Any?
+        private var accumulatedHorizontalDelta: CGFloat = 0
+        private var didTriggerForCurrentGesture = false
+        private var fallbackResetWorkItem: DispatchWorkItem?
+
+        private let swipeThreshold: CGFloat = 42
+        private let horizontalDominanceRatio: CGFloat = 1.15
+        private let fallbackResetDelay: TimeInterval = 0.45
+
+        init(
+            isEnabled: Bool,
+            shouldHandle: @escaping () -> Bool,
+            onHorizontalSwipe: @escaping (CGFloat) -> Void
+        ) {
+            self.isEnabled = isEnabled
+            self.shouldHandle = shouldHandle
+            self.onHorizontalSwipe = onHorizontalSwipe
+        }
+
+        func start() {
+            guard monitor == nil else { return }
+
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+                self?.handle(event) ?? event
+            }
+        }
+
+        func stop() {
+            fallbackResetWorkItem?.cancel()
+            fallbackResetWorkItem = nil
+
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+
+            resetGesture()
+        }
+
+        private func handle(_ event: NSEvent) -> NSEvent? {
+            guard isEnabled,
+                  event.hasPreciseScrollingDeltas,
+                  shouldHandle()
+            else {
+                resetGesture()
+                return event
+            }
+
+            if event.phase.contains(.began) {
+                resetGesture()
+            }
+
+            scheduleFallbackReset()
+
+            if didTriggerForCurrentGesture {
+                if isMomentumTerminal(event) || event.phase.contains(.cancelled) {
+                    resetGesture()
+                }
+
+                return nil
+            }
+
+            if isPhaseTerminalWithoutMomentum(event) {
+                resetGesture()
+                return event
+            }
+
+            let horizontalDelta = event.scrollingDeltaX
+            let verticalDelta = event.scrollingDeltaY
+
+            guard abs(horizontalDelta) > abs(verticalDelta) * horizontalDominanceRatio else {
+                return event
+            }
+
+            accumulatedHorizontalDelta += horizontalDelta
+
+            guard abs(accumulatedHorizontalDelta) >= swipeThreshold else {
+                return nil
+            }
+
+            didTriggerForCurrentGesture = true
+            onHorizontalSwipe(accumulatedHorizontalDelta)
+            return nil
+        }
+
+        private func scheduleFallbackReset() {
+            fallbackResetWorkItem?.cancel()
+
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.resetGesture()
+            }
+
+            fallbackResetWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + fallbackResetDelay, execute: workItem)
+        }
+
+        private func isMomentumTerminal(_ event: NSEvent) -> Bool {
+            event.momentumPhase.contains(.ended) || event.momentumPhase.contains(.cancelled)
+        }
+
+        private func isPhaseTerminalWithoutMomentum(_ event: NSEvent) -> Bool {
+            (event.phase.contains(.ended) || event.phase.contains(.cancelled)) && event.momentumPhase.isEmpty
+        }
+
+        private func resetGesture() {
+            fallbackResetWorkItem?.cancel()
+            fallbackResetWorkItem = nil
+            accumulatedHorizontalDelta = 0
+            didTriggerForCurrentGesture = false
+        }
     }
 }
 
