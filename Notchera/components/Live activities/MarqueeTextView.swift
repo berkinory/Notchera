@@ -28,7 +28,7 @@ struct MarqueeText: View {
     @State private var textSize: CGSize = .zero
     @State private var offset: CGFloat = 0
 
-    init(_ text: Binding<String>, font: Font = .body, nsFont: NSFont.TextStyle = .body, textColor: Color = .primary, backgroundColor: Color = .clear, minDuration: Double = 3.0, frameWidth: CGFloat = 200) {
+    init(_ text: Binding<String>, font: Font = .body, nsFont: NSFont.TextStyle = .body, textColor: Color = .primary, backgroundColor: Color = .clear, minDuration: Double = 1.5, frameWidth: CGFloat = 200) {
         _text = text
         self.font = font
         self.nsFont = nsFont
