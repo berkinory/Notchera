@@ -521,31 +521,7 @@ struct MusicCompactActivityView: View {
 
     var body: some View {
         HStack {
-            Image(nsImage: musicManager.albumArt)
-                .resizable()
-                .clipped()
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
-                        style: .continuous
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(
-                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
-                        style: .continuous
-                    )
-                    .fill(.white.opacity(musicManager.isFlipping ? 0.05 : 0))
-                }
-                .blur(radius: musicManager.isFlipping ? 2.2 : 0)
-                .saturation(musicManager.isFlipping ? 0.94 : 1)
-                .brightness(musicManager.isFlipping ? 0.015 : 0)
-                .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
-                .animation(.easeInOut(duration: 0.18), value: musicManager.isFlipping)
-                .frame(
-                    width: max(0, vm.effectiveClosedNotchHeight - 10),
-                    height: max(0, vm.effectiveClosedNotchHeight - 10)
-                )
+            compactAlbumArt
 
             Rectangle()
                 .fill(.black)
@@ -568,6 +544,39 @@ struct MusicCompactActivityView: View {
             )
         }
         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
+    }
+
+    private var compactAlbumArt: some View {
+        ZStack {
+            Image(nsImage: musicManager.albumArt)
+                .resizable()
+                .aspectRatio(1, contentMode: .fit)
+                .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
+                .clipped()
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
+                        style: .continuous
+                    )
+                )
+                .blur(radius: musicManager.isFlipping ? 2.2 : 0)
+                .saturation(musicManager.isFlipping ? 0.965 : 1)
+                .scaleEffect(musicManager.isFlipping ? 0.982 : 1)
+
+            RoundedRectangle(
+                cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
+                style: .continuous
+            )
+            .fill(.black)
+            .opacity(musicManager.isPlaying ? 0 : 0.45)
+            .blur(radius: 5)
+        }
+        .scaleEffect(musicManager.isPlaying ? 1 : 0.92)
+        .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.isFlipping)
+        .frame(
+            width: max(0, vm.effectiveClosedNotchHeight - 10),
+            height: max(0, vm.effectiveClosedNotchHeight - 10)
+        )
     }
 }
 
