@@ -81,6 +81,7 @@ final class MediaKeyInterceptor {
     func stop() {
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
+            CFMachPortInvalidate(eventTap)
         }
         if let runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
@@ -124,6 +125,10 @@ final class MediaKeyInterceptor {
             return Unmanaged.passRetained(cgEvent)
         }
 
+        guard shouldIntercept(keyType: keyType, command: command) else {
+            return Unmanaged.passRetained(cgEvent)
+        }
+
         handleKeyPress(keyType: keyType, command: command)
         return nil
     }
@@ -142,6 +147,19 @@ final class MediaKeyInterceptor {
                 duration: 1.0,
                 value: nextCapsLockState ? 1 : 0
             )
+        }
+    }
+
+    private func shouldIntercept(keyType: NXKeyType, command: Bool) -> Bool {
+        guard Defaults[.hudReplacement] else { return false }
+
+        switch keyType {
+        case .soundUp, .soundDown, .mute:
+            return Defaults[.showVolumeIndicator]
+        case .brightnessUp, .brightnessDown:
+            return command ? Defaults[.showBacklightIndicator] : Defaults[.showBrightnessIndicator]
+        case .keyboardBrightnessUp, .keyboardBrightnessDown:
+            return Defaults[.showBacklightIndicator]
         }
     }
 
