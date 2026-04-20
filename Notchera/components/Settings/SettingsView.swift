@@ -240,6 +240,7 @@ struct HUD: View {
     @Default(.showInputSourceIndicator) var showInputSourceIndicator
     @Default(.showFocusIndicator) var showFocusIndicator
     @Default(.showBluetoothAudioIndicator) var showBluetoothAudioIndicator
+    @Default(.animateBluetoothAudioIndicator) var animateBluetoothAudioIndicator
     @Default(.showPowerStatusNotifications) var showPowerStatusNotifications
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
@@ -324,6 +325,10 @@ struct HUD: View {
 
                 Defaults.Toggle(key: .showBluetoothAudioIndicator) {
                     Text("Show Bluetooth audio notifications")
+                }
+
+                Defaults.Toggle(key: .animateBluetoothAudioIndicator) {
+                    Text("Use animated Bluetooth icons")
                 }
 
                 Defaults.Toggle(key: .showPowerStatusNotifications) {

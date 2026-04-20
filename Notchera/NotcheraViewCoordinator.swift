@@ -398,7 +398,10 @@ class NotcheraViewCoordinator: ObservableObject {
         didSet {
             if expandingView.show {
                 expandingViewTask?.cancel()
-                let duration: TimeInterval = (expandingView.type == .download ? 2 : 3)
+                let duration: TimeInterval =
+                    expandingView.type == .download ? 1.5 :
+                    expandingView.type == .battery ? 2.5 :
+                    2.5
                 let currentType = expandingView.type
                 expandingViewTask = Task { [weak self] in
                     try? await Task.sleep(for: .seconds(duration))
@@ -1067,7 +1070,7 @@ private final class BluetoothAudioMonitor: NSObject {
         NotcheraViewCoordinator.shared.toggleHUD(
             status: true,
             type: .bluetoothAudio,
-            duration: 1.5,
+            duration: 2.5,
             value: 1,
             icon: presentation.symbol,
             label: presentation.title

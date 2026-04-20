@@ -1,4 +1,60 @@
+import AVFoundation
+import Defaults
 import SwiftUI
+
+private final class BluetoothLoopingPlayerController {
+    private let playbackRate: Float = 1.25
+
+    let player: AVQueuePlayer
+    private var looper: AVPlayerLooper?
+
+    init(url: URL) {
+        let item = AVPlayerItem(url: url)
+        player = AVQueuePlayer()
+        player.isMuted = true
+        player.actionAtItemEnd = .none
+        looper = AVPlayerLooper(player: player, templateItem: item)
+        player.playImmediately(atRate: playbackRate)
+    }
+
+    deinit {
+        player.pause()
+        looper = nil
+    }
+}
+
+private struct BluetoothLoopingVideoIcon: NSViewRepresentable {
+    let url: URL
+    let size: CGSize
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: NSRect(origin: .zero, size: size))
+        view.wantsLayer = true
+
+        let playerLayer = AVPlayerLayer()
+        playerLayer.videoGravity = .resizeAspect
+        playerLayer.frame = view.bounds
+        view.layer?.addSublayer(playerLayer)
+
+        context.coordinator.attach(playerLayer: playerLayer, url: url)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator {
+        private var controller: BluetoothLoopingPlayerController?
+
+        func attach(playerLayer: AVPlayerLayer, url: URL) {
+            controller = BluetoothLoopingPlayerController(url: url)
+            playerLayer.player = controller?.player
+        }
+    }
+}
 
 struct WingHUDView: View {
     private static let displayValues = (0 ... 100).map(String.init)
@@ -8,6 +64,7 @@ struct WingHUDView: View {
     @Binding var value: CGFloat
     @Binding var icon: String
     @Binding var label: String
+    @Default(.animateBluetoothAudioIndicator) var animateBluetoothAudioIndicator
     let showsPercentage: Bool
     let isOpen: Bool
     let batteryStatusText: String?
@@ -175,7 +232,11 @@ struct WingHUDView: View {
         case .focus:
             Image(systemName: icon.isEmpty ? "moon.fill" : icon)
         case .bluetoothAudio:
-            Image(systemName: icon.isEmpty ? "bluetooth" : icon)
+            if let bluetoothAnimationURL {
+                BluetoothLoopingVideoIcon(url: bluetoothAnimationURL, size: CGSize(width: 18, height: 18))
+            } else {
+                Image(systemName: icon.isEmpty ? "bluetooth" : icon)
+            }
         case .recording:
             Image(systemName: "record.circle.fill")
                 .foregroundStyle(.red)
@@ -274,6 +335,37 @@ struct WingHUDView: View {
             .green
         default:
             .gray
+        }
+    }
+
+    private var bluetoothAnimationURL: URL? {
+        guard type == .bluetoothAudio,
+              animateBluetoothAudioIndicator,
+              let assetBaseName = bluetoothAnimationAssetBaseName else {
+            return nil
+        }
+
+        return Bundle.main.url(
+            forResource: assetBaseName,
+            withExtension: "mov",
+            subdirectory: "BluetoothHUDAnimations"
+        ) ?? Bundle.main.url(forResource: assetBaseName, withExtension: "mov")
+    }
+
+    private var bluetoothAnimationAssetBaseName: String? {
+        switch icon {
+        case "airpods":
+            "airpods"
+        case "airpods.gen3":
+            "airpodsGen3"
+        case "airpods.gen4":
+            "airpodsGen4"
+        case "airpods.pro":
+            "airpodsPro"
+        case "airpods.max":
+            "airpodsMax"
+        default:
+            nil
         }
     }
 
