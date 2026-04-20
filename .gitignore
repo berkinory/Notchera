@@ -12,6 +12,7 @@
 *.xcuserdata
 *.xcodeproj/xcshareddata/WorkspaceSettings.xcsettings
 .derived-data
+.derived-data-claude
 # CocoaPods
 Pods/
 podfile.lock
@@ -30,7 +31,6 @@ DerivedData/
 build/
 *.app
 *.dSYM
-
 # Temporary files
 *.swp
 *.swo
