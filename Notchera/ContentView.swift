@@ -337,11 +337,15 @@ struct ContentView: View {
                     case .home:
                         NotchHomeView(albumArtNamespace: albumArtNamespace)
                             .transition(.opacity)
+                    case .calendar:
+                        CalendarTabView()
+                            .transition(.opacity)
                     case .shelf:
                         ShelfView()
                             .transition(.opacity)
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .id(coordinator.currentView)
                 .transition(
                     .asymmetric(

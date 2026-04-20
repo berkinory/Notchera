@@ -19,6 +19,7 @@ public enum NotchState {
 
 public enum NotchViews: String {
     case home
+    case calendar
     case shelf
 }
 
