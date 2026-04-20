@@ -110,6 +110,20 @@ struct ShelfView: View {
                             .padding(.horizontal, 2)
 
                             Spacer(minLength: 0)
+
+                            if selection.hasSelection {
+                                Button("Remove") {
+                                    let selectedItems = selection.selectedItems(in: tvm.items)
+                                    for item in selectedItems {
+                                        ShelfActionService.remove(item)
+                                    }
+                                    selection.clear()
+                                }
+                                .buttonStyle(.plain)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.red)
+                                .padding(.horizontal, 2)
+                            }
                         }
                         .frame(height: 14)
 
