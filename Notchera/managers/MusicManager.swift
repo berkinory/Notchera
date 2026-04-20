@@ -66,7 +66,14 @@ class MusicManager: ObservableObject {
     private var lastArtworkBundleIdentifier: String?
 
     @Published var isFlipping: Bool = false
-    private var flipWorkItem: DispatchWorkItem?
+    @Published private(set) var flipProgress: Double = 0
+    @Published private(set) var flipSourceAlbumArt: NSImage = defaultImage
+    @Published private(set) var pendingAlbumArt: NSImage?
+    @Published private(set) var compactAlbumArt: NSImage = defaultImage
+    @Published private(set) var compactIsFlipping: Bool = false
+    private var flipTask: Task<Void, Never>?
+    private var compactFlipWorkItem: DispatchWorkItem?
+    private var compactSwapWorkItem: DispatchWorkItem?
 
     @Published var isTransitioning: Bool = false
     private var transitionWorkItem: DispatchWorkItem?
@@ -100,7 +107,9 @@ class MusicManager: ObservableObject {
         artworkFallbackTask?.cancel()
         cancellables.removeAll()
         controllerCancellables.removeAll()
-        flipWorkItem?.cancel()
+        flipTask?.cancel()
+        compactFlipWorkItem?.cancel()
+        compactSwapWorkItem?.cancel()
         transitionWorkItem?.cancel()
 
         activeController = nil
@@ -159,7 +168,8 @@ class MusicManager: ObservableObject {
     }
 
     private func setActiveController(_ controller: any MediaControllerProtocol) {
-        flipWorkItem?.cancel()
+        flipTask?.cancel()
+        resetFlipState(to: albumArt)
 
         activeController = controller
 
@@ -196,7 +206,6 @@ class MusicManager: ObservableObject {
         if hasContentChange {
             if artworkChanged, let artwork = state.artwork {
                 artworkFallbackTask?.cancel()
-                triggerFlipAnimation()
                 updateArtwork(artwork)
                 artworkData = artwork
             } else if state.artwork == nil {
@@ -551,18 +560,92 @@ class MusicManager: ObservableObject {
         return syncedLyrics[idx].text
     }
 
-    private func triggerFlipAnimation() {
-        flipWorkItem?.cancel()
+    private let albumArtFlipDuration = 0.56
+    private let albumArtFlipSwapThreshold = 0.68
 
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.isFlipping = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self?.isFlipping = false
-            }
+    private var albumArtFlipAnimation: Animation {
+        .linear(duration: albumArtFlipDuration)
+    }
+
+    private var visibleAlbumArt: NSImage {
+        guard isFlipping else { return albumArt }
+        guard flipProgress >= albumArtFlipSwapThreshold else { return flipSourceAlbumArt }
+        return pendingAlbumArt ?? albumArt
+    }
+
+    private func resetFlipState(to image: NSImage? = nil) {
+        let resolvedImage = image ?? visibleAlbumArt
+        albumArt = resolvedImage
+        flipSourceAlbumArt = resolvedImage
+        pendingAlbumArt = nil
+        flipProgress = 0
+        isFlipping = false
+    }
+
+    private func triggerCompactFlipAnimation(to newAlbumArt: NSImage) {
+        compactFlipWorkItem?.cancel()
+        compactSwapWorkItem?.cancel()
+        compactIsFlipping = false
+
+        guard compactAlbumArt !== defaultImage else {
+            compactAlbumArt = newAlbumArt
+            return
         }
 
-        flipWorkItem = workItem
-        DispatchQueue.main.async(execute: workItem)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            self.compactIsFlipping = true
+
+            let swapWorkItem = DispatchWorkItem { [weak self] in
+                self?.compactAlbumArt = newAlbumArt
+            }
+
+            let finishWorkItem = DispatchWorkItem { [weak self] in
+                self?.compactIsFlipping = false
+            }
+
+            self.compactSwapWorkItem = swapWorkItem
+            self.compactFlipWorkItem = finishWorkItem
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: swapWorkItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: finishWorkItem)
+        }
+    }
+
+    private func animateAlbumArtFlip(to newAlbumArt: NSImage) {
+        flipTask?.cancel()
+
+        let sourceAlbumArt = visibleAlbumArt
+        resetFlipState(to: sourceAlbumArt)
+
+        guard sourceAlbumArt !== defaultImage else {
+            updateAlbumArt(newAlbumArt: newAlbumArt)
+            return
+        }
+
+        flipSourceAlbumArt = sourceAlbumArt
+        pendingAlbumArt = newAlbumArt
+        triggerCompactFlipAnimation(to: newAlbumArt)
+        isFlipping = true
+
+        flipTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            withAnimation(self.albumArtFlipAnimation) {
+                self.flipProgress = 1
+            }
+
+            try? await Task.sleep(for: .milliseconds(Int(self.albumArtFlipDuration * 1000)))
+            guard !Task.isCancelled else { return }
+
+            self.albumArt = newAlbumArt
+            self.calculateAverageColor(for: newAlbumArt)
+            self.pendingAlbumArt = nil
+            self.flipSourceAlbumArt = self.albumArt
+            self.flipProgress = 0
+            self.isFlipping = false
+        }
     }
 
     private func scheduleArtworkFallback(for trackIdentifier: String) {
@@ -587,7 +670,7 @@ class MusicManager: ObservableObject {
             if let artworkImage = NSImage(data: artworkData) {
                 DispatchQueue.main.async { [weak self] in
                     self?.usingAppIconForArtwork = false
-                    self?.updateAlbumArt(newAlbumArt: artworkImage)
+                    self?.animateAlbumArtFlip(to: artworkImage)
                 }
             }
         }
@@ -613,9 +696,15 @@ class MusicManager: ObservableObject {
 
     func updateAlbumArt(newAlbumArt: NSImage) {
         workItem?.cancel()
+        flipTask?.cancel()
+        compactFlipWorkItem?.cancel()
+        compactSwapWorkItem?.cancel()
+        compactAlbumArt = newAlbumArt
+        compactIsFlipping = false
+        resetFlipState(to: newAlbumArt)
         withAnimation(.smooth) {
             self.albumArt = newAlbumArt
-            self.calculateAverageColor()
+            self.calculateAverageColor(for: newAlbumArt)
         }
     }
 
@@ -627,8 +716,10 @@ class MusicManager: ObservableObject {
         return min(max(0, estimated), songDuration)
     }
 
-    func calculateAverageColor() {
-        albumArt.averageColor { [weak self] color in
+    func calculateAverageColor(for image: NSImage? = nil) {
+        let targetImage = image ?? albumArt
+
+        targetImage.averageColor { [weak self] color in
             DispatchQueue.main.async {
                 withAnimation(.smooth) {
                     self?.avgColor = color ?? .white

@@ -38,6 +38,154 @@ struct MusicPlayerView: View {
     }
 }
 
+struct FlippingAlbumArtCard: View {
+    @ObservedObject private var musicManager = MusicManager.shared
+    let albumArtNamespace: Namespace.ID
+    let cornerRadius: CGFloat
+
+    private let artworkRevealProgressThreshold = 0.68
+
+    private var flipProgress: Double {
+        musicManager.isFlipping ? musicManager.flipProgress : 0
+    }
+
+    private var phaseProgress: Double {
+        remappedPhase(for: flipProgress)
+    }
+
+    private var edgeOnProgress: Double {
+        max(0, 1 - abs((phaseProgress * 2) - 1))
+    }
+
+    private var flipAngle: Double {
+        -180 * phaseProgress
+    }
+
+    private var displayedAlbumArt: NSImage {
+        guard musicManager.isFlipping else { return musicManager.albumArt }
+        guard flipProgress >= artworkRevealProgressThreshold else { return musicManager.flipSourceAlbumArt }
+        return targetAlbumArt
+    }
+
+    private var targetAlbumArt: NSImage {
+        musicManager.pendingAlbumArt ?? musicManager.albumArt
+    }
+
+    private var imageFaceRotation: Double {
+        flipProgress >= artworkRevealProgressThreshold ? 180 : 0
+    }
+
+    private var imageOpacity: Double {
+        guard musicManager.isFlipping else { return 1 }
+
+        if flipProgress < artworkRevealProgressThreshold {
+            return 1 - smoothStep(phaseProgress, start: 0.46, end: 0.5)
+        }
+
+        return smoothStep(flipProgress, start: artworkRevealProgressThreshold, end: 0.8)
+    }
+
+    private var blurRadius: CGFloat {
+        guard musicManager.isFlipping else { return 0 }
+
+        let blurProgress = pow(sin(.pi * flipProgress), 0.72)
+        return 1.1 + (blurProgress * 11.4)
+    }
+
+    private var darkeningOpacity: Double {
+        0.018 + (edgeOnProgress * 0.18)
+    }
+
+    private var borderOpacity: Double {
+        0.01 + (edgeOnProgress * 0.085)
+    }
+
+    private var highlightOpacity: Double {
+        0.015 + (edgeOnProgress * 0.12)
+    }
+
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
+    var body: some View {
+        ZStack {
+            Image(nsImage: displayedAlbumArt)
+                .resizable()
+                .aspectRatio(1, contentMode: .fill)
+                .rotation3DEffect(
+                    .degrees(imageFaceRotation),
+                    axis: (x: 0, y: 1, z: 0),
+                    anchor: .center,
+                    perspective: 0
+                )
+                .opacity(imageOpacity)
+                .blur(radius: blurRadius)
+                .saturation(1 - (edgeOnProgress * 0.08))
+                .contrast(1 - (edgeOnProgress * 0.045))
+                .brightness(edgeOnProgress * 0.012)
+
+            cardShape
+                .fill(.black.opacity(darkeningOpacity))
+
+            cardShape
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(highlightOpacity),
+                            .white.opacity(highlightOpacity * 0.28),
+                            .clear,
+                            .black.opacity(edgeOnProgress * 0.08)
+                        ],
+                        startPoint: phaseProgress < 0.5 ? .topLeading : .topTrailing,
+                        endPoint: phaseProgress < 0.5 ? .bottomTrailing : .bottomLeading
+                    )
+                )
+        }
+        .clipShape(cardShape, style: FillStyle(antialiased: true))
+        .overlay {
+            cardShape
+                .strokeBorder(.white.opacity(borderOpacity), lineWidth: 0.7, antialiased: true)
+        }
+        .compositingGroup()
+        .drawingGroup(opaque: false, colorMode: .linear)
+        .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
+        .rotation3DEffect(
+            .degrees(flipAngle),
+            axis: (x: 0, y: 1, z: 0),
+            anchor: .center,
+            perspective: 0.12
+        )
+        .shadow(
+            color: .black.opacity(0.1 + (edgeOnProgress * 0.08)),
+            radius: 10 + (edgeOnProgress * 4),
+            y: 2 + (edgeOnProgress * 2)
+        )
+    }
+
+    private func remappedPhase(for progress: Double) -> Double {
+        switch progress {
+        case ..<0.24:
+            return interpolate(0, 0.14, smoothStep(progress, start: 0, end: 0.24))
+        case ..<0.52:
+            return interpolate(0.14, 0.52, smoothStep(progress, start: 0.24, end: 0.52))
+        case ..<0.72:
+            return interpolate(0.52, 0.88, smoothStep(progress, start: 0.52, end: 0.72))
+        default:
+            return interpolate(0.88, 1, smoothStep(progress, start: 0.72, end: 1))
+        }
+    }
+
+    private func smoothStep(_ value: Double, start: Double, end: Double) -> Double {
+        let progress = min(max((value - start) / (end - start), 0), 1)
+        return progress * progress * (3 - (2 * progress))
+    }
+
+    private func interpolate(_ start: Double, _ end: Double, _ progress: Double) -> Double {
+        start + ((end - start) * progress)
+    }
+}
+
 struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
     let albumArtNamespace: Namespace.ID
@@ -63,60 +211,21 @@ struct AlbumArtView: View {
     }
 
     private var albumArtDarkOverlay: some View {
-        Rectangle()
-            .aspectRatio(1, contentMode: .fit)
-            .foregroundColor(Color.black)
-            .opacity(musicManager.isPlaying ? 0 : 0.45)
-            .blur(radius: 5)
+        RoundedRectangle(
+            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
+            style: .continuous
+        )
+        .fill(.black)
+        .aspectRatio(1, contentMode: .fit)
+        .opacity(musicManager.isPlaying ? 0 : 0.45)
+        .blur(radius: 5)
     }
 
     private var albumArtImage: some View {
-        Image(nsImage: musicManager.albumArt)
-            .resizable()
-            .aspectRatio(1, contentMode: .fit)
-            .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
-            .clipped()
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
-                    style: .continuous
-                )
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(musicManager.isFlipping ? 0.06 : 0),
-                            .white.opacity(musicManager.isFlipping ? 0.018 : 0),
-                            .black.opacity(musicManager.isFlipping ? 0.025 : 0)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            }
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
-                    style: .continuous
-                )
-                .strokeBorder(.white.opacity(musicManager.isFlipping ? 0.08 : 0), lineWidth: 0.7)
-            }
-            .blur(radius: musicManager.isFlipping ? 2.2 : 0)
-            .saturation(musicManager.isFlipping ? 0.965 : 1)
-            .contrast(musicManager.isFlipping ? 0.985 : 1)
-            .brightness(musicManager.isFlipping ? 0.012 : 0)
-            .scaleEffect(musicManager.isFlipping ? 0.982 : 1)
-            .shadow(
-                color: .black.opacity(musicManager.isFlipping ? 0.16 : 0.1),
-                radius: musicManager.isFlipping ? 14 : 10,
-                y: musicManager.isFlipping ? 4 : 2
-            )
-            .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.isFlipping)
+        FlippingAlbumArtCard(
+            albumArtNamespace: albumArtNamespace,
+            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened
+        )
     }
 }
 
@@ -187,30 +296,62 @@ struct MusicControlsView: View {
     }
 
     private func titleView(width: CGFloat) -> some View {
-        MarqueeText(
-            $musicManager.songTitle,
-            font: .headline,
-            nsFont: .headline,
-            textColor: .white,
-            frameWidth: width
-        )
-        .fontWeight(.medium)
+        ZStack(alignment: .leading) {
+            MarqueeText(
+                $musicManager.songTitle,
+                font: .headline,
+                nsFont: .headline,
+                textColor: .white,
+                frameWidth: width
+            )
+            .id(musicManager.songTitle)
+            .fontWeight(.medium)
+            .contentTransition(.interpolate)
+            .transition(
+                .asymmetric(
+                    insertion: .offset(y: 4)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.985, anchor: .leading)),
+                    removal: .offset(y: -4)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.985, anchor: .leading))
+                )
+            )
+        }
+        .clipped()
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.songTitle)
         .alignmentGuide(.musicTitleRow) { dimensions in
             dimensions[VerticalAlignment.center]
         }
     }
 
     private func artistView(width: CGFloat) -> some View {
-        MarqueeText(
-            $musicManager.artistName,
-            font: .headline,
-            nsFont: .headline,
-            textColor: matchAlbumArtColor
-                ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
-                : .gray,
-            frameWidth: width
-        )
-        .fontWeight(.regular)
+        ZStack(alignment: .leading) {
+            MarqueeText(
+                $musicManager.artistName,
+                font: .headline,
+                nsFont: .headline,
+                textColor: matchAlbumArtColor
+                    ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
+                    : .gray,
+                frameWidth: width
+            )
+            .id(musicManager.artistName)
+            .fontWeight(.regular)
+            .contentTransition(.interpolate)
+            .transition(
+                .asymmetric(
+                    insertion: .offset(y: 3)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.988, anchor: .leading)),
+                    removal: .offset(y: -3)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.988, anchor: .leading))
+                )
+            )
+        }
+        .clipped()
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.artistName)
     }
 
     private func syncedLyricLineView(width: CGFloat, currentDate: Date) -> some View {

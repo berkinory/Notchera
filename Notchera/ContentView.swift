@@ -548,7 +548,7 @@ struct MusicCompactActivityView: View {
 
     private var compactAlbumArt: some View {
         ZStack {
-            Image(nsImage: musicManager.albumArt)
+            Image(nsImage: musicManager.compactAlbumArt)
                 .resizable()
                 .aspectRatio(1, contentMode: .fit)
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
@@ -559,9 +559,9 @@ struct MusicCompactActivityView: View {
                         style: .continuous
                     )
                 )
-                .blur(radius: musicManager.isFlipping ? 2.2 : 0)
-                .saturation(musicManager.isFlipping ? 0.965 : 1)
-                .scaleEffect(musicManager.isFlipping ? 0.982 : 1)
+                .blur(radius: musicManager.compactIsFlipping ? 2.2 : 0)
+                .saturation(musicManager.compactIsFlipping ? 0.965 : 1)
+                .scaleEffect(musicManager.compactIsFlipping ? 0.982 : 1)
 
             RoundedRectangle(
                 cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
@@ -572,7 +572,7 @@ struct MusicCompactActivityView: View {
             .blur(radius: 5)
         }
         .scaleEffect(musicManager.isPlaying ? 1 : 0.92)
-        .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.isFlipping)
+        .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.compactIsFlipping)
         .frame(
             width: max(0, vm.effectiveClosedNotchHeight - 10),
             height: max(0, vm.effectiveClosedNotchHeight - 10)
