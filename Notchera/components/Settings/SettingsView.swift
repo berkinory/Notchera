@@ -40,6 +40,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Advanced") {
                     Label("Advanced", systemImage: "gearshape.2")
                 }
+                NavigationLink(value: "AI Usage") {
+                    Label("AI Usage", systemImage: "brain")
+                }
                 NavigationLink(value: "About") {
                     Label("About", systemImage: "info.circle")
                 }
@@ -68,6 +71,8 @@ struct SettingsView: View {
                     GeneralSettings()
                 case "Advanced":
                     Advanced()
+                case "AI Usage":
+                    AIUsageSettings()
                 case "About":
                     if let controller = updaterController {
                         About(updaterController: controller)
@@ -762,6 +767,885 @@ func warningBadge(_ text: String, _ description: String) -> some View {
             Spacer()
         }
     }
+}
+
+struct AIUsageSettings: View {
+    @StateObject private var store = AIUsageStore.shared
+    @State private var showingAddSheet = false
+
+    var body: some View {
+        List {
+            Section {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "brain")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Track Codex usage windows across multiple accounts.")
+                            .font(.headline)
+                        Text("Notchera stores the minimum credential set locally and refreshes usage automatically when cached data becomes stale.")
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                }
+            }
+
+            if store.accounts.isEmpty {
+                Section {
+                    ContentUnavailableView(
+                        "No accounts yet",
+                        systemImage: "person.crop.circle.badge.plus",
+                        description: Text("Add a Codex account to see its 5h and weekly usage windows.")
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
+            } else {
+                Section {
+                    ForEach(store.accounts) { account in
+                        AIUsageAccountRow(account: account)
+                            .swipeActions(edge: .trailing) {
+                                Button("Delete", role: .destructive) {
+                                    store.removeAccount(id: account.id)
+                                }
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    store.removeAccount(id: account.id)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                } header: {
+                    Text("Accounts")
+                }
+            }
+        }
+        .navigationTitle("AI Usage")
+        .toolbar {
+            Button {
+                showingAddSheet = true
+            } label: {
+                Label("Add Account", systemImage: "plus")
+            }
+        }
+        .sheet(isPresented: $showingAddSheet) {
+            AddAIUsageAccountSheet()
+        }
+        .task {
+            await store.refreshIfNeeded(force: false)
+        }
+    }
+}
+
+private struct AIUsageAccountRow: View {
+    let account: AIUsageAccount
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(account.alias)
+                        .font(.headline)
+                    Text(account.provider.displayName)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if let snapshot = account.snapshot {
+                    Text("Updated \(snapshot.fetchedAt.formatted(date: .omitted, time: .shortened))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if account.isRefreshing {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+
+            if let snapshot = account.snapshot {
+                VStack(alignment: .leading, spacing: 10) {
+                    AIUsageWindowRow(
+                        title: "5h window",
+                        usedPercent: snapshot.fiveHour.usedPercent,
+                        remainingPercent: snapshot.fiveHour.remainingPercent,
+                        resetAt: snapshot.fiveHour.resetAt
+                    )
+                    AIUsageWindowRow(
+                        title: "Weekly window",
+                        usedPercent: snapshot.weekly.usedPercent,
+                        remainingPercent: snapshot.weekly.remainingPercent,
+                        resetAt: snapshot.weekly.resetAt
+                    )
+                }
+            } else if let lastError = account.lastError, !lastError.isEmpty {
+                Text(lastError)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(account.isRefreshing ? "Refreshing usage…" : "Usage not available yet")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct AIUsageWindowRow: View {
+    let title: String
+    let usedPercent: Double
+    let remainingPercent: Double
+    let resetAt: Date?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                Spacer()
+                Text("used \(usedPercent.formattedPercent) · left \(remainingPercent.formattedPercent)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 12) {
+                ProgressView(value: usedPercent, total: 100)
+                    .progressViewStyle(.linear)
+                Text(resetText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 140, alignment: .trailing)
+            }
+        }
+    }
+
+    private var resetText: String {
+        guard let resetAt else {
+            return "reset unknown"
+        }
+
+        return "resets \(resetAt.formatted(date: .abbreviated, time: .shortened))"
+    }
+}
+
+private struct AddAIUsageAccountSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var store = AIUsageStore.shared
+    @StateObject private var loginSession = CodexLoginSession()
+    @State private var alias = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Add Codex Account")
+                .font(.title2.weight(.semibold))
+
+            TextField("Alias", text: $alias)
+                .textFieldStyle(.roundedBorder)
+
+            if let deviceCode = loginSession.deviceCode {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Open the verification page and enter this one-time code.")
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Verification code")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(deviceCode.userCode)
+                                .font(.system(.title3, design: .monospaced).weight(.semibold))
+                                .textSelection(.enabled)
+                        }
+                        Spacer()
+                        Button("Open Login Page") {
+                            NSWorkspace.shared.open(deviceCode.verificationURL)
+                        }
+                    }
+
+                    Text(deviceCode.verificationURL.absoluteString)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                        .foregroundStyle(.secondary)
+
+                    Text("Waiting for approval in your browser…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Sign in with your ChatGPT account.", systemImage: "person.crop.circle.badge.checkmark")
+                    Label("No API key required.", systemImage: "key.slash")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+
+            if let errorMessage = loginSession.errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    loginSession.cancel()
+                    dismiss()
+                }
+                Button(loginSession.deviceCode == nil ? "Connect" : "Finish") {
+                    Task {
+                        if loginSession.deviceCode == nil {
+                            await startLogin()
+                        } else {
+                            await finishLogin()
+                        }
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || loginSession.isBusy)
+            }
+        }
+        .padding(20)
+        .frame(width: 520)
+        .overlay(alignment: .topTrailing) {
+            if loginSession.isBusy {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(16)
+            }
+        }
+    }
+
+    @MainActor
+    private func startLogin() async {
+        do {
+            try await loginSession.start()
+        } catch {
+            loginSession.errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func finishLogin() async {
+        do {
+            let credentials = try await loginSession.complete()
+            await store.addAccount(alias: alias.trimmingCharacters(in: .whitespacesAndNewlines), credentials: credentials)
+            dismiss()
+        } catch {
+            loginSession.errorMessage = error.localizedDescription
+        }
+    }
+}
+
+private enum AIUsageProvider: String, Codable, CaseIterable {
+    case codex
+
+    var displayName: String {
+        switch self {
+        case .codex:
+            return "Codex"
+        }
+    }
+}
+
+private struct AIUsageCredentials: Codable {
+    var accessToken: String
+    var refreshToken: String
+    var expiresAt: Date
+    var accountId: String
+}
+
+private struct AIUsageWindowSnapshot: Codable {
+    var usedPercent: Double
+    var remainingPercent: Double
+    var resetAt: Date?
+}
+
+private struct AIUsageSnapshot: Codable {
+    var fiveHour: AIUsageWindowSnapshot
+    var weekly: AIUsageWindowSnapshot
+    var fetchedAt: Date
+}
+
+private struct AIUsageAccount: Identifiable, Codable {
+    var id: UUID
+    var alias: String
+    var provider: AIUsageProvider
+    var credentials: AIUsageCredentials
+    var snapshot: AIUsageSnapshot?
+    var lastError: String?
+    var isRefreshing: Bool = false
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case alias
+        case provider
+        case credentials
+        case snapshot
+        case lastError
+    }
+}
+
+@MainActor
+private final class AIUsageStore: ObservableObject {
+    static let shared = AIUsageStore()
+
+    @Published private(set) var accounts: [AIUsageAccount] = []
+
+    private let service = CodexUsageService()
+    private let fileURL: URL
+    private let cacheTTL: TimeInterval = 5 * 60
+
+    private init() {
+        let baseDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("Notchera", isDirectory: true)
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        fileURL = baseDirectory.appendingPathComponent("ai-usage-accounts.json")
+        load()
+    }
+
+    func addAccount(alias: String, credentials: AIUsageCredentials) async {
+        let account = AIUsageAccount(
+            id: UUID(),
+            alias: alias,
+            provider: .codex,
+            credentials: credentials,
+            snapshot: nil,
+            lastError: nil
+        )
+        accounts.append(account)
+        save()
+        await refreshAccount(id: account.id, force: true)
+    }
+
+    func removeAccount(id: UUID) {
+        accounts.removeAll { $0.id == id }
+        save()
+    }
+
+    func refreshIfNeeded(force: Bool) async {
+        for account in accounts {
+            guard force || shouldRefresh(account) else {
+                continue
+            }
+            await refreshAccount(id: account.id, force: force)
+        }
+    }
+
+    private func shouldRefresh(_ account: AIUsageAccount) -> Bool {
+        guard let fetchedAt = account.snapshot?.fetchedAt else {
+            return true
+        }
+
+        return Date().timeIntervalSince(fetchedAt) >= cacheTTL
+    }
+
+    private func refreshAccount(id: UUID, force: Bool) async {
+        guard let index = accounts.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        if accounts[index].isRefreshing {
+            return
+        }
+
+        accounts[index].isRefreshing = true
+        accounts[index].lastError = nil
+
+        do {
+            let refreshed = try await service.refreshAccount(accounts[index], force: force)
+            accounts[index] = refreshed
+        } catch {
+            accounts[index].lastError = error.localizedDescription
+            accounts[index].isRefreshing = false
+        }
+
+        save()
+    }
+
+    private func load() {
+        do {
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                accounts = []
+                return
+            }
+
+            let data = try Data(contentsOf: fileURL)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            accounts = try decoder.decode([AIUsageAccount].self, from: data)
+        } catch {
+            accounts = []
+        }
+    }
+
+    private func save() {
+        do {
+            let directory = fileURL.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(accounts)
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            print("[AIUsageStore] Failed to save accounts: \(error)")
+        }
+    }
+}
+
+private actor CodexUsageService {
+    private let authClient = CodexAuthClient()
+    private let usageClient = CodexUsageClient()
+
+    func refreshAccount(_ account: AIUsageAccount, force _: Bool) async throws -> AIUsageAccount {
+        var refreshed = account
+        refreshed.credentials = try await authClient.ensureValidCredentials(account.credentials)
+        refreshed.snapshot = try await usageClient.fetchUsage(credentials: refreshed.credentials)
+        refreshed.lastError = nil
+        refreshed.isRefreshing = false
+        return refreshed
+    }
+}
+
+private actor CodexAuthClient {
+    private let tokenURL = URL(string: "https://auth.openai.com/oauth/token")!
+    private let clientID = "app_EMoamEEZ73f0CkXaXp7hrann"
+    private let expiryLeeway: TimeInterval = 5 * 60
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    func ensureValidCredentials(_ credentials: AIUsageCredentials) async throws -> AIUsageCredentials {
+        guard Date().addingTimeInterval(expiryLeeway) >= credentials.expiresAt else {
+            return credentials
+        }
+
+        var request = URLRequest(url: tokenURL)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = formURLEncodedData([
+            URLQueryItem(name: "grant_type", value: "refresh_token"),
+            URLQueryItem(name: "refresh_token", value: credentials.refreshToken),
+            URLQueryItem(name: "client_id", value: clientID),
+        ])
+
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+
+        let tokenResponse = try JSONDecoder().decode(CodexTokenResponse.self, from: data)
+        guard let accessToken = tokenResponse.accessToken,
+              let refreshToken = tokenResponse.refreshToken,
+              let expiresIn = tokenResponse.expiresIn
+        else {
+            throw AIUsageError.invalidTokenResponse
+        }
+
+        let accountId = try CodexJWTDecoder.accountID(from: accessToken)
+        return AIUsageCredentials(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiresAt: Date().addingTimeInterval(TimeInterval(expiresIn)),
+            accountId: accountId
+        )
+    }
+
+    private func validate(response: URLResponse, data: Data) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AIUsageError.invalidResponse
+        }
+
+        guard (200 ..< 300).contains(httpResponse.statusCode) else {
+            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw AIUsageError.requestFailed(message)
+        }
+    }
+}
+
+private actor CodexUsageClient {
+    private let usageURL = URL(string: "https://chatgpt.com/backend-api/wham/usage")!
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        let configuration = URLSessionConfiguration.default
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
+        configuration.timeoutIntervalForRequest = 10
+        configuration.timeoutIntervalForResource = 15
+        self.session = URLSession(configuration: configuration)
+    }
+
+    func fetchUsage(credentials: AIUsageCredentials) async throws -> AIUsageSnapshot {
+        var request = URLRequest(url: usageURL)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(credentials.accountId, forHTTPHeaderField: "ChatGPT-Account-Id")
+
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+
+        let usageResponse = try JSONDecoder().decode(CodexUsageResponse.self, from: data)
+        return usageResponse.snapshot
+    }
+
+    private func validate(response: URLResponse, data: Data) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AIUsageError.invalidResponse
+        }
+
+        guard (200 ..< 300).contains(httpResponse.statusCode) else {
+            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw AIUsageError.requestFailed(message)
+        }
+    }
+}
+
+private struct CodexUsageResponse: Decodable {
+    let rateLimit: CodexUsageRateLimit?
+
+    enum CodingKeys: String, CodingKey {
+        case rateLimit = "rate_limit"
+    }
+
+    var snapshot: AIUsageSnapshot {
+        AIUsageSnapshot(
+            fiveHour: rateLimit?.primaryWindow?.snapshot ?? .empty,
+            weekly: rateLimit?.secondaryWindow?.snapshot ?? .empty,
+            fetchedAt: Date()
+        )
+    }
+}
+
+private struct CodexUsageRateLimit: Decodable {
+    let primaryWindow: CodexUsageWindow?
+    let secondaryWindow: CodexUsageWindow?
+
+    enum CodingKeys: String, CodingKey {
+        case primaryWindow = "primary_window"
+        case secondaryWindow = "secondary_window"
+    }
+}
+
+private struct CodexUsageWindow: Decodable {
+    let usedPercent: Double?
+    let resetAt: TimeInterval?
+
+    enum CodingKeys: String, CodingKey {
+        case usedPercent = "used_percent"
+        case resetAt = "reset_at"
+    }
+
+    var snapshot: AIUsageWindowSnapshot {
+        let used = max(0, min(100, usedPercent ?? 0))
+        return AIUsageWindowSnapshot(
+            usedPercent: used,
+            remainingPercent: max(0, 100 - used),
+            resetAt: resetAt.map { Date(timeIntervalSince1970: $0) }
+        )
+    }
+}
+
+private struct CodexTokenResponse: Decodable {
+    let accessToken: String?
+    let refreshToken: String?
+    let expiresIn: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case refreshToken = "refresh_token"
+        case expiresIn = "expires_in"
+    }
+}
+
+private struct CodexDeviceCode {
+    var verificationURL: URL
+    var userCode: String
+    var deviceAuthID: String
+    var interval: TimeInterval
+}
+
+private struct CodexOAuthCredentials {
+    var accessToken: String
+    var refreshToken: String
+    var expiresAt: Date
+    var accountId: String
+}
+
+@MainActor
+private final class CodexLoginSession: ObservableObject {
+    @Published var errorMessage: String?
+    @Published var isBusy = false
+    @Published var deviceCode: CodexDeviceCode?
+
+    private let client = CodexDeviceAuthClient()
+
+    func start() async throws {
+        isBusy = true
+        errorMessage = nil
+        defer { isBusy = false }
+
+        let deviceCode = try await client.requestDeviceCode()
+        self.deviceCode = deviceCode
+        NSWorkspace.shared.open(deviceCode.verificationURL)
+    }
+
+    func complete() async throws -> AIUsageCredentials {
+        guard let deviceCode else {
+            throw AIUsageError.requestFailed("Login has not started yet")
+        }
+
+        isBusy = true
+        errorMessage = nil
+        defer { isBusy = false }
+
+        let credentials = try await client.completeLogin(deviceCode: deviceCode)
+        self.deviceCode = nil
+        return AIUsageCredentials(
+            accessToken: credentials.accessToken,
+            refreshToken: credentials.refreshToken,
+            expiresAt: credentials.expiresAt,
+            accountId: credentials.accountId
+        )
+    }
+
+    func cancel() {
+        deviceCode = nil
+    }
+}
+
+private actor CodexDeviceAuthClient {
+    private let clientID = "app_EMoamEEZ73f0CkXaXp7hrann"
+    private let issuer = URL(string: "https://auth.openai.com")!
+    private let tokenURL = URL(string: "https://auth.openai.com/oauth/token")!
+    private let redirectURL = URL(string: "https://auth.openai.com/deviceauth/callback")!
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    func requestDeviceCode() async throws -> CodexDeviceCode {
+        var request = URLRequest(url: issuer.appending(path: "/api/accounts/deviceauth/usercode"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(CodexDeviceCodeRequest(clientID: clientID))
+
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+
+        let payload = try JSONDecoder().decode(CodexDeviceCodeResponse.self, from: data)
+        return CodexDeviceCode(
+            verificationURL: issuer.appending(path: "/codex/device"),
+            userCode: payload.userCode,
+            deviceAuthID: payload.deviceAuthID,
+            interval: payload.interval
+        )
+    }
+
+    func completeLogin(deviceCode: CodexDeviceCode) async throws -> CodexOAuthCredentials {
+        let codeResponse = try await pollForAuthorizationCode(deviceCode: deviceCode)
+
+        var request = URLRequest(url: tokenURL)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = formURLEncodedData([
+            URLQueryItem(name: "grant_type", value: "authorization_code"),
+            URLQueryItem(name: "client_id", value: clientID),
+            URLQueryItem(name: "code", value: codeResponse.authorizationCode),
+            URLQueryItem(name: "code_verifier", value: codeResponse.codeVerifier),
+            URLQueryItem(name: "redirect_uri", value: redirectURL.absoluteString),
+        ])
+
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+
+        let tokenResponse = try JSONDecoder().decode(CodexTokenResponse.self, from: data)
+        guard let accessToken = tokenResponse.accessToken,
+              let refreshToken = tokenResponse.refreshToken,
+              let expiresIn = tokenResponse.expiresIn
+        else {
+            throw AIUsageError.invalidTokenResponse
+        }
+
+        let accountId = try CodexJWTDecoder.accountID(from: accessToken)
+        return CodexOAuthCredentials(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiresAt: Date().addingTimeInterval(TimeInterval(expiresIn)),
+            accountId: accountId
+        )
+    }
+
+    private func pollForAuthorizationCode(deviceCode: CodexDeviceCode) async throws -> CodexDeviceTokenPollSuccess {
+        let deadline = Date().addingTimeInterval(15 * 60)
+        let interval = max(1, deviceCode.interval)
+
+        while Date() < deadline {
+            var request = URLRequest(url: issuer.appending(path: "/api/accounts/deviceauth/token"))
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(
+                CodexDeviceTokenPollRequest(
+                    deviceAuthID: deviceCode.deviceAuthID,
+                    userCode: deviceCode.userCode
+                )
+            )
+
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AIUsageError.invalidResponse
+            }
+
+            switch httpResponse.statusCode {
+            case 200:
+                return try JSONDecoder().decode(CodexDeviceTokenPollSuccess.self, from: data)
+            case 404:
+                try await Task.sleep(for: .seconds(interval))
+            default:
+                let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw AIUsageError.requestFailed(message)
+            }
+        }
+
+        throw AIUsageError.requestFailed("Device login timed out")
+    }
+
+    private func validate(response: URLResponse, data: Data) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AIUsageError.invalidResponse
+        }
+
+        guard (200 ..< 300).contains(httpResponse.statusCode) else {
+            if httpResponse.statusCode == 404 {
+                throw AIUsageError.requestFailed("Device code login is not enabled for this account yet")
+            }
+            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw AIUsageError.requestFailed(message)
+        }
+    }
+}
+
+private struct CodexDeviceCodeRequest: Encodable {
+    let clientID: String
+
+    enum CodingKeys: String, CodingKey {
+        case clientID = "client_id"
+    }
+}
+
+private struct CodexDeviceCodeResponse: Decodable {
+    let deviceAuthID: String
+    let userCode: String
+    let interval: TimeInterval
+
+    enum CodingKeys: String, CodingKey {
+        case deviceAuthID = "device_auth_id"
+        case userCode = "user_code"
+        case interval
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        deviceAuthID = try container.decode(String.self, forKey: .deviceAuthID)
+        userCode = try container.decode(String.self, forKey: .userCode)
+        if let rawString = try? container.decode(String.self, forKey: .interval),
+           let parsed = TimeInterval(rawString) {
+            interval = parsed
+        } else {
+            interval = try container.decode(TimeInterval.self, forKey: .interval)
+        }
+    }
+}
+
+private struct CodexDeviceTokenPollRequest: Encodable {
+    let deviceAuthID: String
+    let userCode: String
+
+    enum CodingKeys: String, CodingKey {
+        case deviceAuthID = "device_auth_id"
+        case userCode = "user_code"
+    }
+}
+
+private struct CodexDeviceTokenPollSuccess: Decodable {
+    let authorizationCode: String
+    let codeChallenge: String
+    let codeVerifier: String
+
+    enum CodingKeys: String, CodingKey {
+        case authorizationCode = "authorization_code"
+        case codeChallenge = "code_challenge"
+        case codeVerifier = "code_verifier"
+    }
+}
+
+private enum CodexJWTDecoder {
+    static func accountID(from accessToken: String) throws -> String {
+        let parts = accessToken.split(separator: ".")
+        guard parts.count == 3,
+              let payloadData = Data(base64URLEncoded: String(parts[1])),
+              let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
+              let auth = payload["https://api.openai.com/auth"] as? [String: Any],
+              let accountId = auth["chatgpt_account_id"] as? String,
+              !accountId.isEmpty
+        else {
+            throw AIUsageError.requestFailed("Failed to extract account ID")
+        }
+
+        return accountId
+    }
+}
+
+private enum AIUsageError: LocalizedError {
+    case invalidResponse
+    case invalidTokenResponse
+    case requestFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .invalidTokenResponse:
+            return "Server returned an incomplete token response"
+        case let .requestFailed(message):
+            return message
+        }
+    }
+}
+
+private extension AIUsageWindowSnapshot {
+    static let empty = AIUsageWindowSnapshot(usedPercent: 0, remainingPercent: 100, resetAt: nil)
+}
+
+private extension Double {
+    var formattedPercent: String {
+        String(format: "%.0f%%", self)
+    }
+}
+
+private func formURLEncodedData(_ items: [URLQueryItem]) -> Data? {
+    var components = URLComponents()
+    components.queryItems = items
+    return components.percentEncodedQuery?.data(using: .utf8)
+}
+
+private extension Data {
+    init?(base64URLEncoded value: String) {
+        var base64 = value
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+
+        let remainder = base64.count % 4
+        if remainder != 0 {
+            base64 += String(repeating: "=", count: 4 - remainder)
+        }
+
+        self.init(base64Encoded: base64)
+    }
+
 }
 
 #Preview {
