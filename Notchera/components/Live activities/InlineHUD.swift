@@ -116,6 +116,7 @@ struct WingHUDView: View {
                     type == .capsLock ||
                     type == .inputSource ||
                     type == .focus ||
+                    type == .bluetoothAudio ||
                     type == .hudEnabled {
             Text(statusText)
                 .font(.caption)
@@ -173,6 +174,8 @@ struct WingHUDView: View {
             Image(systemName: icon.isEmpty ? "translate" : icon)
         case .focus:
             Image(systemName: icon.isEmpty ? "moon.fill" : icon)
+        case .bluetoothAudio:
+            Image(systemName: icon.isEmpty ? "bluetooth" : icon)
         case .recording:
             Image(systemName: "record.circle.fill")
                 .foregroundStyle(.red)
@@ -201,6 +204,8 @@ struct WingHUDView: View {
             "Input Changed"
         case .focus:
             label.isEmpty ? "Focus" : label
+        case .bluetoothAudio:
+            label.isEmpty ? "Bluetooth Audio" : label
         case .recording:
             "Recording"
         case .battery:
@@ -225,6 +230,8 @@ struct WingHUDView: View {
             label.isEmpty ? "--" : label
         case .focus:
             clampedValue > 0 ? "Enabled" : "Disabled"
+        case .bluetoothAudio:
+            "Connected"
         case .recording:
             label.isEmpty ? "00:00" : label
         case .hudEnabled:
@@ -242,6 +249,8 @@ struct WingHUDView: View {
             36
         case .focus:
             48
+        case .bluetoothAudio:
+            60
         case .capsLock:
             24
         case .hudEnabled:
@@ -259,6 +268,8 @@ struct WingHUDView: View {
             .white
         case .focus:
             clampedValue > 0 ? .indigo : .gray
+        case .bluetoothAudio:
+            .green
         case .hudEnabled:
             .green
         default:
@@ -282,6 +293,8 @@ struct WingHUDView: View {
             "input-source:\(icon):\(label)"
         case .focus:
             "focus:\(icon):\(label):\(clampedValue > 0 ? 1 : 0)"
+        case .bluetoothAudio:
+            "bluetooth-audio:\(icon):\(label)"
         case .recording:
             clampedValue > 0 ? "recording:on" : "recording:off"
         case .battery:

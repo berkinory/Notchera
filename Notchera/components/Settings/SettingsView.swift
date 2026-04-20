@@ -239,6 +239,7 @@ struct HUD: View {
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
     @Default(.showInputSourceIndicator) var showInputSourceIndicator
     @Default(.showFocusIndicator) var showFocusIndicator
+    @Default(.showBluetoothAudioIndicator) var showBluetoothAudioIndicator
     @Default(.showPowerStatusNotifications) var showPowerStatusNotifications
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
@@ -319,6 +320,10 @@ struct HUD: View {
 
                 Defaults.Toggle(key: .showFocusIndicator) {
                     Text("Show Focus mode indicator")
+                }
+
+                Defaults.Toggle(key: .showBluetoothAudioIndicator) {
+                    Text("Show Bluetooth audio notifications")
                 }
 
                 Defaults.Toggle(key: .showPowerStatusNotifications) {
