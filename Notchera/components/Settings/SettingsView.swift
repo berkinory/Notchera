@@ -238,6 +238,7 @@ struct HUD: View {
     @Default(.showBacklightIndicator) var showBacklightIndicator
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
     @Default(.showInputSourceIndicator) var showInputSourceIndicator
+    @Default(.showFocusIndicator) var showFocusIndicator
     @Default(.showPowerStatusNotifications) var showPowerStatusNotifications
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
@@ -314,6 +315,10 @@ struct HUD: View {
 
                 Defaults.Toggle(key: .showInputSourceIndicator) {
                     Text("Show input language indicator")
+                }
+
+                Defaults.Toggle(key: .showFocusIndicator) {
+                    Text("Show Focus mode indicator")
                 }
 
                 Defaults.Toggle(key: .showPowerStatusNotifications) {

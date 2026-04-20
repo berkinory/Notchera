@@ -112,7 +112,11 @@ struct WingHUDView: View {
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
-        } else if type == .recording || type == .capsLock || type == .inputSource || type == .hudEnabled {
+        } else if type == .recording ||
+                    type == .capsLock ||
+                    type == .inputSource ||
+                    type == .focus ||
+                    type == .hudEnabled {
             Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -167,6 +171,8 @@ struct WingHUDView: View {
             Image(systemName: clampedValue > 0 ? "capslock.fill" : "capslock")
         case .inputSource:
             Image(systemName: icon.isEmpty ? "translate" : icon)
+        case .focus:
+            Image(systemName: icon.isEmpty ? "moon.fill" : icon)
         case .recording:
             Image(systemName: "record.circle.fill")
                 .foregroundStyle(.red)
@@ -193,6 +199,8 @@ struct WingHUDView: View {
             "Caps Lock"
         case .inputSource:
             "Input Changed"
+        case .focus:
+            label.isEmpty ? "Focus" : label
         case .recording:
             "Recording"
         case .battery:
@@ -215,6 +223,8 @@ struct WingHUDView: View {
             clampedValue > 0 ? "On" : "Off"
         case .inputSource:
             label.isEmpty ? "--" : label
+        case .focus:
+            clampedValue > 0 ? "Enabled" : "Disabled"
         case .recording:
             label.isEmpty ? "00:00" : label
         case .hudEnabled:
@@ -230,6 +240,8 @@ struct WingHUDView: View {
             44
         case .inputSource:
             36
+        case .focus:
+            48
         case .capsLock:
             24
         case .hudEnabled:
@@ -245,6 +257,8 @@ struct WingHUDView: View {
             clampedValue > 0 ? .green : .gray
         case .inputSource:
             .white
+        case .focus:
+            clampedValue > 0 ? .indigo : .gray
         case .hudEnabled:
             .green
         default:
@@ -266,6 +280,8 @@ struct WingHUDView: View {
             clampedValue > 0 ? "capslock:on" : "capslock:off"
         case .inputSource:
             "input-source:\(icon):\(label)"
+        case .focus:
+            "focus:\(icon):\(label):\(clampedValue > 0 ? 1 : 0)"
         case .recording:
             clampedValue > 0 ? "recording:on" : "recording:off"
         case .battery:
