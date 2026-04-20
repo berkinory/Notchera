@@ -31,6 +31,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
+                NavigationLink(value: "Clipboard") {
+                    Label("Clipboard", systemImage: "doc.on.clipboard")
+                }
                 NavigationLink(value: "Shortcuts") {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
@@ -57,6 +60,8 @@ struct SettingsView: View {
                     HUD()
                 case "Shelf":
                     Shelf()
+                case "Clipboard":
+                    ClipboardSettings()
                 case "Shortcuts":
                     Shortcuts()
                 case "Extensions":
@@ -553,6 +558,51 @@ struct Shelf: View {
     }
 }
 
+struct ClipboardSettings: View {
+    @Default(.enableClipboardHistory) var enableClipboardHistory
+    @Default(.clipboardHistoryRetention) var clipboardHistoryRetention
+    @Default(.clipboardHistoryMaxStoredItems) var clipboardHistoryMaxStoredItems
+
+    var body: some View {
+        Form {
+            Section {
+                Defaults.Toggle(key: .enableClipboardHistory) {
+                    Text("Enable clipboard history")
+                }
+            }
+
+            Section {
+                Picker("Keep clipboard history for", selection: $clipboardHistoryRetention) {
+                    ForEach(ClipboardHistoryRetention.allCases) { retention in
+                        Text(retention.rawValue).tag(retention)
+                    }
+                }
+                .onChange(of: clipboardHistoryRetention) { _, _ in
+                    ClipboardHistoryManager.shared.pruneExpiredItems()
+                }
+
+                Stepper(value: $clipboardHistoryMaxStoredItems, in: 1 ... 25) {
+                    HStack {
+                        Text("Max stored items")
+                        Spacer()
+                        Text("\(clipboardHistoryMaxStoredItems)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: clipboardHistoryMaxStoredItems) { _, _ in
+                    ClipboardHistoryManager.shared.pruneExpiredItems()
+                }
+            } footer: {
+                Text("Clipboard history stores copied text locally on this Mac. Folders, multi-file copies, and very large text are ignored.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!enableClipboardHistory)
+        }
+        .navigationTitle("Clipboard")
+    }
+}
+
 struct Appearance: View {
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
 
@@ -656,6 +706,7 @@ struct Shortcuts: View {
     var body: some View {
         Form {
             Section {
+                KeyboardShortcuts.Recorder("Open Clipboard Manager:", name: .clipboardHistoryPanel)
                 KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
             }
         }

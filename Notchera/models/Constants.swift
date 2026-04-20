@@ -87,6 +87,9 @@ extension Defaults.Keys {
     static let notchShelf = Key<Bool>("notchShelf", default: true)
     static let shelfTapToOpen = Key<Bool>("shelfTapToOpen", default: true)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: true)
+    static let enableClipboardHistory = Key<Bool>("enableClipboardHistory", default: true)
+    static let clipboardHistoryRetention = Key<ClipboardHistoryRetention>("clipboardHistoryRetention", default: .oneWeek)
+    static let clipboardHistoryMaxStoredItems = Key<Int>("clipboardHistoryMaxStoredItems", default: 15)
 
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
 

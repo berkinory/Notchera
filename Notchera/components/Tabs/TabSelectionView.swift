@@ -1,4 +1,5 @@
 import AppKit
+import Defaults
 import SwiftUI
 
 struct TabModel: Identifiable {
@@ -11,6 +12,7 @@ struct TabModel: Identifiable {
 let tabs = [
     TabModel(label: "Music", icon: "music.note", view: .home),
     TabModel(label: "Calendar", icon: "calendar", view: .calendar),
+    TabModel(label: "Clipboard", icon: "doc.on.clipboard", view: .clipboard),
     TabModel(label: "Shelf", icon: "folder.fill", view: .shelf)
 ]
 
@@ -161,36 +163,47 @@ struct CalendarTabView: View {
                         transaction.animation = nil
                     }
             } else {
-                HStack {
-                    if visibleMonthLabels.count > 1 {
-                        Text(visibleMonthLabels.first ?? "")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Color.secondary.opacity(0.78))
-                            .lineLimit(1)
-
-                        Spacer(minLength: 0)
-
-                        Text(visibleMonthLabels.last ?? "")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Color.secondary.opacity(0.78))
-                            .lineLimit(1)
-                    } else {
-                        Spacer(minLength: 0)
-
-                        Text(visibleMonthLabels.first ?? "")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Color.secondary.opacity(0.78))
-                            .lineLimit(1)
-
-                        Spacer(minLength: 0)
-                    }
+                ZStack {
+                    monthHeaderLabels
                 }
-                .transaction { transaction in
-                    transaction.animation = nil
-                }
+                .id(visibleMonthLabels.joined(separator: "|"))
+                .transition(
+                    .asymmetric(
+                        insertion: .offset(x: weekAnimationDirection >= 0 ? 8 : -8).combined(with: .opacity),
+                        removal: .offset(x: weekAnimationDirection >= 0 ? -8 : 8).combined(with: .opacity)
+                    )
+                )
+                .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.94, blendDuration: 0), value: visibleMonthLabels)
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var monthHeaderLabels: some View {
+        HStack {
+            if visibleMonthLabels.count > 1 {
+                Text(visibleMonthLabels.first ?? "")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.78))
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+
+                Text(visibleMonthLabels.last ?? "")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.78))
+                    .lineLimit(1)
+            } else {
+                Spacer(minLength: 0)
+
+                Text(visibleMonthLabels.first ?? "")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.78))
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+            }
+        }
     }
 
     private var weekStrip: some View {
@@ -435,6 +448,368 @@ struct CalendarTabView: View {
             guard let url = URL(string: rawURL) else { continue }
             if NSWorkspace.shared.open(url) {
                 return
+            }
+        }
+    }
+}
+
+struct ClipboardTabView: View {
+    @ObservedObject private var clipboardHistoryManager = ClipboardHistoryManager.shared
+    @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
+    @Default(.clipboardHistoryRetention) private var retention
+    @State private var hoveredItemID: ClipboardHistoryItem.ID?
+    @State private var pendingScrollItemID: ClipboardHistoryItem.ID?
+    @State private var pendingScrollAnchor: UnitPoint = .center
+    @State private var copiedItemID: ClipboardHistoryItem.ID?
+    @State private var copyResetTask: Task<Void, Never>?
+
+    private var itemIDs: [ClipboardHistoryItem.ID] {
+        clipboardHistoryManager.items.map(\.id)
+    }
+
+    private var keyboardNavigationEnabled: Bool {
+        coordinator.currentView == .clipboard && coordinator.clipboardKeyboardNavigationActive
+    }
+
+    private var itemCountText: String {
+        let count = clipboardHistoryManager.items.count
+
+        switch count {
+        case 1:
+            return "1 Item"
+        default:
+            return "\(count) Items"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(itemCountText)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.7))
+
+                Spacer(minLength: 0)
+            }
+
+            if clipboardHistoryManager.items.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Color.secondary.opacity(0.72))
+
+                    Text("No clipboard items yet")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView(showsIndicators: false) {
+                        LazyVStack(spacing: 8) {
+                            ForEach(clipboardHistoryManager.items) { item in
+                                clipboardRow(for: item)
+                                    .id(item.id)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .onAppear {
+                        scrollToHoveredItem(with: proxy, animated: false)
+                    }
+                    .onChange(of: pendingScrollItemID) { _, _ in
+                        scrollToHoveredItem(with: proxy)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background {
+            ClipboardKeyboardHandler(
+                isEnabled: keyboardNavigationEnabled,
+                onMoveUp: { moveSelection(by: -1) },
+                onMoveDown: { moveSelection(by: 1) },
+                onConfirm: { copyHoveredItem() },
+                onCancel: { endKeyboardNavigation(shouldCloseNotch: true) }
+            )
+        }
+        .onAppear {
+            clipboardHistoryManager.pruneExpiredItems()
+            pendingScrollAnchor = .center
+            selectFirstItemIfNeeded()
+        }
+        .onChange(of: retention) { _, _ in
+            clipboardHistoryManager.pruneExpiredItems()
+        }
+        .onChange(of: coordinator.currentView) { _, newValue in
+            guard newValue == .clipboard else { return }
+            selectFirstItemIfNeeded(force: true)
+        }
+        .onChange(of: itemIDs) { _, _ in
+            syncHoveredItem()
+        }
+    }
+
+    private func clipboardRow(for item: ClipboardHistoryItem) -> some View {
+        let isHovered = hoveredItemID == item.id
+        let isCopied = copiedItemID == item.id
+
+        return Button {
+            clipboardHistoryManager.copy(item)
+            showCopiedState(for: item.id)
+            endKeyboardNavigation()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: item.isFile ? "text.document" : "character.cursor.ibeam")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Color.secondary.opacity(0.62))
+                    .frame(width: 10)
+
+                Text(displayText(for: item))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.66))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: isCopied ? "checkmark.app.fill" : "doc.on.doc")
+                    .font(.system(size: isCopied ? 11 : 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 12)
+                    .opacity(isHovered || isCopied ? 1 : 0)
+                    .scaleEffect(isCopied ? 1.05 : 1)
+                    .animation(.spring(response: 0.42, dampingFraction: 0.88), value: isCopied)
+                    .animation(.easeOut(duration: 0.18), value: isHovered)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isHovered ? Color.white.opacity(0.1) : Color.white.opacity(0.05))
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isHovered ? 1.01 : 1)
+        .animation(.easeOut(duration: 0.14), value: isHovered)
+        .onHover { hovering in
+            guard !keyboardNavigationEnabled else { return }
+            hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
+        }
+    }
+
+    private func displayText(for item: ClipboardHistoryItem) -> String {
+        if item.isFile {
+            return trimmedFileName(item.displayText)
+        }
+
+        let content = item.displayText
+        let lines = content.components(separatedBy: .newlines)
+        let firstLine = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard !firstLine.isEmpty else { return content.replacingOccurrences(of: "\n", with: " ") }
+        return lines.count > 1 ? "\(firstLine)..." : firstLine
+    }
+
+    private func trimmedFileName(_ fileName: String) -> String {
+        let url = URL(fileURLWithPath: fileName)
+        let fileExtension = url.pathExtension
+        let baseName = url.deletingPathExtension().lastPathComponent
+
+        guard !fileExtension.isEmpty else {
+            return fileName
+        }
+
+        let visiblePrefixCount = min(6, baseName.count)
+        let prefix = String(baseName.prefix(visiblePrefixCount))
+        return "\(prefix)... .\(fileExtension)"
+    }
+
+    private func showCopiedState(for itemID: ClipboardHistoryItem.ID) {
+        copyResetTask?.cancel()
+        copiedItemID = itemID
+
+        copyResetTask = Task {
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                if copiedItemID == itemID {
+                    copiedItemID = nil
+                }
+            }
+        }
+    }
+
+    private func selectFirstItemIfNeeded(force: Bool = false) {
+        guard !clipboardHistoryManager.items.isEmpty else {
+            hoveredItemID = nil
+            return
+        }
+
+        if force || hoveredItemID == nil {
+            hoveredItemID = clipboardHistoryManager.items.first?.id
+        }
+    }
+
+    private func syncHoveredItem() {
+        guard !clipboardHistoryManager.items.isEmpty else {
+            hoveredItemID = nil
+            return
+        }
+
+        guard let hoveredItemID,
+              clipboardHistoryManager.items.contains(where: { $0.id == hoveredItemID })
+        else {
+            self.hoveredItemID = clipboardHistoryManager.items.first?.id
+            return
+        }
+    }
+
+    private func moveSelection(by offset: Int) {
+        guard !clipboardHistoryManager.items.isEmpty else { return }
+
+        let items = clipboardHistoryManager.items
+        let currentIndex = items.firstIndex(where: { $0.id == hoveredItemID }) ?? 0
+        let nextIndex = min(max(currentIndex + offset, 0), items.count - 1)
+        let nextItemID = items[nextIndex].id
+        hoveredItemID = nextItemID
+        pendingScrollAnchor = offset > 0 ? .bottom : .top
+        pendingScrollItemID = nextItemID
+    }
+
+    private func scrollToHoveredItem(with proxy: ScrollViewProxy, animated: Bool = true) {
+        guard let hoveredItemID else { return }
+
+        let action = {
+            proxy.scrollTo(hoveredItemID, anchor: pendingScrollAnchor)
+        }
+
+        if animated {
+            withAnimation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.22)) {
+                action()
+            }
+        } else {
+            action()
+        }
+
+        if pendingScrollItemID == hoveredItemID {
+            pendingScrollItemID = nil
+        }
+    }
+
+    private func copyHoveredItem() {
+        guard let hoveredItemID,
+              let item = clipboardHistoryManager.items.first(where: { $0.id == hoveredItemID })
+        else {
+            return
+        }
+
+        clipboardHistoryManager.copy(item)
+        showCopiedState(for: item.id)
+
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                endKeyboardNavigation(shouldCloseNotch: true)
+            }
+        }
+    }
+
+    private func endKeyboardNavigation(shouldCloseNotch: Bool = false) {
+        NotificationCenter.default.post(
+            name: .endClipboardKeyboardNavigation,
+            object: nil,
+            userInfo: ["shouldCloseNotch": shouldCloseNotch]
+        )
+    }
+}
+
+private struct ClipboardKeyboardHandler: NSViewRepresentable {
+    let isEnabled: Bool
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isEnabled: isEnabled, onMoveUp: onMoveUp, onMoveDown: onMoveDown, onConfirm: onConfirm, onCancel: onCancel)
+    }
+
+    func makeNSView(context: Context) -> KeyMonitorHostView {
+        let view = KeyMonitorHostView()
+        context.coordinator.start()
+        return view
+    }
+
+    func updateNSView(_ nsView: KeyMonitorHostView, context: Context) {
+        context.coordinator.isEnabled = isEnabled
+        context.coordinator.onMoveUp = onMoveUp
+        context.coordinator.onMoveDown = onMoveDown
+        context.coordinator.onConfirm = onConfirm
+        context.coordinator.onCancel = onCancel
+    }
+
+    static func dismantleNSView(_ nsView: KeyMonitorHostView, coordinator: Coordinator) {
+        coordinator.stop()
+    }
+}
+
+private final class KeyMonitorHostView: NSView {}
+
+private extension ClipboardKeyboardHandler {
+    final class Coordinator {
+        var isEnabled: Bool
+        var onMoveUp: () -> Void
+        var onMoveDown: () -> Void
+        var onConfirm: () -> Void
+        var onCancel: () -> Void
+
+        private var monitor: Any?
+
+        init(isEnabled: Bool, onMoveUp: @escaping () -> Void, onMoveDown: @escaping () -> Void, onConfirm: @escaping () -> Void, onCancel: @escaping () -> Void) {
+            self.isEnabled = isEnabled
+            self.onMoveUp = onMoveUp
+            self.onMoveDown = onMoveDown
+            self.onConfirm = onConfirm
+            self.onCancel = onCancel
+        }
+
+        func start() {
+            guard monitor == nil else { return }
+
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self, self.isEnabled else { return event }
+
+                switch Int(event.keyCode) {
+                case 125:
+                    self.onMoveDown()
+                    return nil
+                case 126:
+                    self.onMoveUp()
+                    return nil
+                case 36, 76:
+                    self.onConfirm()
+                    return nil
+                case 53:
+                    self.onCancel()
+                    return nil
+                default:
+                    return event
+                }
+            }
+        }
+
+        func stop() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
             }
         }
     }

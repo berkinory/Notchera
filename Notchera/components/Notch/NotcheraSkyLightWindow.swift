@@ -25,6 +25,7 @@ extension SkyLightOperator {
 
 class NotcheraSkyLightWindow: NSPanel {
     private var isSkyLightEnabled: Bool = false
+    private var clipboardKeyboardFocusEnabled = false
 
     override init(
         contentRect: NSRect,
@@ -97,11 +98,15 @@ class NotcheraSkyLightWindow: NSPanel {
 
     private var observers: Set<AnyCancellable> = []
 
+    func setClipboardKeyboardFocusEnabled(_ isEnabled: Bool) {
+        clipboardKeyboardFocusEnabled = isEnabled
+    }
+
     override var canBecomeKey: Bool {
-        false
+        clipboardKeyboardFocusEnabled
     }
 
     override var canBecomeMain: Bool {
-        false
+        clipboardKeyboardFocusEnabled
     }
 }

@@ -70,11 +70,11 @@ struct ContentView: View {
     }
 
     private var availableTabs: [TabModel] {
-        guard Defaults[.notchShelf], coordinator.alwaysShowTabs || !ShelfStateViewModel.shared.isEmpty else {
-            return tabs.filter { $0.view == .home }
+        guard !Defaults[.notchShelf] else {
+            return tabs
         }
 
-        return tabs
+        return tabs.filter { $0.view != .shelf }
     }
 
     private var trackpadTabSwitchEnabled: Bool {
@@ -212,6 +212,12 @@ struct ContentView: View {
                 onHorizontalSwipe: handleTrackpadTabSwitch
             )
         }
+        .background {
+            NotchEscapeKeyHandler(
+                isEnabled: vm.notchState == .open && coordinator.notchKeyboardDismissActive,
+                onEscape: handleKeyboardEscape
+            )
+        }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
@@ -339,6 +345,9 @@ struct ContentView: View {
                             .transition(.opacity)
                     case .calendar:
                         CalendarTabView()
+                            .transition(.opacity)
+                    case .clipboard:
+                        ClipboardTabView()
                             .transition(.opacity)
                     case .shelf:
                         ShelfView()
@@ -469,6 +478,19 @@ struct ContentView: View {
 
         withAnimation(.smooth) {
             coordinator.currentView = availableTabs[nextIndex].view
+        }
+    }
+
+    private func handleKeyboardEscape() {
+        hoverTask?.cancel()
+        postOpenHoverValidationTask?.cancel()
+        anyDropDebounceTask?.cancel()
+
+        NotificationCenter.default.post(name: .endClipboardKeyboardNavigation, object: nil)
+
+        withAnimation(animationSpring) {
+            isHovering = false
+            vm.close()
         }
     }
 
@@ -620,6 +642,64 @@ struct GeneralDropTargetDelegate: DropDelegate {
 
     func performDrop(info _: DropInfo) -> Bool {
         false
+    }
+}
+
+private struct NotchEscapeKeyHandler: NSViewRepresentable {
+    let isEnabled: Bool
+    let onEscape: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isEnabled: isEnabled, onEscape: onEscape)
+    }
+
+    func makeNSView(context: Context) -> EscapeMonitorHostView {
+        let view = EscapeMonitorHostView()
+        context.coordinator.start()
+        return view
+    }
+
+    func updateNSView(_ nsView: EscapeMonitorHostView, context: Context) {
+        context.coordinator.isEnabled = isEnabled
+        context.coordinator.onEscape = onEscape
+    }
+
+    static func dismantleNSView(_ nsView: EscapeMonitorHostView, coordinator: Coordinator) {
+        coordinator.stop()
+    }
+}
+
+private final class EscapeMonitorHostView: NSView {}
+
+private extension NotchEscapeKeyHandler {
+    final class Coordinator {
+        var isEnabled: Bool
+        var onEscape: () -> Void
+
+        private var monitor: Any?
+
+        init(isEnabled: Bool, onEscape: @escaping () -> Void) {
+            self.isEnabled = isEnabled
+            self.onEscape = onEscape
+        }
+
+        func start() {
+            guard monitor == nil else { return }
+
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self, self.isEnabled else { return event }
+                guard Int(event.keyCode) == 53 else { return event }
+                self.onEscape()
+                return nil
+            }
+        }
+
+        func stop() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
     }
 }
 

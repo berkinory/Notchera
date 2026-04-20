@@ -20,6 +20,7 @@ public enum NotchState {
 public enum NotchViews: String {
     case home
     case calendar
+    case clipboard
     case shelf
 }
 
@@ -48,4 +49,25 @@ enum DownloadIconStyle: String, Defaults.Serializable {
 enum WindowHeightMode: String, Defaults.Serializable {
     case matchMenuBar = "Match menubar height"
     case matchRealNotchSize = "Match real notch height"
+}
+
+enum ClipboardHistoryRetention: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case oneHour = "1 hour"
+    case oneDay = "1 day"
+    case oneWeek = "1 week"
+
+    var id: String {
+        rawValue
+    }
+
+    var timeInterval: TimeInterval {
+        switch self {
+        case .oneHour:
+            3600
+        case .oneDay:
+            86400
+        case .oneWeek:
+            604800
+        }
+    }
 }

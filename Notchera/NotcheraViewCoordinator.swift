@@ -55,11 +55,18 @@ class NotcheraViewCoordinator: ObservableObject {
 
     @Published var currentView: NotchViews = .home {
         didSet {
+            guard !suppressRememberedViewUpdate else {
+                suppressRememberedViewUpdate = false
+                return
+            }
+
             lastViewRaw = currentView.rawValue
         }
     }
 
     @Published var helloAnimationRunning: Bool = false
+    @Published var clipboardKeyboardNavigationActive: Bool = false
+    @Published var notchKeyboardDismissActive: Bool = false
     private let hudHidePollInterval: Duration = .milliseconds(100)
     private var hudEnableTask: Task<Void, Never>?
     private var hudHideTask: Task<Void, Never>?
@@ -106,6 +113,7 @@ class NotcheraViewCoordinator: ObservableObject {
     private var accessibilityObserver: Any?
     private var hudReplacementCancellable: AnyCancellable?
     private var shelfStateCancellable: AnyCancellable?
+    private var suppressRememberedViewUpdate = false
 
     private var rememberedView: NotchViews? {
         guard openLastTabByDefault,
@@ -119,6 +127,11 @@ class NotcheraViewCoordinator: ObservableObject {
 
     var preferredExpandedView: NotchViews {
         rememberedView ?? .home
+    }
+
+    func showViewWithoutRemembering(_ view: NotchViews) {
+        suppressRememberedViewUpdate = true
+        currentView = view
     }
 
     private init() {

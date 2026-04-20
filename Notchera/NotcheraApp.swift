@@ -66,6 +66,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowVisibilityObservers: [String: AnyCancellable] = [:]
     private var appCancellables: Set<AnyCancellable> = []
     private let windowInteractivityPollingInterval: TimeInterval = 1 / 15
+    private weak var clipboardFocusedViewModel: NotcheraViewModel?
+    private var keyboardDismissClickMonitor: Any?
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
@@ -87,8 +89,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         MusicManager.shared.destroy()
         cleanupDragDetectors()
         cleanupWindows()
+        stopKeyboardDismissClickMonitoring()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         ScreenRecordingManager.shared.stopMonitoring()
+        ClipboardHistoryManager.shared.stopMonitoring()
     }
 
     @MainActor
@@ -335,6 +339,81 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragDetectors.removeAll()
     }
 
+    private func targetWindowAndViewModelForShortcut() -> (window: NSWindow?, viewModel: NotcheraViewModel) {
+        let mouseLocation = NSEvent.mouseLocation
+        var targetWindow = window
+        var viewModel = vm
+
+        if Defaults[.showOnAllDisplays] {
+            for screen in NSScreen.screens where screen.frame.contains(mouseLocation) {
+                if let uuid = screen.displayUUID {
+                    if let screenWindow = windows[uuid] {
+                        targetWindow = screenWindow
+                    }
+
+                    if let screenViewModel = viewModels[uuid] {
+                        viewModel = screenViewModel
+                    }
+                    break
+                }
+            }
+        }
+
+        return (targetWindow, viewModel)
+    }
+
+    private func startKeyboardDismissClickMonitoring(for window: NSWindow, viewModel: NotcheraViewModel) {
+        stopKeyboardDismissClickMonitoring()
+
+        keyboardDismissClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self, weak window, weak viewModel] _ in
+            Task { @MainActor in
+                guard let self, let window, let viewModel else { return }
+                guard self.coordinator.notchKeyboardDismissActive else { return }
+
+                let clickLocation = NSEvent.mouseLocation
+                if !window.frame.contains(clickLocation) {
+                    self.endClipboardKeyboardFocus(shouldCloseNotch: false)
+                    viewModel.close()
+                }
+            }
+        }
+    }
+
+    private func stopKeyboardDismissClickMonitoring() {
+        if let keyboardDismissClickMonitor {
+            NSEvent.removeMonitor(keyboardDismissClickMonitor)
+            self.keyboardDismissClickMonitor = nil
+        }
+    }
+
+    private func beginClipboardKeyboardFocus(on window: NSWindow?, viewModel: NotcheraViewModel) {
+        clipboardFocusedViewModel = viewModel
+        guard let panel = window as? NotcheraSkyLightWindow else { return }
+        panel.setClipboardKeyboardFocusEnabled(true)
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        startKeyboardDismissClickMonitoring(for: panel, viewModel: viewModel)
+    }
+
+    private func endClipboardKeyboardFocus(shouldCloseNotch: Bool = false) {
+        coordinator.clipboardKeyboardNavigationActive = false
+        coordinator.notchKeyboardDismissActive = false
+        stopKeyboardDismissClickMonitoring()
+
+        let allWindows = [window] + Array(windows.values)
+        for currentWindow in allWindows {
+            guard let panel = currentWindow as? NotcheraSkyLightWindow else { continue }
+            panel.setClipboardKeyboardFocusEnabled(false)
+        }
+
+        if shouldCloseNotch {
+            clipboardFocusedViewModel?.close()
+        }
+
+        clipboardFocusedViewModel = nil
+    }
+
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
@@ -512,6 +591,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         updateScreenRecordingMonitoring()
+        ClipboardHistoryManager.shared.startMonitoring()
+
+        Defaults.publisher(.enableClipboardHistory)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { isEnabled in
+                if isEnabled {
+                    ClipboardHistoryManager.shared.startMonitoring()
+                    ClipboardHistoryManager.shared.pruneExpiredItems()
+                } else {
+                    ClipboardHistoryManager.shared.stopMonitoring()
+                }
+            }
+            .store(in: &appCancellables)
 
         Publishers.CombineLatest(
             Defaults.publisher(.hudReplacement).map(\.newValue).removeDuplicates(),
@@ -532,24 +626,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &appCancellables)
 
+        NotificationCenter.default.addObserver(
+            forName: .endClipboardKeyboardNavigation,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let shouldCloseNotch = notification.userInfo?["shouldCloseNotch"] as? Bool ?? false
+            self?.endClipboardKeyboardFocus(shouldCloseNotch: shouldCloseNotch)
+        }
+
+        KeyboardShortcuts.onKeyDown(for: .clipboardHistoryPanel) { [weak self] in
+            Task { [weak self] in
+                guard let self else { return }
+                let target = self.targetWindowAndViewModelForShortcut()
+
+                await MainActor.run {
+                    self.closeNotchTask?.cancel()
+                    self.closeNotchTask = nil
+                    self.coordinator.clipboardKeyboardNavigationActive = true
+                    self.coordinator.notchKeyboardDismissActive = true
+                    target.viewModel.open(forceView: .clipboard, rememberForcedView: false)
+                    self.beginClipboardKeyboardFocus(on: target.window, viewModel: target.viewModel)
+                }
+            }
+        }
+
         KeyboardShortcuts.onKeyDown(for: .toggleNotchOpen) { [weak self] in
             Task { [weak self] in
                 guard let self else { return }
 
-                let mouseLocation = NSEvent.mouseLocation
-
-                var viewModel = vm
-
-                if Defaults[.showOnAllDisplays] {
-                    for screen in NSScreen.screens {
-                        if screen.frame.contains(mouseLocation) {
-                            if let uuid = screen.displayUUID, let screenViewModel = viewModels[uuid] {
-                                viewModel = screenViewModel
-                                break
-                            }
-                        }
-                    }
-                }
+                let viewModel = self.targetWindowAndViewModelForShortcut().viewModel
 
                 closeNotchTask?.cancel()
                 closeNotchTask = nil
@@ -557,14 +663,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 switch viewModel.notchState {
                 case .closed:
                     await MainActor.run {
+                        self.coordinator.notchKeyboardDismissActive = true
                         viewModel.open()
+                        self.beginClipboardKeyboardFocus(on: self.targetWindowAndViewModelForShortcut().window, viewModel: viewModel)
                     }
 
-                    let task = Task { [weak viewModel] in
+                    let task = Task { [weak self, weak viewModel] in
                         do {
                             try await Task.sleep(for: .seconds(3))
                             await MainActor.run {
                                 viewModel?.close()
+                                self?.endClipboardKeyboardFocus()
                             }
                         } catch {}
                     }
@@ -572,6 +681,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 case .open:
                     await MainActor.run {
                         viewModel.close()
+                        self.endClipboardKeyboardFocus()
                     }
                 }
             }
@@ -782,6 +892,7 @@ extension Notification.Name {
     static let notchHeightChanged = Notification.Name("NotchHeightChanged")
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
     static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
+    static let endClipboardKeyboardNavigation = Notification.Name("endClipboardKeyboardNavigation")
 }
 
 extension CGRect: @retroactive Hashable {

@@ -4,20 +4,18 @@ import SwiftUI
 struct NotcheraHeader: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
-    @StateObject var tvm = ShelfStateViewModel.shared
-
     private var showHeaderControls: Bool {
         vm.notchState == .open
     }
 
     private var shouldShowTabs: Bool {
-        !tvm.isEmpty || coordinator.alwaysShowTabs
+        true
     }
 
     var body: some View {
         HStack(spacing: 0) {
             HStack {
-                if showHeaderControls, shouldShowTabs, Defaults[.notchShelf] {
+                if showHeaderControls, shouldShowTabs {
                     TabSelectionView()
                 } else if vm.notchState == .open {
                     EmptyView()
