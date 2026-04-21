@@ -1022,6 +1022,28 @@ private struct AIUsageMetricRow: View {
         showRemaining ? snapshot.remainingPercent : snapshot.usedPercent
     }
 
+    private var metricColor: Color {
+        let usedPercent = snapshot.usedPercent
+
+        if showRemaining {
+            if usedPercent < 60 {
+                return .green
+            }
+            if usedPercent < 85 {
+                return .yellow
+            }
+            return .red
+        }
+
+        if usedPercent < 60 {
+            return .green
+        }
+        if usedPercent < 85 {
+            return .yellow
+        }
+        return .red
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             if showReset {
@@ -1045,9 +1067,10 @@ private struct AIUsageMetricRow: View {
             HStack(alignment: .center, spacing: 6) {
                 ProgressView(value: displayPercent, total: 100)
                     .progressViewStyle(.linear)
-                    .tint(.white)
+                    .tint(metricColor)
                 Text(displayPercent.formattedPercent)
                     .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(metricColor)
                     .fixedSize()
             }
         }
