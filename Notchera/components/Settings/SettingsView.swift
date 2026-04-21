@@ -807,6 +807,14 @@ struct AIUsageSettings: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
+                            Button(role: .destructive) {
+                                store.removeAccount(id: account.id)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Delete account")
                         }
                         .swipeActions(edge: .trailing) {
                             Button("Delete", role: .destructive) {
@@ -842,29 +850,52 @@ struct AIUsageDashboardView: View {
     ]
 
     var body: some View {
-        ScrollView {
+        Group {
             if store.accounts.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "chart.bar.xaxis")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text("No accounts")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Add Codex or Claude accounts in Settings.")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 240)
-                .padding(.horizontal, 16)
-            } else {
-                LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-                    ForEach(store.accounts) { account in
-                        AIUsageCard(account: account, showRemaining: aiUsageShowRemaining)
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.78))
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("No accounts")
+                                .font(.system(size: 12, weight: .semibold))
+
+                            Text("Add Codex or Claude in Settings.")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Button {
+                            SettingsWindowController.shared.showWindow()
+                        } label: {
+                            Label("Settings", systemImage: "gearshape")
+                                .font(.system(size: 10, weight: .semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.top, 1)
-                .padding(.bottom, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                        ForEach(store.accounts) { account in
+                            AIUsageCard(account: account, showRemaining: aiUsageShowRemaining)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.top, 1)
+                    .padding(.bottom, 5)
+                }
             }
         }
         .task {

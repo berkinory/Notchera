@@ -18,7 +18,7 @@ var tabs: [TabModel] {
     ]
 
     if Defaults[.enableAIUsage] {
-        items.append(TabModel(label: "AI Usage", icon: "asset:chatgpt", view: .aiUsage))
+        items.append(TabModel(label: "AI Usage", icon: "chart.bar.fill", view: .aiUsage))
     }
 
     return items
