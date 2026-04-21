@@ -37,7 +37,7 @@ struct CommandPaletteView: View {
         }
         .padding(.leading, 10)
         .padding(.trailing, 4)
-        .padding(.top, 2)
+        .padding(.top, 0)
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background {
@@ -47,6 +47,9 @@ struct CommandPaletteView: View {
                 onMoveDown: { moveSelection(by: 1) },
                 onConfirm: { confirmSelection() }
             )
+        }
+        .background {
+            NotchKeyboardFocusBridge(isEnabled: coordinator.currentView == .commandPalette)
         }
         .onAppear {
             appLauncher.loadIfNeeded()
@@ -70,16 +73,23 @@ struct CommandPaletteView: View {
     }
 
     private var input: some View {
-        TextField(
-            "Search apps",
-            text: Binding(
-                get: { coordinator.commandPaletteQuery },
-                set: { coordinator.commandPaletteQuery = $0 }
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.secondary.opacity(0.72))
+                .frame(width: 12)
+
+            TextField(
+                "Search apps",
+                text: Binding(
+                    get: { coordinator.commandPaletteQuery },
+                    set: { coordinator.commandPaletteQuery = $0 }
+                )
             )
-        )
-        .textFieldStyle(.plain)
-        .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(.white)
+            .textFieldStyle(.plain)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.white)
+        }
         .padding(.leading, 10)
         .padding(.trailing, 6)
         .frame(height: 28)
@@ -193,6 +203,36 @@ struct CommandPaletteView: View {
             object: nil,
             userInfo: ["shouldCloseNotch": true]
         )
+    }
+}
+
+private struct NotchKeyboardFocusBridge: NSViewRepresentable {
+    let isEnabled: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            updateWindow(for: view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            updateWindow(for: nsView)
+        }
+    }
+
+    private func updateWindow(for view: NSView) {
+        guard let panel = view.window as? NotcheraSkyLightWindow else { return }
+
+        panel.setClipboardKeyboardFocusEnabled(isEnabled)
+
+        guard isEnabled else { return }
+
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
     }
 }
 

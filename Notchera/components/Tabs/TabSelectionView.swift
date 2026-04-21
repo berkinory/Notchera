@@ -488,18 +488,25 @@ struct ClipboardTabView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField("Search clipboard", text: $query)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white)
-                .padding(.leading, 10)
-                .padding(.trailing, 6)
-                .frame(height: 28)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
-                )
-                .focused($isSearchFieldFocused)
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.secondary.opacity(0.72))
+                    .frame(width: 12)
+
+                TextField("Search clipboard", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white)
+            }
+            .padding(.leading, 10)
+            .padding(.trailing, 6)
+            .frame(height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .focused($isSearchFieldFocused)
 
             if filteredItems.isEmpty {
                 VStack(spacing: 10) {
@@ -535,7 +542,7 @@ struct ClipboardTabView: View {
         }
         .padding(.leading, 10)
         .padding(.trailing, 4)
-        .padding(.top, 2)
+        .padding(.top, 0)
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background {
@@ -546,6 +553,9 @@ struct ClipboardTabView: View {
                 onConfirm: { copyHoveredItem() },
                 onCancel: { endKeyboardNavigation(shouldCloseNotch: true) }
             )
+        }
+        .background {
+            NotchKeyboardFocusBridge(isEnabled: coordinator.currentView == .clipboard)
         }
         .onAppear {
             clipboardHistoryManager.pruneExpiredItems()
@@ -615,8 +625,6 @@ struct ClipboardTabView: View {
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
-        .scaleEffect(isHovered ? 1.01 : 1)
-        .animation(.easeOut(duration: 0.14), value: isHovered)
         .onHover { hovering in
             guard !keyboardNavigationEnabled else { return }
             hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
@@ -758,6 +766,36 @@ struct ClipboardTabView: View {
             object: nil,
             userInfo: ["shouldCloseNotch": shouldCloseNotch]
         )
+    }
+}
+
+private struct NotchKeyboardFocusBridge: NSViewRepresentable {
+    let isEnabled: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            updateWindow(for: view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            updateWindow(for: nsView)
+        }
+    }
+
+    private func updateWindow(for view: NSView) {
+        guard let panel = view.window as? NotcheraSkyLightWindow else { return }
+
+        panel.setClipboardKeyboardFocusEnabled(isEnabled)
+
+        guard isEnabled else { return }
+
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
     }
 }
 
