@@ -3,7 +3,10 @@ import Defaults
 import SwiftUI
 
 struct TabModel: Identifiable {
-    let id = UUID()
+    var id: NotchViews {
+        view
+    }
+
     let label: String
     let icon: String
     let view: NotchViews
@@ -13,14 +16,15 @@ var tabs: [TabModel] {
     var items = [
         TabModel(label: "Music", icon: "music.note", view: .home),
         TabModel(label: "Calendar", icon: "calendar", view: .calendar),
-        TabModel(label: "Command", icon: "magnifyingglass", view: .commandPalette),
+        TabModel(label: "Launcher", icon: "magnifyingglass", view: .commandPalette),
         TabModel(label: "Clipboard", icon: "doc.on.clipboard", view: .clipboard),
-        TabModel(label: "Shelf", icon: "folder.fill", view: .shelf),
     ]
 
     if Defaults[.enableAIUsage] {
         items.append(TabModel(label: "AI Usage", icon: "chart.bar.fill", view: .aiUsage))
     }
+
+    items.append(TabModel(label: "Shelf", icon: "folder.fill", view: .shelf))
 
     return items
 }
@@ -875,10 +879,15 @@ private extension ClipboardKeyboardHandler {
 
 struct TabSelectionView: View {
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
+    let items: [TabModel]
 
     var body: some View {
+        tabGroup(items)
+    }
+
+    private func tabGroup(_ items: [TabModel]) -> some View {
         HStack(spacing: 2) {
-            ForEach(tabs) { tab in
+            ForEach(items) { tab in
                 TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
                     withAnimation(.smooth) {
                         if tab.view == .commandPalette {

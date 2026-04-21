@@ -4,6 +4,7 @@ import SwiftUI
 struct NotcheraHeader: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
+
     private var showHeaderControls: Bool {
         vm.notchState == .open
     }
@@ -12,29 +13,41 @@ struct NotcheraHeader: View {
         true
     }
 
+    private var leftTabs: [TabModel] {
+        Array(tabs.prefix(3))
+    }
+
+    private var rightTabs: [TabModel] {
+        Array(tabs.dropFirst(3))
+    }
+
+    private var centerFillColor: Color {
+        NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0 ? .black : .clear
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            HStack {
-                if showHeaderControls, shouldShowTabs {
-                    TabSelectionView()
-                } else if vm.notchState == .open {
-                    EmptyView()
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .opacity(vm.notchState == .closed ? 0 : 1)
-            .blur(radius: vm.notchState == .closed ? 2 : 0)
-            .zIndex(2)
+            if showHeaderControls, shouldShowTabs {
+                TabSelectionView(items: leftTabs)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .zIndex(2)
 
-            if vm.notchState == .open {
                 Rectangle()
-                    .fill(NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0 ? .black : .clear)
+                    .fill(centerFillColor)
                     .frame(width: vm.closedNotchSize.width)
                     .mask {
                         NotchShape()
                     }
+
+                TabSelectionView(items: rightTabs)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .zIndex(2)
+            } else if vm.notchState == .open {
+                EmptyView()
             }
         }
+        .opacity(vm.notchState == .closed ? 0 : 1)
+        .blur(radius: vm.notchState == .closed ? 2 : 0)
         .foregroundColor(.gray)
         .environmentObject(vm)
     }
