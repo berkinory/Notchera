@@ -40,7 +40,7 @@
     {
       "identity" : "macrovisionkit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/NotcheraLabs/MacroVisionKit",
+      "location" : "https://github.com/TheBoredTeam/MacroVisionKit",
       "state" : {
         "revision" : "da481a6be8d8b1bf7fcb218507a72428bbcae7b0",
         "version" : "0.2.0"

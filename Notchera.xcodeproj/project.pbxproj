@@ -1312,7 +1312,7 @@
 		};
 		111BEA6D2ED166E20079DD4E /* XCRemoteSwiftPackageReference "MacroVisionKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/NotcheraLabs/MacroVisionKit";
+			repositoryURL = "https://github.com/TheBoredTeam/MacroVisionKit";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.2.0;
