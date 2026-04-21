@@ -188,8 +188,8 @@ class NotcheraViewCoordinator: ObservableObject {
             .removeDuplicates()
             .receive(on: RunLoop.main)
             .sink { [weak self] isEmpty in
-                guard let self, isEmpty, self.currentView == .shelf else { return }
-                self.currentView = .home
+                guard let self, isEmpty, currentView == .shelf else { return }
+                currentView = .home
             }
 
         accessibilityObserver = NotificationCenter.default.addObserver(
@@ -414,7 +414,7 @@ class NotcheraViewCoordinator: ObservableObject {
         value: CGFloat = 0,
         browser: BrowserType = .chromium
     ) {
-        if status, (!Defaults[.hudReplacement] || !isIndicatorEnabled(for: type)) {
+        if status, !Defaults[.hudReplacement] || !isIndicatorEnabled(for: type) {
             return
         }
 
@@ -693,7 +693,7 @@ private final class FocusModeMonitor {
             "identifier",
             "Identifier",
             "UUID",
-            "uuid"
+            "uuid",
         ]
         let nameKeys = [
             "FocusModeName",
@@ -703,17 +703,17 @@ private final class FocusModeMonitor {
             "activityDisplayName",
             "displayName",
             "name",
-            "Name"
+            "Name",
         ]
         let objectSelectors = [
             "mode",
             "details",
             "modeConfiguration",
             "activeModeConfiguration",
-            "activeModeAssertionMetadata"
+            "activeModeAssertionMetadata",
         ]
 
-        let candidates = [notification.userInfo, notification.object].compactMap { $0 }
+        let candidates = [notification.userInfo, notification.object].compactMap(\.self)
 
         var identifier: String?
         var name: String?
@@ -753,7 +753,8 @@ private final class FocusModeMonitor {
         if let dictionary = value as? [AnyHashable: Any] {
             for key in keys {
                 if let direct = dictionary[key],
-                   let string = directString(from: direct, preferIdentifier: preferIdentifier) {
+                   let string = directString(from: direct, preferIdentifier: preferIdentifier)
+                {
                     return string
                 }
             }
@@ -814,7 +815,8 @@ private final class FocusModeMonitor {
                        stringSelectors: stringSelectors,
                        objectSelectors: objectSelectors,
                        preferIdentifier: preferIdentifier
-                   ) {
+                   )
+                {
                     return string
                 }
             }
@@ -848,14 +850,12 @@ private final class FocusModeMonitor {
     }
 
     private func decodedPayload(from value: Any) -> Any? {
-        let data: Data?
-
-        if let rawData = value as? Data {
-            data = rawData
+        let data: Data? = if let rawData = value as? Data {
+            rawData
         } else if let rawData = value as? NSData {
-            data = rawData as Data
+            rawData as Data
         } else {
-            data = nil
+            nil
         }
 
         guard let data, !data.isEmpty else { return nil }
@@ -878,7 +878,8 @@ private final class FocusModeMonitor {
     private func stringValue(from object: NSObject, selectorName: String) -> String? {
         let selector = NSSelectorFromString(selectorName)
         guard object.responds(to: selector),
-              let value = object.perform(selector)?.takeUnretainedValue() else {
+              let value = object.perform(selector)?.takeUnretainedValue()
+        else {
             return nil
         }
 
@@ -888,7 +889,8 @@ private final class FocusModeMonitor {
     private func objectValue(from object: NSObject, selectorName: String) -> NSObject? {
         let selector = NSSelectorFromString(selectorName)
         guard object.responds(to: selector),
-              let value = object.perform(selector)?.takeUnretainedValue() else {
+              let value = object.perform(selector)?.takeUnretainedValue()
+        else {
             return nil
         }
 
@@ -963,7 +965,7 @@ private final class BluetoothAudioMonitor: NSObject {
         0x200E: "airpods.pro",
         0x2014: "airpods.pro",
         0x2024: "airpods.pro",
-        0x2027: "airpods.pro"
+        0x2027: "airpods.pro",
     ]
 
     private var connectNotification: IOBluetoothUserNotification?
@@ -976,7 +978,7 @@ private final class BluetoothAudioMonitor: NSObject {
     private var startupSuppressedDeviceKey: String?
     private var startupSuppressionDeadline: Date = .distantPast
 
-    private override init() {
+    override private init() {
         super.init()
     }
 
@@ -1000,7 +1002,7 @@ private final class BluetoothAudioMonitor: NSObject {
 
     @objc
     private func bluetoothDeviceConnected(
-        _ notification: IOBluetoothUserNotification,
+        _: IOBluetoothUserNotification,
         device: IOBluetoothDevice
     ) {
         guard isAudioDevice(device) else { return }
@@ -1012,7 +1014,7 @@ private final class BluetoothAudioMonitor: NSObject {
 
     @objc
     private func bluetoothDeviceDisconnected(
-        _ notification: IOBluetoothUserNotification,
+        _: IOBluetoothUserNotification,
         device: IOBluetoothDevice
     ) {
         unregisterDisconnectNotification(for: device)
@@ -1021,8 +1023,7 @@ private final class BluetoothAudioMonitor: NSObject {
 
     private func startPolling() {
         pollingTimer?.invalidate()
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: pollingInterval, repeats: true) {
-            [weak self] _ in
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: pollingInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.syncConnectedDevices(showHUDForNewDevices: true)
             }
@@ -1096,7 +1097,8 @@ private final class BluetoothAudioMonitor: NSObject {
 
         let now = Date()
         if let lastPresentedAt = lastPresentedAt[key],
-           now.timeIntervalSince(lastPresentedAt) < presentationCooldown {
+           now.timeIntervalSince(lastPresentedAt) < presentationCooldown
+        {
             return
         }
 
@@ -1184,7 +1186,8 @@ private final class BluetoothAudioMonitor: NSObject {
         let outputDeviceID = currentOutputDeviceID()
         guard outputDeviceID != kAudioObjectUnknown,
               isBluetoothOutputDevice(outputDeviceID),
-              let outputDeviceName = outputDeviceName(outputDeviceID) else {
+              let outputDeviceName = outputDeviceName(outputDeviceID)
+        else {
             return nil
         }
 
@@ -1297,7 +1300,8 @@ private final class BluetoothAudioMonitor: NSObject {
             normalizedName.contains("hands-free") ||
             normalizedName.contains("headphone") ||
             normalizedName.contains("earbuds") ||
-            normalizedName.contains("buds") {
+            normalizedName.contains("buds")
+        {
             return BluetoothAudioKind.headphones.symbolName
         }
 
@@ -1314,7 +1318,8 @@ private final class BluetoothAudioMonitor: NSObject {
 
     private func airPodsSymbol(for device: IOBluetoothDevice, name: String) -> String? {
         if let productID = airPodsProductID(for: device),
-           let symbol = airPodsSymbolByProductID[productID] {
+           let symbol = airPodsSymbolByProductID[productID]
+        {
             return symbol
         }
 
@@ -1333,7 +1338,8 @@ private final class BluetoothAudioMonitor: NSObject {
             normalizedName.contains("gen4") ||
             normalizedName.contains("4th") ||
             normalizedName.contains("airpods 4") ||
-            normalizedName.contains("airpods4") {
+            normalizedName.contains("airpods4")
+        {
             return "airpods.gen4"
         }
 
@@ -1342,7 +1348,8 @@ private final class BluetoothAudioMonitor: NSObject {
             normalizedName.contains("3rd") ||
             normalizedName.contains("third") ||
             normalizedName.contains("airpods 3") ||
-            normalizedName.contains("airpods3") {
+            normalizedName.contains("airpods3")
+        {
             return "airpods.gen3"
         }
 
@@ -1359,7 +1366,7 @@ private final class BluetoothAudioMonitor: NSObject {
             "device_vendorID",
             "DeviceVendorID",
             "VendorId",
-            "Vendor ID"
+            "Vendor ID",
         ]
         let productKeys = [
             "ProductID",
@@ -1368,7 +1375,7 @@ private final class BluetoothAudioMonitor: NSObject {
             "device_productID",
             "DeviceProductID",
             "ProductId",
-            "Product ID"
+            "Product ID",
         ]
 
         let vendorID = extractUInt16(from: payload, keys: vendorKeys)
@@ -1381,7 +1388,8 @@ private final class BluetoothAudioMonitor: NSObject {
 
     private func bluetoothCachePayload(for device: IOBluetoothDevice) -> [String: Any]? {
         guard let preferences = UserDefaults(suiteName: bluetoothPreferencesSuite),
-              let deviceCache = preferences.object(forKey: "DeviceCache") as? [String: Any] else {
+              let deviceCache = preferences.object(forKey: "DeviceCache") as? [String: Any]
+        else {
             return nil
         }
 
@@ -1399,7 +1407,8 @@ private final class BluetoothAudioMonitor: NSObject {
                 ?? normalizedBluetoothAddress(from: payload["Address"])
                 ?? normalizedBluetoothAddress(from: payload["BD_ADDR"])
                 ?? normalizedBluetoothAddress(from: payload["device_address"]),
-               payloadAddress == targetAddress {
+                payloadAddress == targetAddress
+            {
                 return payload
             }
         }
@@ -1425,7 +1434,8 @@ private final class BluetoothAudioMonitor: NSObject {
                     .lowercased()
 
                 if normalizedValue.hasPrefix("0x"),
-                   let parsedValue = UInt16(normalizedValue.dropFirst(2), radix: 16) {
+                   let parsedValue = UInt16(normalizedValue.dropFirst(2), radix: 16)
+                {
                     return parsedValue
                 }
 

@@ -118,8 +118,8 @@ struct ContentView: View {
                         color: closedNotchHoverEffectActive
                             ? .black.opacity(0.72)
                             : (vm.notchState == .open || isHovering)
-                                ? .black.opacity(0.4)
-                                : .clear,
+                            ? .black.opacity(0.4)
+                            : .clear,
                         radius: closedNotchHoverEffectActive ? 16 : 1,
                         y: closedNotchHoverEffectActive ? 4 : 0
                     )
@@ -665,12 +665,12 @@ private struct NotchEscapeKeyHandler: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: EscapeMonitorHostView, context: Context) {
+    func updateNSView(_: EscapeMonitorHostView, context: Context) {
         context.coordinator.isEnabled = isEnabled
         context.coordinator.onEscape = onEscape
     }
 
-    static func dismantleNSView(_ nsView: EscapeMonitorHostView, coordinator: Coordinator) {
+    static func dismantleNSView(_: EscapeMonitorHostView, coordinator: Coordinator) {
         coordinator.stop()
     }
 }
@@ -693,9 +693,9 @@ private extension NotchEscapeKeyHandler {
             guard monitor == nil else { return }
 
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                guard let self, self.isEnabled else { return event }
+                guard let self, isEnabled else { return event }
                 guard Int(event.keyCode) == 53 else { return event }
-                self.onEscape()
+                onEscape()
                 return nil
             }
         }
@@ -729,13 +729,13 @@ private struct TrackpadTabSwitchRegion: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: MonitorHostView, context: Context) {
+    func updateNSView(_: MonitorHostView, context: Context) {
         context.coordinator.isEnabled = isEnabled
         context.coordinator.shouldHandle = shouldHandle
         context.coordinator.onHorizontalSwipe = onHorizontalSwipe
     }
 
-    static func dismantleNSView(_ nsView: MonitorHostView, coordinator: Coordinator) {
+    static func dismantleNSView(_: MonitorHostView, coordinator: Coordinator) {
         coordinator.stop()
     }
 }
@@ -743,7 +743,7 @@ private struct TrackpadTabSwitchRegion: NSViewRepresentable {
 private final class MonitorHostView: NSView {
     weak var coordinator: TrackpadTabSwitchRegion.Coordinator?
 
-    override func hitTest(_ point: NSPoint) -> NSView? {
+    override func hitTest(_: NSPoint) -> NSView? {
         nil
     }
 }

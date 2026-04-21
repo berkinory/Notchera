@@ -50,8 +50,8 @@ final class ClipboardHistoryManager: ObservableObject {
     private var lastChangeCount: Int
     private var pollTask: Task<Void, Never>?
     private var ignoredNextDedupeKey: String?
-    private let maxTextLength = 6_000
-    private let maxSearchTextLength = 1_200
+    private let maxTextLength = 6000
+    private let maxSearchTextLength = 1200
     private let activePollingInterval: Duration = .milliseconds(150)
     private let idlePollingInterval: Duration = .milliseconds(750)
     private let hotWindowDuration: Duration = .seconds(10)

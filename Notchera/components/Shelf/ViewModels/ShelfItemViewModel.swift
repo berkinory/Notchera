@@ -380,9 +380,7 @@ final class ShelfItemViewModel: ObservableObject {
                 break
             }
         }
-
     }
-
 }
 
 private extension Sequence {

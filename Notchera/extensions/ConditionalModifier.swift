@@ -4,7 +4,7 @@ import SwiftUI
 private final class ArrowCursorNSView: NSView {
     private var trackingArea: NSTrackingArea?
 
-    override func hitTest(_ point: NSPoint) -> NSView? {
+    override func hitTest(_: NSPoint) -> NSView? {
         nil
     }
 
@@ -31,21 +31,21 @@ private final class ArrowCursorNSView: NSView {
         addCursorRect(bounds, cursor: .arrow)
     }
 
-    override func cursorUpdate(with event: NSEvent) {
+    override func cursorUpdate(with _: NSEvent) {
         NSCursor.arrow.set()
     }
 
-    override func mouseMoved(with event: NSEvent) {
+    override func mouseMoved(with _: NSEvent) {
         NSCursor.arrow.set()
     }
 }
 
 private struct ArrowCursorRegion: NSViewRepresentable {
-    func makeNSView(context: Context) -> ArrowCursorNSView {
+    func makeNSView(context _: Context) -> ArrowCursorNSView {
         ArrowCursorNSView()
     }
 
-    func updateNSView(_ nsView: ArrowCursorNSView, context: Context) {
+    func updateNSView(_ nsView: ArrowCursorNSView, context _: Context) {
         nsView.window?.invalidateCursorRects(for: nsView)
     }
 }

@@ -583,7 +583,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let updateScreenRecordingMonitoring = {
-            if Defaults[.hudReplacement] && Defaults[.enableScreenRecordingDetection] {
+            if Defaults[.hudReplacement], Defaults[.enableScreenRecordingDetection] {
                 ScreenRecordingManager.shared.startMonitoring()
             } else {
                 ScreenRecordingManager.shared.stopMonitoring()
@@ -638,7 +638,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyDown(for: .commandPalette) { [weak self] in
             Task { [weak self] in
                 guard let self else { return }
-                let target = self.targetWindowAndViewModelForShortcut()
+                let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
                     self.closeNotchTask?.cancel()
@@ -655,7 +655,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyDown(for: .clipboardHistoryPanel) { [weak self] in
             Task { [weak self] in
                 guard let self else { return }
-                let target = self.targetWindowAndViewModelForShortcut()
+                let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
                     self.closeNotchTask?.cancel()
@@ -672,7 +672,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { [weak self] in
                 guard let self else { return }
 
-                let viewModel = self.targetWindowAndViewModelForShortcut().viewModel
+                let viewModel = targetWindowAndViewModelForShortcut().viewModel
 
                 closeNotchTask?.cancel()
                 closeNotchTask = nil

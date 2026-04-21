@@ -3,8 +3,8 @@ import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
 import Network
-import Sparkle
 import Security
+import Sparkle
 import SwiftUI
 import SwiftUIIntrospect
 
@@ -360,7 +360,6 @@ struct HUD: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .disabled(!hudReplacement)
-
         }
         .navigationTitle("HUDs")
         .task {
@@ -857,7 +856,7 @@ struct AIUsageDashboardView: View {
     @Default(.aiUsageShowRemaining) var aiUsageShowRemaining
 
     private let columns = [
-        GridItem(.flexible(), spacing: 10)
+        GridItem(.flexible(), spacing: 10),
     ]
 
     var body: some View {
@@ -1218,7 +1217,7 @@ private struct AddAIUsageAccountSheet: View {
         .padding(20)
         .frame(width: 520)
         .overlay(alignment: .topTrailing) {
-            if loginSession.isBusy && provider == .codex {
+            if loginSession.isBusy, provider == .codex {
                 ProgressView()
                     .controlSize(.small)
                     .padding(16)
@@ -1293,9 +1292,9 @@ enum AIUsageProvider: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .claude:
-            return "Claude"
+            "Claude"
         case .codex:
-            return "Codex"
+            "Codex"
         }
     }
 }
@@ -1536,7 +1535,7 @@ private final class AIUsageCredentialStore {
                 throw AIUsageError.requestFailed("Failed to load credentials (\(status))")
             }
 
-            return .codex(try decoder.decode(CodexStoredCredentials.self, from: data))
+            return try .codex(decoder.decode(CodexStoredCredentials.self, from: data))
         }
     }
 
@@ -1551,7 +1550,7 @@ private final class AIUsageCredentialStore {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: "\(account.provider.rawValue).\(account.id.uuidString)"
+            kSecAttrAccount as String: "\(account.provider.rawValue).\(account.id.uuidString)",
         ]
     }
 }
@@ -1616,13 +1615,13 @@ private actor CodexUsageClient {
     private let usageURL = URL(string: "https://chatgpt.com/backend-api/wham/usage")!
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    init(session _: URLSession = .shared) {
         let configuration = URLSessionConfiguration.default
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.urlCache = nil
         configuration.timeoutIntervalForRequest = 10
         configuration.timeoutIntervalForResource = 15
-        self.session = URLSession(configuration: configuration)
+        session = URLSession(configuration: configuration)
     }
 
     func fetchUsage(credentials: CodexStoredCredentials) async throws -> AIUsageSnapshot {
@@ -1741,7 +1740,7 @@ private final class CodexLoginSession: ObservableObject {
 
         let authState = try await client.startAuthorization()
         self.authState = authState
-        self.authorizationURL = authState.authorizationURL
+        authorizationURL = authState.authorizationURL
         NSWorkspace.shared.open(authState.authorizationURL)
     }
 
@@ -1809,7 +1808,7 @@ private actor CodexBrowserAuthClient {
             URLQueryItem(name: "state", value: state),
             URLQueryItem(name: "id_token_add_organizations", value: "true"),
             URLQueryItem(name: "codex_cli_simplified_flow", value: "true"),
-            URLQueryItem(name: "originator", value: "notchera")
+            URLQueryItem(name: "originator", value: "notchera"),
         ]
 
         guard let authorizationURL = components?.url else {
@@ -1836,7 +1835,7 @@ private actor CodexBrowserAuthClient {
             URLQueryItem(name: "client_id", value: clientID),
             URLQueryItem(name: "code", value: code),
             URLQueryItem(name: "code_verifier", value: state.verifier),
-            URLQueryItem(name: "redirect_uri", value: redirectURL.absoluteString)
+            URLQueryItem(name: "redirect_uri", value: redirectURL.absoluteString),
         ])
 
         let (data, response) = try await session.data(for: request)
@@ -1845,7 +1844,8 @@ private actor CodexBrowserAuthClient {
         let tokenResponse = try JSONDecoder().decode(CodexTokenResponse.self, from: data)
         guard let accessToken = tokenResponse.accessToken,
               let refreshToken = tokenResponse.refreshToken,
-              let expiresIn = tokenResponse.expiresIn else {
+              let expiresIn = tokenResponse.expiresIn
+        else {
             throw AIUsageError.invalidTokenResponse
         }
 
@@ -1874,7 +1874,7 @@ private actor CodexBrowserAuthClient {
     }
 
     private static func makeCodeVerifier() -> String {
-        let bytes = (0..<32).map { _ in UInt8.random(in: .min ... .max) }
+        let bytes = (0 ..< 32).map { _ in UInt8.random(in: .min ... .max) }
         return Data(bytes).base64URLEncodedString()
     }
 
@@ -1926,97 +1926,97 @@ private final class CodexCallbackServer: @unchecked Sendable {
                 return
             }
             let firstLine = request.split(separator: "\r\n").first.map(String.init) ?? request
-            guard let code = Self.extractCode(from: firstLine, expectedState: self.expectedState) else {
+            guard let code = Self.extractCode(from: firstLine, expectedState: expectedState) else {
                 return
             }
-            self.respond(connection: connection)
-            self.finish(.success(code))
+            respond(connection: connection)
+            finish(.success(code))
         }
     }
 
     private func respond(connection: NWConnection) {
         let body = """
-<!doctype html>
-<html lang=\"en\">
-<head>
-<meta charset=\"utf-8\">
-<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-<title>Notchera</title>
-<style>
-:root {
-    color-scheme: dark;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-}
-* {
-    box-sizing: border-box;
-}
-html, body {
-    margin: 0;
-    min-height: 100%;
-    background:
-        radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 36%),
-        linear-gradient(180deg, #151517 0%, #0b0b0c 100%);
-    color: #f5f5f7;
-}
-body {
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 32px;
-}
-.card {
-    width: min(100%, 460px);
-    padding: 32px 30px;
-    border-radius: 24px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 24px 80px rgba(0,0,0,0.38);
-    backdrop-filter: blur(18px);
-    text-align: center;
-}
-.badge {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 18px;
-    border-radius: 18px;
-    display: grid;
-    place-items: center;
-    font-size: 24px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08));
-    border: 1px solid rgba(255,255,255,0.12);
-}
-h1 {
-    margin: 0;
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-}
-p {
-    margin: 10px 0 0;
-    font-size: 15px;
-    line-height: 1.5;
-    color: rgba(245,245,247,0.72);
-}
-.secondary {
-    margin-top: 18px;
-    font-size: 13px;
-    color: rgba(245,245,247,0.48);
-}
-</style>
-</head>
-<body>
-<div class=\"card\">
-    <div class=\"badge\">✓</div>
-    <h1>notchera</h1>
-    <p>successful. your codex account is now connected.</p>
-    <p class=\"secondary\">you can return to the app now.</p>
-</div>
-<script>
-window.close();
-</script>
-</body>
-</html>
-"""
+        <!doctype html>
+        <html lang=\"en\">
+        <head>
+        <meta charset=\"utf-8\">
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+        <title>Notchera</title>
+        <style>
+        :root {
+            color-scheme: dark;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            background:
+                radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 36%),
+                linear-gradient(180deg, #151517 0%, #0b0b0c 100%);
+            color: #f5f5f7;
+        }
+        body {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 32px;
+        }
+        .card {
+            width: min(100%, 460px);
+            padding: 32px 30px;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 24px 80px rgba(0,0,0,0.38);
+            backdrop-filter: blur(18px);
+            text-align: center;
+        }
+        .badge {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 18px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08));
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+        }
+        p {
+            margin: 10px 0 0;
+            font-size: 15px;
+            line-height: 1.5;
+            color: rgba(245,245,247,0.72);
+        }
+        .secondary {
+            margin-top: 18px;
+            font-size: 13px;
+            color: rgba(245,245,247,0.48);
+        }
+        </style>
+        </head>
+        <body>
+        <div class=\"card\">
+            <div class=\"badge\">✓</div>
+            <h1>notchera</h1>
+            <p>successful. your codex account is now connected.</p>
+            <p class=\"secondary\">you can return to the app now.</p>
+        </div>
+        <script>
+        window.close();
+        </script>
+        </body>
+        </html>
+        """
         let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: \(body.utf8.count)\r\nConnection: close\r\n\r\n\(body)"
         connection.send(content: response.data(using: .utf8), completion: .contentProcessed { _ in })
     }
@@ -2033,11 +2033,10 @@ window.close();
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        let raw: String
-        if trimmed.hasPrefix("GET "), let pathComponent = trimmed.split(separator: " ").dropFirst().first {
-            raw = "http://localhost\(pathComponent)"
+        let raw: String = if trimmed.hasPrefix("GET "), let pathComponent = trimmed.split(separator: " ").dropFirst().first {
+            "http://localhost\(pathComponent)"
         } else {
-            raw = trimmed
+            trimmed
         }
 
         guard let url = URL(string: raw), let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
@@ -2097,7 +2096,7 @@ private actor ClaudeCLIClient {
         process.waitUntilExit()
 
         let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(decoding: data, as: UTF8.self)
+        let output = String(bytes: data, encoding: .utf8) ?? ""
 
         guard process.terminationStatus == 0 else {
             throw AIUsageError.requestFailed(output.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -2108,43 +2107,43 @@ private actor ClaudeCLIClient {
 
     private func runPTYUsage(currentDirectoryURL: URL) throws -> String {
         let script = #"""
-import os, pty, subprocess, select, time, sys
-cwd = sys.argv[1]
-master, slave = pty.openpty()
-proc = subprocess.Popen(['claude'], stdin=slave, stdout=slave, stderr=slave, text=False, cwd=cwd)
-os.close(slave)
-out = b''
-def drain(seconds):
-    end = time.time() + seconds
-    global out
-    while time.time() < end:
-        r,_,_ = select.select([master], [], [], 0.2)
-        if master in r:
-            try:
-                data = os.read(master, 4096)
-            except OSError:
-                return
-            if not data:
-                return
-            out += data
-for _ in range(25):
-    drain(0.25)
-    if b'Claude Code' in out or b'/help' in out or b'Welcome back' in out or '❯'.encode() in out:
-        break
-os.write(master, b'/usage\r')
-for _ in range(24):
-    drain(0.25)
-    low = out.lower()
-    if b'current session' in low and b'current week' in low:
-        break
-os.write(master, b'\x03')
-drain(1.0)
-try:
-    proc.terminate()
-except Exception:
-    pass
-sys.stdout.write(out.decode('utf-8', 'ignore'))
-"""#
+        import os, pty, subprocess, select, time, sys
+        cwd = sys.argv[1]
+        master, slave = pty.openpty()
+        proc = subprocess.Popen(['claude'], stdin=slave, stdout=slave, stderr=slave, text=False, cwd=cwd)
+        os.close(slave)
+        out = b''
+        def drain(seconds):
+            end = time.time() + seconds
+            global out
+            while time.time() < end:
+                r,_,_ = select.select([master], [], [], 0.2)
+                if master in r:
+                    try:
+                        data = os.read(master, 4096)
+                    except OSError:
+                        return
+                    if not data:
+                        return
+                    out += data
+        for _ in range(25):
+            drain(0.25)
+            if b'Claude Code' in out or b'/help' in out or b'Welcome back' in out or '❯'.encode() in out:
+                break
+        os.write(master, b'/usage\r')
+        for _ in range(24):
+            drain(0.25)
+            low = out.lower()
+            if b'current session' in low and b'current week' in low:
+                break
+        os.write(master, b'\x03')
+        drain(1.0)
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        sys.stdout.write(out.decode('utf-8', 'ignore'))
+        """#
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
         process.arguments = ["-c", script, currentDirectoryURL.path]
@@ -2158,7 +2157,7 @@ sys.stdout.write(out.decode('utf-8', 'ignore'))
         process.waitUntilExit()
 
         let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(decoding: data, as: UTF8.self)
+        let output = String(bytes: data, encoding: .utf8) ?? ""
 
         guard !output.isEmpty else {
             throw AIUsageError.requestFailed("Failed to read Claude Code usage")
@@ -2185,11 +2184,10 @@ private enum ClaudeUsageParser {
         }
 
         let remainingText = String(compactSource[startRange.lowerBound...])
-        let sectionBody: String
-        if let nextRange = remainingText.dropFirst().range(of: "Current") {
-            sectionBody = String(remainingText[..<nextRange.lowerBound])
+        let sectionBody: String = if let nextRange = remainingText.dropFirst().range(of: "Current") {
+            String(remainingText[..<nextRange.lowerBound])
         } else {
-            sectionBody = remainingText
+            remainingText
         }
 
         let usedPercent = parseCompactPercent(from: sectionBody)
@@ -2207,7 +2205,8 @@ private enum ClaudeUsageParser {
         let range = NSRange(text.startIndex..., in: text)
         guard let match = regex?.firstMatch(in: text, range: range),
               let valueRange = Range(match.range(at: 1), in: text),
-              let value = Double(text[valueRange]) else {
+              let value = Double(text[valueRange])
+        else {
             return 0
         }
         return value
@@ -2234,7 +2233,8 @@ private enum ClaudeUsageParser {
             if let match = regex?.firstMatch(in: matched, range: nsRange),
                let monthRange = Range(match.range(at: 1), in: matched),
                let dayRange = Range(match.range(at: 2), in: matched),
-               let timeRange = Range(match.range(at: 3), in: matched) {
+               let timeRange = Range(match.range(at: 3), in: matched)
+            {
                 let month = monthNumber(String(matched[monthRange]))
                 let day = String(matched[dayRange]).leftPadding(toLength: 2, withPad: "0")
                 let time = String(matched[timeRange]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2255,19 +2255,19 @@ private enum ClaudeUsageParser {
 
     private static func monthNumber(_ month: String) -> String {
         switch month.lowercased() {
-        case "jan": return "01"
-        case "feb": return "02"
-        case "mar": return "03"
-        case "apr": return "04"
-        case "may": return "05"
-        case "jun": return "06"
-        case "jul": return "07"
-        case "aug": return "08"
-        case "sep": return "09"
-        case "oct": return "10"
-        case "nov": return "11"
-        case "dec": return "12"
-        default: return "--"
+        case "jan": "01"
+        case "feb": "02"
+        case "mar": "03"
+        case "apr": "04"
+        case "may": "05"
+        case "jun": "06"
+        case "jul": "07"
+        case "aug": "08"
+        case "sep": "09"
+        case "oct": "10"
+        case "nov": "11"
+        case "dec": "12"
+        default: "--"
         }
     }
 }
@@ -2297,11 +2297,11 @@ private enum AIUsageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "Invalid response from server"
+            "Invalid response from server"
         case .invalidTokenResponse:
-            return "Server returned an incomplete token response"
+            "Server returned an incomplete token response"
         case let .requestFailed(message):
-            return message
+            message
         }
     }
 }

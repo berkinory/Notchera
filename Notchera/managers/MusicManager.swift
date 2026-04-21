@@ -595,7 +595,7 @@ class MusicManager: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
 
-            self.compactIsFlipping = true
+            compactIsFlipping = true
 
             let swapWorkItem = DispatchWorkItem { [weak self] in
                 self?.compactAlbumArt = newAlbumArt
@@ -605,8 +605,8 @@ class MusicManager: ObservableObject {
                 self?.compactIsFlipping = false
             }
 
-            self.compactSwapWorkItem = swapWorkItem
-            self.compactFlipWorkItem = finishWorkItem
+            compactSwapWorkItem = swapWorkItem
+            compactFlipWorkItem = finishWorkItem
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: swapWorkItem)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: finishWorkItem)
@@ -632,19 +632,19 @@ class MusicManager: ObservableObject {
         flipTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
-            withAnimation(self.albumArtFlipAnimation) {
+            withAnimation(albumArtFlipAnimation) {
                 self.flipProgress = 1
             }
 
-            try? await Task.sleep(for: .milliseconds(Int(self.albumArtFlipDuration * 1000)))
+            try? await Task.sleep(for: .milliseconds(Int(albumArtFlipDuration * 1000)))
             guard !Task.isCancelled else { return }
 
-            self.albumArt = newAlbumArt
-            self.calculateAverageColor(for: newAlbumArt)
-            self.pendingAlbumArt = nil
-            self.flipSourceAlbumArt = self.albumArt
-            self.flipProgress = 0
-            self.isFlipping = false
+            albumArt = newAlbumArt
+            calculateAverageColor(for: newAlbumArt)
+            pendingAlbumArt = nil
+            flipSourceAlbumArt = albumArt
+            flipProgress = 0
+            isFlipping = false
         }
     }
 
@@ -656,9 +656,9 @@ class MusicManager: ObservableObject {
 
             await MainActor.run { [weak self] in
                 guard let self else { return }
-                guard self.currentTrackIdentifier == trackIdentifier else { return }
-                guard self.artworkData == nil else { return }
-                self.updateAlbumArt(newAlbumArt: defaultImage)
+                guard currentTrackIdentifier == trackIdentifier else { return }
+                guard artworkData == nil else { return }
+                updateAlbumArt(newAlbumArt: defaultImage)
             }
         }
     }
@@ -808,7 +808,7 @@ class MusicManager: ObservableObject {
                 self.timestampDate = requestedAt
             }
 
-            await self.activeController?.seek(to: clampedPosition)
+            await activeController?.seek(to: clampedPosition)
         }
     }
 

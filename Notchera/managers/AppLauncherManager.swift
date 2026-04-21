@@ -28,7 +28,7 @@ final class AppLauncherManager: ObservableObject {
     private let searchDirectories = [
         URL(fileURLWithPath: "/Applications", isDirectory: true),
         URL(fileURLWithPath: "/System/Applications", isDirectory: true),
-        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true)
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true),
     ]
     private var launchStatsByKey: [String: AppLaunchStats] = [:]
 
@@ -139,21 +139,21 @@ final class AppLauncherManager: ObservableObject {
         let baseScore: Int
 
         if name == query {
-            baseScore = 10_000 - item.displayName.count
+            baseScore = 10000 - item.displayName.count
         } else if item.acronym == query {
-            baseScore = 9_000 - item.displayName.count
+            baseScore = 9000 - item.displayName.count
         } else if item.normalizedWords.contains(where: { $0 == query }) {
-            baseScore = 8_200 - item.displayName.count
+            baseScore = 8200 - item.displayName.count
         } else if item.normalizedWords.contains(where: { $0.hasPrefix(query) }) {
-            baseScore = 7_600 - item.displayName.count
+            baseScore = 7600 - item.displayName.count
         } else if name.hasPrefix(query) {
-            baseScore = 7_000 - item.displayName.count
+            baseScore = 7000 - item.displayName.count
         } else if let range = name.range(of: query) {
             let distanceFromStart = name.distance(from: name.startIndex, to: range.lowerBound)
             let boundaryBonus = distanceFromStart == 0 || name[name.index(before: range.lowerBound)] == " " ? 500 : 0
-            baseScore = 5_600 - distanceFromStart * 8 + boundaryBonus - item.displayName.count
+            baseScore = 5600 - distanceFromStart * 8 + boundaryBonus - item.displayName.count
         } else if let fuzzyScore = fuzzyScore(query: query, candidate: name) {
-            baseScore = 3_000 + fuzzyScore - item.displayName.count
+            baseScore = 3000 + fuzzyScore - item.displayName.count
         } else {
             return 0
         }
@@ -173,7 +173,7 @@ final class AppLauncherManager: ObservableObject {
             switch age {
             case ..<3600:
                 recencyBoost = 320
-            case ..<86_400:
+            case ..<86400:
                 recencyBoost = 240
             case ..<604_800:
                 recencyBoost = 140

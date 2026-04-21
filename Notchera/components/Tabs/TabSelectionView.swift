@@ -15,7 +15,7 @@ var tabs: [TabModel] {
         TabModel(label: "Calendar", icon: "calendar", view: .calendar),
         TabModel(label: "Command", icon: "magnifyingglass", view: .commandPalette),
         TabModel(label: "Clipboard", icon: "doc.on.clipboard", view: .clipboard),
-        TabModel(label: "Shelf", icon: "folder.fill", view: .shelf)
+        TabModel(label: "Shelf", icon: "folder.fill", view: .shelf),
     ]
 
     if Defaults[.enableAIUsage] {
@@ -227,7 +227,7 @@ struct CalendarTabView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .id(visibleDates.map { $0.timeIntervalSinceReferenceDate }.map(Int.init).description)
+            .id(visibleDates.map(\.timeIntervalSinceReferenceDate).map(Int.init).description)
             .transition(
                 .asymmetric(
                     insertion: .offset(x: weekAnimationDirection >= 0 ? 20 : -20).combined(with: .opacity),
@@ -382,7 +382,6 @@ struct CalendarTabView: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
     private func permissionRow(title: String, buttonTitle: String, action: @escaping () -> Void) -> some View {
         HStack(spacing: 10) {
             Text(title)
@@ -445,7 +444,7 @@ struct CalendarTabView: View {
     private func openCalendarSettings() {
         let urls = [
             "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars",
-            "x-apple.systempreferences:com.apple.preferences.users?Privacy_Calendars"
+            "x-apple.systempreferences:com.apple.preferences.users?Privacy_Calendars",
         ]
 
         for rawURL in urls {
@@ -697,7 +696,7 @@ struct ClipboardTabView: View {
         guard let hoveredItemID,
               filteredItems.contains(where: { $0.id == hoveredItemID })
         else {
-            self.hoveredItemID = filteredItems.first?.id
+            hoveredItemID = filteredItems.first?.id
             return
         }
     }
@@ -763,7 +762,7 @@ struct ClipboardTabView: View {
 private struct NotchKeyboardFocusBridge: NSViewRepresentable {
     let isEnabled: Bool
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
             updateWindow(for: view)
@@ -771,7 +770,7 @@ private struct NotchKeyboardFocusBridge: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         DispatchQueue.main.async {
             updateWindow(for: nsView)
         }
@@ -807,7 +806,7 @@ private struct ClipboardKeyboardHandler: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: KeyMonitorHostView, context: Context) {
+    func updateNSView(_: KeyMonitorHostView, context: Context) {
         context.coordinator.isEnabled = isEnabled
         context.coordinator.onMoveUp = onMoveUp
         context.coordinator.onMoveDown = onMoveDown
@@ -815,7 +814,7 @@ private struct ClipboardKeyboardHandler: NSViewRepresentable {
         context.coordinator.onCancel = onCancel
     }
 
-    static func dismantleNSView(_ nsView: KeyMonitorHostView, coordinator: Coordinator) {
+    static func dismantleNSView(_: KeyMonitorHostView, coordinator: Coordinator) {
         coordinator.stop()
     }
 }
@@ -844,20 +843,20 @@ private extension ClipboardKeyboardHandler {
             guard monitor == nil else { return }
 
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                guard let self, self.isEnabled else { return event }
+                guard let self, isEnabled else { return event }
 
                 switch Int(event.keyCode) {
                 case 125:
-                    self.onMoveDown()
+                    onMoveDown()
                     return nil
                 case 126:
-                    self.onMoveUp()
+                    onMoveUp()
                     return nil
                 case 36, 76:
-                    self.onConfirm()
+                    onConfirm()
                     return nil
                 case 53:
-                    self.onCancel()
+                    onCancel()
                     return nil
                 default:
                     return event

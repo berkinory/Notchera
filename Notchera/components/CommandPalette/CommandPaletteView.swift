@@ -162,7 +162,6 @@ struct CommandPaletteView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(maxWidth: .infinity, alignment: .leading)
-
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 9)
@@ -251,7 +250,7 @@ struct CommandPaletteView: View {
 private struct NotchKeyboardFocusBridge: NSViewRepresentable {
     let isEnabled: Bool
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
             updateWindow(for: view)
@@ -259,7 +258,7 @@ private struct NotchKeyboardFocusBridge: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         DispatchQueue.main.async {
             updateWindow(for: nsView)
         }
@@ -310,14 +309,14 @@ private struct CommandPaletteKeyboardHandler: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: CommandPaletteKeyMonitorHostView, context: Context) {
+    func updateNSView(_: CommandPaletteKeyMonitorHostView, context: Context) {
         context.coordinator.isEnabled = isEnabled
         context.coordinator.onMoveUp = onMoveUp
         context.coordinator.onMoveDown = onMoveDown
         context.coordinator.onConfirm = onConfirm
     }
 
-    static func dismantleNSView(_ nsView: CommandPaletteKeyMonitorHostView, coordinator: Coordinator) {
+    static func dismantleNSView(_: CommandPaletteKeyMonitorHostView, coordinator: Coordinator) {
         coordinator.stop()
     }
 }
@@ -344,17 +343,17 @@ private extension CommandPaletteKeyboardHandler {
             guard monitor == nil else { return }
 
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                guard let self, self.isEnabled else { return event }
+                guard let self, isEnabled else { return event }
 
                 switch Int(event.keyCode) {
                 case 125:
-                    self.onMoveDown()
+                    onMoveDown()
                     return nil
                 case 126:
-                    self.onMoveUp()
+                    onMoveUp()
                     return nil
                 case 36, 76:
-                    self.onConfirm()
+                    onConfirm()
                     return nil
                 default:
                     return event
@@ -561,7 +560,7 @@ struct ClipboardResultsView: View {
         guard let hoveredItemID,
               clipboardHistoryManager.items.contains(where: { $0.id == hoveredItemID })
         else {
-            self.hoveredItemID = clipboardHistoryManager.items.first?.id
+            hoveredItemID = clipboardHistoryManager.items.first?.id
             return
         }
     }
@@ -644,7 +643,7 @@ private struct ClipboardKeyboardHandler: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: KeyMonitorHostView, context: Context) {
+    func updateNSView(_: KeyMonitorHostView, context: Context) {
         context.coordinator.isEnabled = isEnabled
         context.coordinator.onMoveUp = onMoveUp
         context.coordinator.onMoveDown = onMoveDown
@@ -652,7 +651,7 @@ private struct ClipboardKeyboardHandler: NSViewRepresentable {
         context.coordinator.onCancel = onCancel
     }
 
-    static func dismantleNSView(_ nsView: KeyMonitorHostView, coordinator: Coordinator) {
+    static func dismantleNSView(_: KeyMonitorHostView, coordinator: Coordinator) {
         coordinator.stop()
     }
 }
@@ -681,20 +680,20 @@ private extension ClipboardKeyboardHandler {
             guard monitor == nil else { return }
 
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                guard let self, self.isEnabled else { return event }
+                guard let self, isEnabled else { return event }
 
                 switch Int(event.keyCode) {
                 case 125:
-                    self.onMoveDown()
+                    onMoveDown()
                     return nil
                 case 126:
-                    self.onMoveUp()
+                    onMoveUp()
                     return nil
                 case 36, 76:
-                    self.onConfirm()
+                    onConfirm()
                     return nil
                 case 53:
-                    self.onCancel()
+                    onCancel()
                     return nil
                 default:
                     return event

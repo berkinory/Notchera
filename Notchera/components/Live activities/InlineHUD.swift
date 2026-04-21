@@ -40,7 +40,7 @@ private struct BluetoothLoopingVideoIcon: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_: NSView, context _: Context) {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -170,11 +170,12 @@ struct WingHUDView: View {
             .padding(.leading, 6)
             .padding(.trailing, 6)
         } else if type == .recording ||
-                    type == .capsLock ||
-                    type == .inputSource ||
-                    type == .focus ||
-                    type == .bluetoothAudio ||
-                    type == .hudEnabled {
+            type == .capsLock ||
+            type == .inputSource ||
+            type == .focus ||
+            type == .bluetoothAudio ||
+            type == .hudEnabled
+        {
             Text(statusText)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -341,7 +342,8 @@ struct WingHUDView: View {
     private var bluetoothAnimationURL: URL? {
         guard type == .bluetoothAudio,
               animateBluetoothAudioIndicator,
-              let assetBaseName = bluetoothAnimationAssetBaseName else {
+              let assetBaseName = bluetoothAnimationAssetBaseName
+        else {
             return nil
         }
 

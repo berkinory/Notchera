@@ -135,7 +135,7 @@ struct FlippingAlbumArtCard: View {
                             .white.opacity(highlightOpacity),
                             .white.opacity(highlightOpacity * 0.28),
                             .clear,
-                            .black.opacity(edgeOnProgress * 0.08)
+                            .black.opacity(edgeOnProgress * 0.08),
                         ],
                         startPoint: phaseProgress < 0.5 ? .topLeading : .topTrailing,
                         endPoint: phaseProgress < 0.5 ? .bottomTrailing : .bottomLeading
@@ -166,13 +166,13 @@ struct FlippingAlbumArtCard: View {
     private func remappedPhase(for progress: Double) -> Double {
         switch progress {
         case ..<0.24:
-            return interpolate(0, 0.14, smoothStep(progress, start: 0, end: 0.24))
+            interpolate(0, 0.14, smoothStep(progress, start: 0, end: 0.24))
         case ..<0.52:
-            return interpolate(0.14, 0.52, smoothStep(progress, start: 0.24, end: 0.52))
+            interpolate(0.14, 0.52, smoothStep(progress, start: 0.24, end: 0.52))
         case ..<0.72:
-            return interpolate(0.52, 0.88, smoothStep(progress, start: 0.52, end: 0.72))
+            interpolate(0.52, 0.88, smoothStep(progress, start: 0.52, end: 0.72))
         default:
-            return interpolate(0.88, 1, smoothStep(progress, start: 0.72, end: 1))
+            interpolate(0.88, 1, smoothStep(progress, start: 0.72, end: 1))
         }
     }
 
@@ -376,7 +376,7 @@ struct MusicControlsView: View {
                 stops: [
                     .init(color: .white, location: 0),
                     .init(color: .white, location: 0.94),
-                    .init(color: .clear, location: 1)
+                    .init(color: .clear, location: 1),
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -556,7 +556,6 @@ struct MusicToolbarRowView: View {
             Color.clear.frame(width: slotWidth, height: 1)
         }
     }
-
 }
 
 struct OptimisticPlayPauseButton: View {
@@ -567,7 +566,9 @@ struct OptimisticPlayPauseButton: View {
     @State private var optimisticGeneration = 0
 
     private let size: CGFloat = 40
-    private var cornerRadius: CGFloat { size * 0.28 }
+    private var cornerRadius: CGFloat {
+        size * 0.28
+    }
 
     private var displayedIsPlaying: Bool {
         optimisticIsPlaying ?? musicManager.isPlaying
@@ -753,7 +754,6 @@ struct MusicSliderView: View {
         timeString(from: max(duration, sliderValue))
     }
 
-    @ViewBuilder
     private func timeLabel(_ value: String, alignment: Alignment) -> some View {
         ZStack(alignment: alignment) {
             Text(timeLabelTemplate)

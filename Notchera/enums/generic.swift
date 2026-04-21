@@ -74,7 +74,7 @@ enum ClipboardHistoryRetention: String, CaseIterable, Identifiable, Defaults.Ser
         case .oneDay:
             86400
         case .oneWeek:
-            604800
+            604_800
         }
     }
 }
