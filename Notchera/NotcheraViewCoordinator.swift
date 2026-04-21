@@ -67,6 +67,8 @@ class NotcheraViewCoordinator: ObservableObject {
     @Published var helloAnimationRunning: Bool = false
     @Published var clipboardKeyboardNavigationActive: Bool = false
     @Published var notchKeyboardDismissActive: Bool = false
+    @Published var commandPaletteModule: CommandPaletteModule = .appLauncher
+    @Published var commandPaletteQuery: String = ""
     private let hudHidePollInterval: Duration = .milliseconds(100)
     private var hudEnableTask: Task<Void, Never>?
     private var hudHideTask: Task<Void, Never>?
@@ -132,6 +134,27 @@ class NotcheraViewCoordinator: ObservableObject {
     func showViewWithoutRemembering(_ view: NotchViews) {
         suppressRememberedViewUpdate = true
         currentView = view
+    }
+
+    func prepareCommandPalette(module: CommandPaletteModule, rememberView: Bool = true) {
+        commandPaletteModule = module
+        commandPaletteQuery = ""
+
+        if rememberView {
+            currentView = .commandPalette
+        } else {
+            showViewWithoutRemembering(.commandPalette)
+        }
+    }
+
+    func showCommandPaletteAppLauncher() {
+        commandPaletteModule = .appLauncher
+        commandPaletteQuery = ""
+    }
+
+    func showCommandPaletteClipboard() {
+        commandPaletteModule = .clipboard
+        commandPaletteQuery = ""
     }
 
     private init() {

@@ -355,6 +355,9 @@ struct ContentView: View {
                     case .aiUsage:
                         AIUsageDashboardView()
                             .transition(.opacity)
+                    case .commandPalette:
+                        CommandPaletteView()
+                            .transition(.opacity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

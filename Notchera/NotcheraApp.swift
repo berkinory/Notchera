@@ -635,6 +635,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.endClipboardKeyboardFocus(shouldCloseNotch: shouldCloseNotch)
         }
 
+        KeyboardShortcuts.onKeyDown(for: .commandPalette) { [weak self] in
+            Task { [weak self] in
+                guard let self else { return }
+                let target = self.targetWindowAndViewModelForShortcut()
+
+                await MainActor.run {
+                    self.closeNotchTask?.cancel()
+                    self.closeNotchTask = nil
+                    self.coordinator.clipboardKeyboardNavigationActive = true
+                    self.coordinator.notchKeyboardDismissActive = true
+                    self.coordinator.prepareCommandPalette(module: .appLauncher, rememberView: false)
+                    target.viewModel.open(forceView: .commandPalette, rememberForcedView: false)
+                    self.beginClipboardKeyboardFocus(on: target.window, viewModel: target.viewModel)
+                }
+            }
+        }
+
         KeyboardShortcuts.onKeyDown(for: .clipboardHistoryPanel) { [weak self] in
             Task { [weak self] in
                 guard let self else { return }

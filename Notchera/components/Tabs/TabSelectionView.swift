@@ -13,6 +13,7 @@ var tabs: [TabModel] {
     var items = [
         TabModel(label: "Music", icon: "music.note", view: .home),
         TabModel(label: "Calendar", icon: "calendar", view: .calendar),
+        TabModel(label: "Command", icon: "magnifyingglass", view: .commandPalette),
         TabModel(label: "Clipboard", icon: "doc.on.clipboard", view: .clipboard),
         TabModel(label: "Shelf", icon: "folder.fill", view: .shelf)
     ]
@@ -465,37 +466,42 @@ struct ClipboardTabView: View {
     @State private var pendingScrollAnchor: UnitPoint = .center
     @State private var copiedItemID: ClipboardHistoryItem.ID?
     @State private var copyResetTask: Task<Void, Never>?
+    @State private var query: String = ""
+    @FocusState private var isSearchFieldFocused: Bool
+
+    private var filteredItems: [ClipboardHistoryItem] {
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalizedQuery.isEmpty else { return clipboardHistoryManager.items }
+
+        return clipboardHistoryManager.items.filter { item in
+            searchableText(for: item).contains(normalizedQuery)
+        }
+    }
 
     private var itemIDs: [ClipboardHistoryItem.ID] {
-        clipboardHistoryManager.items.map(\.id)
+        filteredItems.map(\.id)
     }
 
     private var keyboardNavigationEnabled: Bool {
-        coordinator.currentView == .clipboard && coordinator.clipboardKeyboardNavigationActive
-    }
-
-    private var itemCountText: String {
-        let count = clipboardHistoryManager.items.count
-
-        switch count {
-        case 1:
-            return "1 Item"
-        default:
-            return "\(count) Items"
-        }
+        coordinator.currentView == .clipboard
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(itemCountText)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.secondary.opacity(0.7))
+            TextField("Search clipboard", text: $query)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white)
+                .padding(.leading, 10)
+                .padding(.trailing, 6)
+                .frame(height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                )
+                .focused($isSearchFieldFocused)
 
-                Spacer(minLength: 0)
-            }
-
-            if clipboardHistoryManager.items.isEmpty {
+            if filteredItems.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "doc.on.clipboard")
                         .font(.system(size: 18, weight: .medium))
@@ -510,11 +516,12 @@ struct ClipboardTabView: View {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
                         LazyVStack(spacing: 6) {
-                            ForEach(clipboardHistoryManager.items) { item in
+                            ForEach(filteredItems) { item in
                                 clipboardRow(for: item)
                                     .id(item.id)
                             }
                         }
+                        .padding(.trailing, 2)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .onAppear {
@@ -526,7 +533,8 @@ struct ClipboardTabView: View {
                 }
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.leading, 10)
+        .padding(.trailing, 4)
         .padding(.top, 2)
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -543,12 +551,21 @@ struct ClipboardTabView: View {
             clipboardHistoryManager.pruneExpiredItems()
             pendingScrollAnchor = .center
             selectFirstItemIfNeeded()
+            DispatchQueue.main.async {
+                isSearchFieldFocused = true
+            }
         }
         .onChange(of: retention) { _, _ in
             clipboardHistoryManager.pruneExpiredItems()
         }
         .onChange(of: coordinator.currentView) { _, newValue in
             guard newValue == .clipboard else { return }
+            selectFirstItemIfNeeded(force: true)
+            DispatchQueue.main.async {
+                isSearchFieldFocused = true
+            }
+        }
+        .onChange(of: query) { _, _ in
             selectFirstItemIfNeeded(force: true)
         }
         .onChange(of: itemIDs) { _, _ in
@@ -588,7 +605,8 @@ struct ClipboardTabView: View {
                     .animation(.easeOut(duration: 0.18), value: isHovered)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 9)
+            .padding(.leading, 9)
+            .padding(.trailing, 6)
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -616,6 +634,15 @@ struct ClipboardTabView: View {
 
         guard !firstLine.isEmpty else { return content.replacingOccurrences(of: "\n", with: " ") }
         return lines.count > 1 ? "\(firstLine)..." : firstLine
+    }
+
+    private func searchableText(for item: ClipboardHistoryItem) -> String {
+        switch item.kind {
+        case let .text(content):
+            content.lowercased()
+        case let .file(path):
+            path.lowercased()
+        }
     }
 
     private func trimmedFileName(_ fileName: String) -> String {
@@ -649,34 +676,34 @@ struct ClipboardTabView: View {
     }
 
     private func selectFirstItemIfNeeded(force: Bool = false) {
-        guard !clipboardHistoryManager.items.isEmpty else {
+        guard !filteredItems.isEmpty else {
             hoveredItemID = nil
             return
         }
 
         if force || hoveredItemID == nil {
-            hoveredItemID = clipboardHistoryManager.items.first?.id
+            hoveredItemID = filteredItems.first?.id
         }
     }
 
     private func syncHoveredItem() {
-        guard !clipboardHistoryManager.items.isEmpty else {
+        guard !filteredItems.isEmpty else {
             hoveredItemID = nil
             return
         }
 
         guard let hoveredItemID,
-              clipboardHistoryManager.items.contains(where: { $0.id == hoveredItemID })
+              filteredItems.contains(where: { $0.id == hoveredItemID })
         else {
-            self.hoveredItemID = clipboardHistoryManager.items.first?.id
+            self.hoveredItemID = filteredItems.first?.id
             return
         }
     }
 
     private func moveSelection(by offset: Int) {
-        guard !clipboardHistoryManager.items.isEmpty else { return }
+        guard !filteredItems.isEmpty else { return }
 
-        let items = clipboardHistoryManager.items
+        let items = filteredItems
         let currentIndex = items.firstIndex(where: { $0.id == hoveredItemID }) ?? 0
         let nextIndex = min(max(currentIndex + offset, 0), items.count - 1)
         let nextItemID = items[nextIndex].id
@@ -707,7 +734,7 @@ struct ClipboardTabView: View {
 
     private func copyHoveredItem() {
         guard let hoveredItemID,
-              let item = clipboardHistoryManager.items.first(where: { $0.id == hoveredItemID })
+              let item = filteredItems.first(where: { $0.id == hoveredItemID })
         else {
             return
         }
@@ -826,7 +853,11 @@ struct TabSelectionView: View {
             ForEach(tabs) { tab in
                 TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
                     withAnimation(.smooth) {
-                        coordinator.currentView = tab.view
+                        if tab.view == .commandPalette {
+                            coordinator.prepareCommandPalette(module: .appLauncher, rememberView: true)
+                        } else {
+                            coordinator.currentView = tab.view
+                        }
                     }
                 }
             }

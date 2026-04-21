@@ -722,6 +722,7 @@ struct Shortcuts: View {
     var body: some View {
         Form {
             Section {
+                KeyboardShortcuts.Recorder("Open Command Palette:", name: .commandPalette)
                 KeyboardShortcuts.Recorder("Open Clipboard Manager:", name: .clipboardHistoryPanel)
                 KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
             }

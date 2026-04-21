@@ -23,6 +23,12 @@ public enum NotchViews: String {
     case clipboard
     case shelf
     case aiUsage
+    case commandPalette
+}
+
+public enum CommandPaletteModule {
+    case appLauncher
+    case clipboard
 }
 
 enum SettingsEnum {
