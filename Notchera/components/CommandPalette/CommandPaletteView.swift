@@ -212,7 +212,6 @@ struct CommandPaletteView: View {
             )
         }
 
-        rows.append(contentsOf: powerActionRows(for: query))
         rows.append(contentsOf: preventSleepRows(for: query))
 
         if query.isEmpty {
@@ -236,14 +235,14 @@ struct CommandPaletteView: View {
         let isRelevant = query.isEmpty || matches(query, aliases: aliases)
         guard isRelevant else { return [] }
 
-        var rows: [ScoredCommandPaletteRow] = [
+        let rows: [ScoredCommandPaletteRow] = [
             .init(
                 score: scoredCommandBase(query: query, aliases: aliases, baseScore: 9600, usageKey: "prevent-sleep.toggle", emptyScore: 8600),
                 row: CommandPaletteRootRow(
                     id: "action.prevent-sleep.toggle",
                     title: preventSleepManager.isActive ? "Disable Prevent Sleep" : "Enable Prevent Sleep",
                     subtitle: stateSubtitle,
-                    icon: preventSleepManager.isActive ? "moon.zzz.fill" : "wake.circle",
+                    icon: preventSleepManager.isActive ? "poweroutlet.type.b.fill" : "poweroutlet.type.g.fill",
                     appItem: nil,
                     action: .togglePreventSleep,
                     usageKey: "prevent-sleep.toggle"
@@ -251,76 +250,7 @@ struct CommandPaletteView: View {
             )
         ]
 
-        if let duration = PreventSleepDurationParser.parse(query) {
-            rows.append(
-                .init(
-                    score: 9500,
-                    row: CommandPaletteRootRow(
-                        id: "action.prevent-sleep.duration.\(duration.duration)",
-                        title: "Enable Prevent Sleep for \(duration.label)",
-                        subtitle: stateSubtitle,
-                        icon: "timer",
-                        appItem: nil,
-                        action: .enablePreventSleep(duration: duration.duration),
-                        usageKey: "prevent-sleep.duration.\(Int(duration.duration))"
-                    )
-                )
-            )
-        } else if query.isEmpty {
-            rows.append(contentsOf: [
-                presetPreventSleepRow(minutes: 30, score: 8500),
-                presetPreventSleepRow(minutes: 60, score: 8400),
-            ])
-        }
-
         return rows
-    }
-
-    private func presetPreventSleepRow(minutes: Int, score: Int) -> ScoredCommandPaletteRow {
-        let duration = TimeInterval(minutes * 60)
-        let label = PreventSleepDurationParser.label(for: duration)
-
-        return .init(
-            score: score,
-            row: CommandPaletteRootRow(
-                id: "action.prevent-sleep.preset.\(minutes)",
-                title: "Enable Prevent Sleep for \(label)",
-                subtitle: preventSleepManager.statusText,
-                icon: "timer",
-                appItem: nil,
-                action: .enablePreventSleep(duration: duration),
-                usageKey: "prevent-sleep.duration.\(Int(duration))"
-            )
-        )
-    }
-
-    private func powerActionRows(for query: String) -> [ScoredCommandPaletteRow] {
-        let actions: [(id: String, title: String, subtitle: String, icon: String, aliases: [String], action: CommandPaletteAction, priority: Int)] = [
-            ("lock", "Lock Screen", "Lock this Mac immediately", "lock.fill", ["lock", "lock screen", "screen lock"], .lockScreen, 9000),
-            ("sleep", "Sleep", "Put this Mac to sleep", "moon.fill", ["sleep", "sleep mac", "sleep computer"], .sleepMac, 8900),
-            ("quit-all", "Quit All Apps", "Quit every foreground app except Notchera", "xmark.app.fill", ["quit all", "quit all apps", "close all apps"], .quitAllApps, 8800),
-            ("shutdown", "Shut Down", "Shut down this Mac", "power", ["shutdown", "shut down", "power off"], .shutDown, 8700),
-            ("restart", "Restart", "Restart this Mac", "arrow.clockwise.circle.fill", ["restart", "reboot"], .restartMac, 8600),
-        ]
-
-        return actions.compactMap { definition in
-            let usageKey = "power.\(definition.id)"
-            let score = scoredCommandBase(query: query, aliases: definition.aliases, baseScore: definition.priority, usageKey: usageKey, emptyScore: definition.priority)
-            guard score > 0 else { return nil }
-
-            return .init(
-                score: score,
-                row: CommandPaletteRootRow(
-                    id: "action.power.\(definition.id)",
-                    title: definition.title,
-                    subtitle: definition.subtitle,
-                    icon: definition.icon,
-                    appItem: nil,
-                    action: definition.action,
-                    usageKey: usageKey
-                )
-            )
-        }
     }
 
     private func matches(_ query: String, aliases: [String]) -> Bool {
@@ -467,21 +397,6 @@ struct CommandPaletteView: View {
         case let .enablePreventSleep(duration):
             preventSleepManager.enable(for: duration)
             closePalette()
-        case .lockScreen:
-            closePalette()
-            await SystemCommandRunner.lockScreen()
-        case .sleepMac:
-            closePalette()
-            await SystemCommandRunner.sleepMac()
-        case .quitAllApps:
-            closePalette()
-            await SystemCommandRunner.quitAllApps()
-        case .shutDown:
-            closePalette()
-            await SystemCommandRunner.shutDown()
-        case .restartMac:
-            closePalette()
-            await SystemCommandRunner.restart()
         }
     }
 
@@ -700,11 +615,6 @@ private enum CommandPaletteAction {
     case copyToClipboard(String)
     case togglePreventSleep
     case enablePreventSleep(duration: TimeInterval)
-    case lockScreen
-    case sleepMac
-    case quitAllApps
-    case shutDown
-    case restartMac
 }
 
 @MainActor
@@ -727,7 +637,7 @@ final class PreventSleepManager: ObservableObject {
         guard let expiresAt else { return "Currently on" }
 
         let remaining = max(0, expiresAt.timeIntervalSinceNow)
-        return "On for \(PreventSleepDurationParser.label(for: remaining)) more"
+        return "On for \(durationLabel(for: remaining)) more"
     }
 
     func toggle() {
@@ -820,65 +730,55 @@ final class PreventSleepManager: ObservableObject {
         Defaults[.preventSleepEnabled] = isActive
         Defaults[.preventSleepExpiresAt] = expiresAt?.timeIntervalSince1970
     }
-}
 
-private enum PreventSleepDurationParser {
-    static func parse(_ query: String) -> (duration: TimeInterval, label: String)? {
-        let pattern = #"(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)"#
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
-
-        let nsRange = NSRange(query.startIndex..., in: query)
-        guard let match = regex.firstMatch(in: query, options: [], range: nsRange), match.numberOfRanges == 3,
-              let valueRange = Range(match.range(at: 1), in: query),
-              let unitRange = Range(match.range(at: 2), in: query),
-              let value = Int(query[valueRange])
-        else {
-            return nil
-        }
-
-        let unit = query[unitRange].lowercased()
-        let duration: TimeInterval
-
-        switch unit {
-        case "h", "hr", "hrs", "hour", "hours":
-            duration = TimeInterval(value * 3600)
-        default:
-            duration = TimeInterval(value * 60)
-        }
-
-        guard duration > 0 else { return nil }
-        return (duration, label(for: duration))
-    }
-
-    static func label(for duration: TimeInterval) -> String {
+    private func durationLabel(for duration: TimeInterval) -> String {
         let roundedDuration = max(60, Int(duration.rounded()))
         let hours = roundedDuration / 3600
         let minutes = (roundedDuration % 3600) / 60
 
         if roundedDuration >= 3600, minutes == 0 {
-            return "\(hours)h"
+            return "\(hours)H"
         }
 
         if roundedDuration < 3600 {
-            return "\(max(1, roundedDuration / 60))m"
+            return "\(max(1, roundedDuration / 60))M"
         }
 
-        return "\(hours)h \(minutes)m"
+        return "\(hours)H \(minutes)M"
     }
 }
 
 private enum CalculatorEvaluator {
     static func evaluate(_ expression: String) -> CalculatorResult? {
-        guard expression.contains(where: { "+-*/()%".contains($0) || $0.isNumber }) else { return nil }
+        let trimmedExpression = expression.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedExpression.isEmpty else { return nil }
+        guard shouldTreatAsCalculation(trimmedExpression) else { return nil }
 
         do {
-            var parser = Parser(input: expression)
+            var parser = Parser(input: trimmedExpression)
             let value = try parser.parse()
             guard value.isFinite else { return nil }
             return CalculatorResult(value: value)
         } catch {
             return nil
         }
+    }
+
+    private static func shouldTreatAsCalculation(_ value: String) -> Bool {
+        let characters = Array(value)
+        guard characters.contains(where: { $0.isNumber }) else { return false }
+
+        let operatorCount = characters.filter { "+-*/()%".contains($0) }.count
+        if operatorCount > 0 {
+            return true
+        }
+
+        if value.contains("(") || value.contains(")") {
+            return true
+        }
+
+        let decimalSeparatorCount = characters.filter { $0 == "." }.count
+        return decimalSeparatorCount == 1 && characters.allSatisfy { $0.isNumber || $0 == "." }
     }
 
     struct CalculatorResult {
@@ -1003,57 +903,6 @@ private enum CalculatorEvaluator {
 
     private enum ParserError: Error {
         case invalidExpression
-    }
-}
-
-private enum SystemCommandRunner {
-    static func lockScreen() async {
-        let path = "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession"
-        _ = try? await runProcess(path: path, arguments: ["-suspend"])
-    }
-
-    static func sleepMac() async {
-        try? await AppleScriptHelper.executeVoid("tell application \"System Events\" to sleep")
-    }
-
-    static func quitAllApps() async {
-        let script = """
-        tell application \"System Events\"
-            set visibleApps to every application process whose background only is false and name is not \"Notchera\"
-            repeat with appProcess in visibleApps
-                try
-                    tell application (name of appProcess) to quit
-                end try
-            end repeat
-        end tell
-        """
-        try? await AppleScriptHelper.executeVoid(script)
-    }
-
-    static func shutDown() async {
-        try? await AppleScriptHelper.executeVoid("tell application \"System Events\" to shut down")
-    }
-
-    static func restart() async {
-        try? await AppleScriptHelper.executeVoid("tell application \"System Events\" to restart")
-    }
-
-    private static func runProcess(path: String, arguments: [String]) async throws -> Int32 {
-        try await withCheckedThrowingContinuation { continuation in
-            Task.detached(priority: .userInitiated) {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: path)
-                process.arguments = arguments
-
-                do {
-                    try process.run()
-                    process.waitUntilExit()
-                    continuation.resume(returning: process.terminationStatus)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
     }
 }
 
