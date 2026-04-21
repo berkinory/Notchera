@@ -543,7 +543,7 @@ struct ClipboardTabView: View {
         .padding(.leading, 10)
         .padding(.trailing, 4)
         .padding(.top, 0)
-        .padding(.bottom, 6)
+        .padding(.bottom, 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background {
             ClipboardKeyboardHandler(

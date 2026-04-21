@@ -62,7 +62,8 @@ final class AppLauncherManager: ObservableObject {
                 let standardizedPath = url.standardizedFileURL.path
                 guard seenPaths.insert(standardizedPath).inserted else { continue }
 
-                let resolvedName = values.localizedName ?? url.deletingPathExtension().lastPathComponent
+                let resolvedName = (values.localizedName ?? url.deletingPathExtension().lastPathComponent)
+                    .replacingOccurrences(of: ".app", with: "", options: [.caseInsensitive, .backwards])
                 let icon = NSWorkspace.shared.icon(forFile: standardizedPath)
                 icon.size = NSSize(width: 64, height: 64)
 
