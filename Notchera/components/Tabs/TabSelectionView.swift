@@ -466,7 +466,7 @@ struct ClipboardTabView: View {
     @Default(.clipboardHistoryRetention) private var retention
     @State private var hoveredItemID: ClipboardHistoryItem.ID?
     @State private var pendingScrollItemID: ClipboardHistoryItem.ID?
-    @State private var pendingScrollAnchor: UnitPoint = .center
+    @State private var pendingScrollAnchor: UnitPoint = .top
     @State private var copiedItemID: ClipboardHistoryItem.ID?
     @State private var copyResetTask: Task<Void, Never>?
     @State private var query: String = ""
@@ -562,7 +562,7 @@ struct ClipboardTabView: View {
         }
         .onAppear {
             clipboardHistoryManager.pruneExpiredItems()
-            pendingScrollAnchor = .center
+            pendingScrollAnchor = .top
             selectFirstItemIfNeeded()
             DispatchQueue.main.async {
                 isSearchFieldFocused = true
@@ -711,14 +711,17 @@ struct ClipboardTabView: View {
         let items = filteredItems
         let currentIndex = items.firstIndex(where: { $0.id == hoveredItemID }) ?? 0
         let nextIndex = min(max(currentIndex + offset, 0), items.count - 1)
-        hoveredItemID = items[nextIndex].id
+        let nextItemID = items[nextIndex].id
+        hoveredItemID = nextItemID
+        pendingScrollAnchor = offset > 0 ? .bottom : .top
+        pendingScrollItemID = nextItemID
     }
 
     private func scrollToHoveredItem(with proxy: ScrollViewProxy, animated: Bool = true) {
         guard let hoveredItemID else { return }
 
         let action = {
-            proxy.scrollTo(hoveredItemID, anchor: pendingScrollAnchor)
+            proxy.scrollTo(hoveredItemID)
         }
 
         if animated {

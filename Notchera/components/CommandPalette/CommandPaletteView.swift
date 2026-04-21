@@ -1,31 +1,41 @@
 import AppKit
 import Defaults
+import IOKit.pwr_mgt
 import SwiftUI
 
 struct CommandPaletteView: View {
     @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
     @ObservedObject private var appLauncher = AppLauncherManager.shared
+    @ObservedObject private var preventSleepManager = PreventSleepManager.shared
     @FocusState private var isSearchFieldFocused: Bool
     @State private var selectedRowID: String?
     @State private var pendingScrollRowID: String?
-    @State private var pendingScrollAnchor: UnitPoint = .center
+    @State private var pendingScrollAnchor: UnitPoint = .top
+
+    private var trimmedQuery: String {
+        coordinator.commandPaletteQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     private var appResults: [AppLauncherItem] {
-        let query = coordinator.commandPaletteQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return [] }
-        return appLauncher.filteredItems(for: query)
+        guard !trimmedQuery.isEmpty else { return [] }
+        return appLauncher.filteredItems(for: trimmedQuery)
     }
 
     private var rootRows: [CommandPaletteRootRow] {
-        appResults.map {
+        var rows = commandRows(for: trimmedQuery)
+
+        rows.append(contentsOf: appResults.map {
             CommandPaletteRootRow(
                 id: "app.\($0.url.path)",
                 title: $0.displayName,
                 subtitle: $0.url.path,
                 icon: nil,
-                appItem: $0
+                appItem: $0,
+                action: nil
             )
-        }
+        })
+
+        return rows
     }
 
     private var rootRowIDs: [String] {
@@ -55,6 +65,7 @@ struct CommandPaletteView: View {
         }
         .onAppear {
             appLauncher.loadIfNeeded()
+            _ = preventSleepManager
             syncSelection(force: true)
             DispatchQueue.main.async {
                 isSearchFieldFocused = true
@@ -76,13 +87,13 @@ struct CommandPaletteView: View {
 
     private var input: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
+            Image(systemName: "command")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Color.secondary.opacity(0.72))
                 .frame(width: 12)
 
             TextField(
-                "Search apps",
+                "Search apps and commands",
                 text: Binding(
                     get: { coordinator.commandPaletteQuery },
                     set: { coordinator.commandPaletteQuery = $0 }
@@ -106,7 +117,7 @@ struct CommandPaletteView: View {
     private var content: some View {
         if rootRows.isEmpty {
             VStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
+                Image(systemName: "command")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(Color.secondary.opacity(0.72))
 
@@ -181,6 +192,195 @@ struct CommandPaletteView: View {
         }
     }
 
+    private func commandRows(for query: String) -> [CommandPaletteRootRow] {
+        var rows: [ScoredCommandPaletteRow] = []
+
+        if let calculatorResult = CalculatorEvaluator.evaluate(query), !query.isEmpty {
+            rows.append(
+                .init(
+                    score: 20_000 + commandUsageBoost(for: "calculator.copy-result"),
+                    row: CommandPaletteRootRow(
+                        id: "calculator.\(calculatorResult.displayValue)",
+                        title: calculatorResult.displayValue,
+                        subtitle: "Copy result",
+                        icon: "equal",
+                        appItem: nil,
+                        action: .copyToClipboard(calculatorResult.displayValue),
+                        usageKey: "calculator.copy-result"
+                    )
+                )
+            )
+        }
+
+        rows.append(contentsOf: powerActionRows(for: query))
+        rows.append(contentsOf: preventSleepRows(for: query))
+
+        if query.isEmpty {
+            return rows.map(\.row)
+        }
+
+        return rows
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score {
+                    return lhs.score > rhs.score
+                }
+
+                return lhs.row.title.localizedCaseInsensitiveCompare(rhs.row.title) == .orderedAscending
+            }
+            .map(\.row)
+    }
+
+    private func preventSleepRows(for query: String) -> [ScoredCommandPaletteRow] {
+        let stateSubtitle = preventSleepManager.statusText
+        let aliases = ["prevent sleep", "awake", "caffeine", "caffeinate", "sleep", "insomnia"]
+        let isRelevant = query.isEmpty || matches(query, aliases: aliases)
+        guard isRelevant else { return [] }
+
+        var rows: [ScoredCommandPaletteRow] = [
+            .init(
+                score: scoredCommandBase(query: query, aliases: aliases, baseScore: 9600, usageKey: "prevent-sleep.toggle", emptyScore: 8600),
+                row: CommandPaletteRootRow(
+                    id: "action.prevent-sleep.toggle",
+                    title: preventSleepManager.isActive ? "Disable Prevent Sleep" : "Enable Prevent Sleep",
+                    subtitle: stateSubtitle,
+                    icon: preventSleepManager.isActive ? "moon.zzz.fill" : "wake.circle",
+                    appItem: nil,
+                    action: .togglePreventSleep,
+                    usageKey: "prevent-sleep.toggle"
+                )
+            )
+        ]
+
+        if let duration = PreventSleepDurationParser.parse(query) {
+            rows.append(
+                .init(
+                    score: 9500,
+                    row: CommandPaletteRootRow(
+                        id: "action.prevent-sleep.duration.\(duration.duration)",
+                        title: "Enable Prevent Sleep for \(duration.label)",
+                        subtitle: stateSubtitle,
+                        icon: "timer",
+                        appItem: nil,
+                        action: .enablePreventSleep(duration: duration.duration),
+                        usageKey: "prevent-sleep.duration.\(Int(duration.duration))"
+                    )
+                )
+            )
+        } else if query.isEmpty {
+            rows.append(contentsOf: [
+                presetPreventSleepRow(minutes: 30, score: 8500),
+                presetPreventSleepRow(minutes: 60, score: 8400),
+            ])
+        }
+
+        return rows
+    }
+
+    private func presetPreventSleepRow(minutes: Int, score: Int) -> ScoredCommandPaletteRow {
+        let duration = TimeInterval(minutes * 60)
+        let label = PreventSleepDurationParser.label(for: duration)
+
+        return .init(
+            score: score,
+            row: CommandPaletteRootRow(
+                id: "action.prevent-sleep.preset.\(minutes)",
+                title: "Enable Prevent Sleep for \(label)",
+                subtitle: preventSleepManager.statusText,
+                icon: "timer",
+                appItem: nil,
+                action: .enablePreventSleep(duration: duration),
+                usageKey: "prevent-sleep.duration.\(Int(duration))"
+            )
+        )
+    }
+
+    private func powerActionRows(for query: String) -> [ScoredCommandPaletteRow] {
+        let actions: [(id: String, title: String, subtitle: String, icon: String, aliases: [String], action: CommandPaletteAction, priority: Int)] = [
+            ("lock", "Lock Screen", "Lock this Mac immediately", "lock.fill", ["lock", "lock screen", "screen lock"], .lockScreen, 9000),
+            ("sleep", "Sleep", "Put this Mac to sleep", "moon.fill", ["sleep", "sleep mac", "sleep computer"], .sleepMac, 8900),
+            ("quit-all", "Quit All Apps", "Quit every foreground app except Notchera", "xmark.app.fill", ["quit all", "quit all apps", "close all apps"], .quitAllApps, 8800),
+            ("shutdown", "Shut Down", "Shut down this Mac", "power", ["shutdown", "shut down", "power off"], .shutDown, 8700),
+            ("restart", "Restart", "Restart this Mac", "arrow.clockwise.circle.fill", ["restart", "reboot"], .restartMac, 8600),
+        ]
+
+        return actions.compactMap { definition in
+            let usageKey = "power.\(definition.id)"
+            let score = scoredCommandBase(query: query, aliases: definition.aliases, baseScore: definition.priority, usageKey: usageKey, emptyScore: definition.priority)
+            guard score > 0 else { return nil }
+
+            return .init(
+                score: score,
+                row: CommandPaletteRootRow(
+                    id: "action.power.\(definition.id)",
+                    title: definition.title,
+                    subtitle: definition.subtitle,
+                    icon: definition.icon,
+                    appItem: nil,
+                    action: definition.action,
+                    usageKey: usageKey
+                )
+            )
+        }
+    }
+
+    private func matches(_ query: String, aliases: [String]) -> Bool {
+        score(query: query, aliases: aliases, baseScore: 1) > 0
+    }
+
+    private func scoredCommandBase(query: String, aliases: [String], baseScore: Int, usageKey: String, emptyScore: Int) -> Int {
+        if query.isEmpty {
+            return emptyScore
+        }
+
+        let matchedScore = score(query: query, aliases: aliases, baseScore: baseScore)
+        guard matchedScore > 0 else { return 0 }
+        return matchedScore + commandUsageBoost(for: usageKey)
+    }
+
+    private func commandUsageBoost(for usageKey: String) -> Int {
+        CommandPaletteUsageManager.shared.usageBoost(for: usageKey)
+    }
+
+    private func score(query: String, aliases: [String], baseScore: Int) -> Int {
+        guard !aliases.isEmpty else { return 0 }
+        guard !query.isEmpty else { return baseScore }
+
+        let normalizedQuery = normalize(query)
+        guard !normalizedQuery.isEmpty else { return baseScore }
+
+        let normalizedAliases = aliases.map(normalize)
+
+        if normalizedAliases.contains(normalizedQuery) {
+            return baseScore + 700
+        }
+
+        if normalizedAliases.contains(where: { $0.hasPrefix(normalizedQuery) }) {
+            return baseScore + 420
+        }
+
+        if normalizedAliases.contains(where: { $0.contains(normalizedQuery) }) {
+            return baseScore + 260
+        }
+
+        let queryParts = normalizedQuery.split(separator: " ").map(String.init)
+        if queryParts.allSatisfy({ part in
+            normalizedAliases.contains(where: { $0.contains(part) })
+        }) {
+            return baseScore + 120
+        }
+
+        return 0
+    }
+
+    private func normalize(_ value: String) -> String {
+        value
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+            .split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+            .joined(separator: " ")
+    }
+
     private func syncSelection(force: Bool = false) {
         guard !rootRows.isEmpty else {
             selectedRowID = nil
@@ -212,7 +412,7 @@ struct CommandPaletteView: View {
         guard let selectedRowID else { return }
 
         let action = {
-            proxy.scrollTo(selectedRowID, anchor: pendingScrollAnchor)
+            proxy.scrollTo(selectedRowID)
         }
 
         if animated {
@@ -229,16 +429,63 @@ struct CommandPaletteView: View {
     }
 
     private func activate(_ row: CommandPaletteRootRow) {
-        guard let appItem = row.appItem else { return }
-
-        NSWorkspace.shared.openApplication(at: appItem.url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
-            if error == nil {
-                Task { @MainActor in
-                    appLauncher.recordLaunch(for: appItem)
+        if let appItem = row.appItem {
+            NSWorkspace.shared.openApplication(at: appItem.url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
+                if error == nil {
+                    Task { @MainActor in
+                        appLauncher.recordLaunch(for: appItem)
+                    }
                 }
             }
+
+            closePalette()
+            return
         }
 
+        guard let action = row.action else { return }
+
+        if let usageKey = row.usageKey {
+            CommandPaletteUsageManager.shared.recordUse(for: usageKey)
+        }
+
+        Task { @MainActor in
+            await perform(action)
+        }
+    }
+
+    @MainActor
+    private func perform(_ action: CommandPaletteAction) async {
+        switch action {
+        case let .copyToClipboard(value):
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(value, forType: .string)
+            closePalette()
+        case .togglePreventSleep:
+            preventSleepManager.toggle()
+            closePalette()
+        case let .enablePreventSleep(duration):
+            preventSleepManager.enable(for: duration)
+            closePalette()
+        case .lockScreen:
+            closePalette()
+            await SystemCommandRunner.lockScreen()
+        case .sleepMac:
+            closePalette()
+            await SystemCommandRunner.sleepMac()
+        case .quitAllApps:
+            closePalette()
+            await SystemCommandRunner.quitAllApps()
+        case .shutDown:
+            closePalette()
+            await SystemCommandRunner.shutDown()
+        case .restartMac:
+            closePalette()
+            await SystemCommandRunner.restart()
+        }
+    }
+
+    private func closePalette() {
         NotificationCenter.default.post(
             name: .endClipboardKeyboardNavigation,
             object: nil,
@@ -283,13 +530,17 @@ private struct CommandPaletteRootRow: Identifiable {
     let subtitle: String?
     let icon: String?
     let appItem: AppLauncherItem?
+    let action: CommandPaletteAction?
+    let usageKey: String?
 
-    init(id: String, title: String, subtitle: String?, icon: String?, appItem: AppLauncherItem? = nil) {
+    init(id: String, title: String, subtitle: String?, icon: String?, appItem: AppLauncherItem? = nil, action: CommandPaletteAction? = nil, usageKey: String? = nil) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
         self.icon = icon
         self.appItem = appItem
+        self.action = action
+        self.usageKey = usageKey
     }
 }
 
@@ -370,6 +621,442 @@ private extension CommandPaletteKeyboardHandler {
     }
 }
 
+private struct ScoredCommandPaletteRow {
+    let score: Int
+    let row: CommandPaletteRootRow
+}
+
+private struct CommandPaletteUsageStats: Codable {
+    var useCount: Int = 0
+    var lastUsedAt: Date?
+}
+
+@MainActor
+private final class CommandPaletteUsageManager {
+    static let shared = CommandPaletteUsageManager()
+
+    private var statsByKey: [String: CommandPaletteUsageStats] = [:]
+
+    private var storageURL: URL {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent(bundleIdentifier, isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("command-palette-usage.json")
+    }
+
+    private init() {
+        load()
+    }
+
+    func recordUse(for usageKey: String) {
+        var stats = statsByKey[usageKey] ?? .init()
+        stats.useCount += 1
+        stats.lastUsedAt = .now
+        statsByKey[usageKey] = stats
+        save()
+    }
+
+    func usageBoost(for usageKey: String) -> Int {
+        guard let stats = statsByKey[usageKey] else { return 0 }
+
+        let countBoost = min(stats.useCount * 18, 220)
+        let recencyBoost: Int
+
+        if let lastUsedAt = stats.lastUsedAt {
+            let age = Date().timeIntervalSince(lastUsedAt)
+
+            switch age {
+            case ..<3600:
+                recencyBoost = 320
+            case ..<86400:
+                recencyBoost = 240
+            case ..<604_800:
+                recencyBoost = 140
+            case ..<2_592_000:
+                recencyBoost = 60
+            default:
+                recencyBoost = 0
+            }
+        } else {
+            recencyBoost = 0
+        }
+
+        return min(countBoost + recencyBoost, 420)
+    }
+
+    private func load() {
+        guard let data = try? Data(contentsOf: storageURL) else { return }
+        guard let decoded = try? JSONDecoder().decode([String: CommandPaletteUsageStats].self, from: data) else { return }
+        statsByKey = decoded
+    }
+
+    private func save() {
+        guard let data = try? JSONEncoder().encode(statsByKey) else { return }
+        try? data.write(to: storageURL, options: .atomic)
+    }
+}
+
+private enum CommandPaletteAction {
+    case copyToClipboard(String)
+    case togglePreventSleep
+    case enablePreventSleep(duration: TimeInterval)
+    case lockScreen
+    case sleepMac
+    case quitAllApps
+    case shutDown
+    case restartMac
+}
+
+@MainActor
+final class PreventSleepManager: ObservableObject {
+    static let shared = PreventSleepManager()
+
+    @Published private(set) var isActive = false
+    @Published private(set) var expiresAt: Date?
+
+    private var idleSleepAssertionID: IOPMAssertionID = 0
+    private var displaySleepAssertionID: IOPMAssertionID = 0
+    private var expiryTask: Task<Void, Never>?
+
+    private init() {
+        restoreIfNeeded()
+    }
+
+    var statusText: String {
+        guard isActive else { return "Currently off" }
+        guard let expiresAt else { return "Currently on" }
+
+        let remaining = max(0, expiresAt.timeIntervalSinceNow)
+        return "On for \(PreventSleepDurationParser.label(for: remaining)) more"
+    }
+
+    func toggle() {
+        isActive ? disable() : enable(for: nil)
+    }
+
+    func enable(for duration: TimeInterval?) {
+        disableAssertions()
+        createAssertions()
+
+        let clampedDuration = duration.map { max(1, $0) }
+        let nextExpiry = clampedDuration.map { Date().addingTimeInterval($0) }
+
+        isActive = true
+        expiresAt = nextExpiry
+        persistState()
+        scheduleExpiryIfNeeded()
+    }
+
+    func disable() {
+        expiryTask?.cancel()
+        expiryTask = nil
+        disableAssertions()
+        isActive = false
+        expiresAt = nil
+        persistState()
+    }
+
+    private func restoreIfNeeded() {
+        guard Defaults[.preventSleepEnabled] else { return }
+
+        let storedExpiry = Defaults[.preventSleepExpiresAt].flatMap { timestamp in
+            timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : nil
+        }
+
+        if let storedExpiry, storedExpiry <= .now {
+            Defaults[.preventSleepEnabled] = false
+            Defaults[.preventSleepExpiresAt] = nil
+            return
+        }
+
+        let remainingDuration = storedExpiry.map { $0.timeIntervalSinceNow }
+        enable(for: remainingDuration)
+    }
+
+    private func createAssertions() {
+        let assertionName = "Notchera Prevent Sleep" as CFString
+        IOPMAssertionCreateWithName(kIOPMAssertionTypeNoIdleSleep as CFString, IOPMAssertionLevel(kIOPMAssertionLevelOn), assertionName, &idleSleepAssertionID)
+        IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep as CFString, IOPMAssertionLevel(kIOPMAssertionLevelOn), assertionName, &displaySleepAssertionID)
+    }
+
+    private func disableAssertions() {
+        if idleSleepAssertionID != 0 {
+            IOPMAssertionRelease(idleSleepAssertionID)
+            idleSleepAssertionID = 0
+        }
+
+        if displaySleepAssertionID != 0 {
+            IOPMAssertionRelease(displaySleepAssertionID)
+            displaySleepAssertionID = 0
+        }
+    }
+
+    private func scheduleExpiryIfNeeded() {
+        expiryTask?.cancel()
+        expiryTask = nil
+
+        guard let expiresAt else { return }
+
+        expiryTask = Task { [weak self] in
+            while !Task.isCancelled {
+                let remaining = expiresAt.timeIntervalSinceNow
+                if remaining <= 0 {
+                    await MainActor.run {
+                        self?.disable()
+                    }
+                    return
+                }
+
+                try? await Task.sleep(for: .seconds(1))
+                await MainActor.run {
+                    guard let self, self.isActive else { return }
+                    self.objectWillChange.send()
+                }
+            }
+        }
+    }
+
+    private func persistState() {
+        Defaults[.preventSleepEnabled] = isActive
+        Defaults[.preventSleepExpiresAt] = expiresAt?.timeIntervalSince1970
+    }
+}
+
+private enum PreventSleepDurationParser {
+    static func parse(_ query: String) -> (duration: TimeInterval, label: String)? {
+        let pattern = #"(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+
+        let nsRange = NSRange(query.startIndex..., in: query)
+        guard let match = regex.firstMatch(in: query, options: [], range: nsRange), match.numberOfRanges == 3,
+              let valueRange = Range(match.range(at: 1), in: query),
+              let unitRange = Range(match.range(at: 2), in: query),
+              let value = Int(query[valueRange])
+        else {
+            return nil
+        }
+
+        let unit = query[unitRange].lowercased()
+        let duration: TimeInterval
+
+        switch unit {
+        case "h", "hr", "hrs", "hour", "hours":
+            duration = TimeInterval(value * 3600)
+        default:
+            duration = TimeInterval(value * 60)
+        }
+
+        guard duration > 0 else { return nil }
+        return (duration, label(for: duration))
+    }
+
+    static func label(for duration: TimeInterval) -> String {
+        let roundedDuration = max(60, Int(duration.rounded()))
+        let hours = roundedDuration / 3600
+        let minutes = (roundedDuration % 3600) / 60
+
+        if roundedDuration >= 3600, minutes == 0 {
+            return "\(hours)h"
+        }
+
+        if roundedDuration < 3600 {
+            return "\(max(1, roundedDuration / 60))m"
+        }
+
+        return "\(hours)h \(minutes)m"
+    }
+}
+
+private enum CalculatorEvaluator {
+    static func evaluate(_ expression: String) -> CalculatorResult? {
+        guard expression.contains(where: { "+-*/()%".contains($0) || $0.isNumber }) else { return nil }
+
+        do {
+            var parser = Parser(input: expression)
+            let value = try parser.parse()
+            guard value.isFinite else { return nil }
+            return CalculatorResult(value: value)
+        } catch {
+            return nil
+        }
+    }
+
+    struct CalculatorResult {
+        let value: Double
+
+        var displayValue: String {
+            if value.rounded(.towardZero) == value {
+                return String(Int64(value))
+            }
+
+            return value.formatted(.number.precision(.fractionLength(0 ... 8)))
+        }
+    }
+
+    private struct Parser {
+        let input: [Character]
+        var index = 0
+
+        init(input: String) {
+            self.input = Array(input.filter { !$0.isWhitespace })
+        }
+
+        mutating func parse() throws -> Double {
+            guard !input.isEmpty else { throw ParserError.invalidExpression }
+            let value = try parseExpression()
+            guard index == input.count else { throw ParserError.invalidExpression }
+            return value
+        }
+
+        private mutating func parseExpression() throws -> Double {
+            var value = try parseTerm()
+
+            while let token = currentToken {
+                if token == "+" {
+                    index += 1
+                    value += try parseTerm()
+                } else if token == "-" {
+                    index += 1
+                    value -= try parseTerm()
+                } else {
+                    break
+                }
+            }
+
+            return value
+        }
+
+        private mutating func parseTerm() throws -> Double {
+            var value = try parseFactor()
+
+            while let token = currentToken {
+                if token == "*" {
+                    index += 1
+                    value *= try parseFactor()
+                } else if token == "/" {
+                    index += 1
+                    value /= try parseFactor()
+                } else if token == "%" {
+                    index += 1
+                    value.formTruncatingRemainder(dividingBy: try parseFactor())
+                } else {
+                    break
+                }
+            }
+
+            return value
+        }
+
+        private mutating func parseFactor() throws -> Double {
+            guard let token = currentToken else { throw ParserError.invalidExpression }
+
+            if token == "+" {
+                index += 1
+                return try parseFactor()
+            }
+
+            if token == "-" {
+                index += 1
+                return -(try parseFactor())
+            }
+
+            if token == "(" {
+                index += 1
+                let value = try parseExpression()
+                guard currentToken == ")" else { throw ParserError.invalidExpression }
+                index += 1
+                return value
+            }
+
+            return try parseNumber()
+        }
+
+        private mutating func parseNumber() throws -> Double {
+            let startIndex = index
+            var hasDecimalPoint = false
+
+            while let token = currentToken {
+                if token.isNumber {
+                    index += 1
+                    continue
+                }
+
+                if token == ".", !hasDecimalPoint {
+                    hasDecimalPoint = true
+                    index += 1
+                    continue
+                }
+
+                break
+            }
+
+            guard startIndex != index else { throw ParserError.invalidExpression }
+            let stringValue = String(input[startIndex ..< index])
+            guard let value = Double(stringValue) else { throw ParserError.invalidExpression }
+            return value
+        }
+
+        private var currentToken: Character? {
+            index < input.count ? input[index] : nil
+        }
+    }
+
+    private enum ParserError: Error {
+        case invalidExpression
+    }
+}
+
+private enum SystemCommandRunner {
+    static func lockScreen() async {
+        let path = "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession"
+        _ = try? await runProcess(path: path, arguments: ["-suspend"])
+    }
+
+    static func sleepMac() async {
+        try? await AppleScriptHelper.executeVoid("tell application \"System Events\" to sleep")
+    }
+
+    static func quitAllApps() async {
+        let script = """
+        tell application \"System Events\"
+            set visibleApps to every application process whose background only is false and name is not \"Notchera\"
+            repeat with appProcess in visibleApps
+                try
+                    tell application (name of appProcess) to quit
+                end try
+            end repeat
+        end tell
+        """
+        try? await AppleScriptHelper.executeVoid(script)
+    }
+
+    static func shutDown() async {
+        try? await AppleScriptHelper.executeVoid("tell application \"System Events\" to shut down")
+    }
+
+    static func restart() async {
+        try? await AppleScriptHelper.executeVoid("tell application \"System Events\" to restart")
+    }
+
+    private static func runProcess(path: String, arguments: [String]) async throws -> Int32 {
+        try await withCheckedThrowingContinuation { continuation in
+            Task.detached(priority: .userInitiated) {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: path)
+                process.arguments = arguments
+
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    continuation.resume(returning: process.terminationStatus)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+}
+
 struct ClipboardResultsView: View {
     let isActive: Bool
 
@@ -378,7 +1065,7 @@ struct ClipboardResultsView: View {
     @Default(.clipboardHistoryRetention) private var retention
     @State private var hoveredItemID: ClipboardHistoryItem.ID?
     @State private var pendingScrollItemID: ClipboardHistoryItem.ID?
-    @State private var pendingScrollAnchor: UnitPoint = .center
+    @State private var pendingScrollAnchor: UnitPoint = .top
     @State private var copiedItemID: ClipboardHistoryItem.ID?
     @State private var copyResetTask: Task<Void, Never>?
 
@@ -434,7 +1121,7 @@ struct ClipboardResultsView: View {
         }
         .onAppear {
             clipboardHistoryManager.pruneExpiredItems()
-            pendingScrollAnchor = .center
+            pendingScrollAnchor = .top
             selectFirstItemIfNeeded()
         }
         .onChange(of: retention) { _, _ in
@@ -581,7 +1268,7 @@ struct ClipboardResultsView: View {
         guard let hoveredItemID else { return }
 
         let action = {
-            proxy.scrollTo(hoveredItemID, anchor: pendingScrollAnchor)
+            proxy.scrollTo(hoveredItemID)
         }
 
         if animated {

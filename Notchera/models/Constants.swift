@@ -90,6 +90,8 @@ extension Defaults.Keys {
     static let enableClipboardHistory = Key<Bool>("enableClipboardHistory", default: true)
     static let clipboardHistoryRetention = Key<ClipboardHistoryRetention>("clipboardHistoryRetention", default: .oneWeek)
     static let clipboardHistoryMaxStoredItems = Key<Int>("clipboardHistoryMaxStoredItems", default: 50)
+    static let preventSleepEnabled = Key<Bool>("preventSleepEnabled", default: false)
+    static let preventSleepExpiresAt = Key<Double?>("preventSleepExpiresAt", default: nil)
 
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
 

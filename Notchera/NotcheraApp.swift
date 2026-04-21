@@ -592,6 +592,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         updateScreenRecordingMonitoring()
         ClipboardHistoryManager.shared.startMonitoring()
+        _ = PreventSleepManager.shared
 
         Defaults.publisher(.enableClipboardHistory)
             .map(\.newValue)
