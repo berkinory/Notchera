@@ -605,6 +605,15 @@ struct ClipboardSettings: View {
                     .foregroundStyle(.secondary)
             }
             .disabled(!enableClipboardHistory)
+
+            Section {
+                Button(role: .destructive) {
+                    ClipboardHistoryManager.shared.clear()
+                } label: {
+                    Text("Clear clipboard history")
+                }
+            }
+            .disabled(!enableClipboardHistory)
         }
         .navigationTitle("Clipboard")
     }
@@ -852,39 +861,37 @@ struct AIUsageDashboardView: View {
     var body: some View {
         Group {
             if store.accounts.isEmpty {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Color.white.opacity(0.78))
+                VStack(spacing: 10) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Color.secondary.opacity(0.72))
 
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("No accounts")
-                                .font(.system(size: 12, weight: .semibold))
+                    VStack(spacing: 3) {
+                        Text("No accounts yet")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
 
-                            Text("Add Codex or Claude in Settings.")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        Spacer(minLength: 8)
-
-                        Button {
-                            SettingsWindowController.shared.showWindow()
-                        } label: {
-                            Label("Settings", systemImage: "gearshape")
-                                .font(.system(size: 10, weight: .semibold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
-                                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
+                        Text("Add Codex or Claude accounts in Settings.")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.secondary.opacity(0.78))
+                            .multilineTextAlignment(.center)
                     }
+
+                    Button {
+                        SettingsWindowController.shared.showWindow()
+                    } label: {
+                        Label("Open Settings", systemImage: "gearshape")
+                            .font(.system(size: 10, weight: .semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 8)
+                .padding(.top, 2)
+                .padding(.bottom, 6)
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {

@@ -486,7 +486,7 @@ struct ClipboardTabView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(itemCountText)
                     .font(.system(size: 11, weight: .medium))
@@ -509,7 +509,7 @@ struct ClipboardTabView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 8) {
+                        LazyVStack(spacing: 6) {
                             ForEach(clipboardHistoryManager.items) { item in
                                 clipboardRow(for: item)
                                     .id(item.id)
@@ -526,9 +526,9 @@ struct ClipboardTabView: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 4)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 10)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background {
             ClipboardKeyboardHandler(
