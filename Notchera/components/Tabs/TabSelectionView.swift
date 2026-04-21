@@ -16,7 +16,7 @@ var tabs: [TabModel] {
     var items = [
         TabModel(label: "Music", icon: "music.note", view: .home),
         TabModel(label: "Calendar", icon: "calendar", view: .calendar),
-        TabModel(label: "Launcher", icon: "magnifyingglass", view: .commandPalette),
+        TabModel(label: "Launcher", icon: "command", view: .commandPalette),
         TabModel(label: "Clipboard", icon: "doc.on.clipboard", view: .clipboard),
     ]
 
