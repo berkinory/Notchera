@@ -116,7 +116,7 @@ struct CalendarTabView: View {
                 weekStrip
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 12)
         .padding(.top, 4)
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -295,17 +295,10 @@ struct CalendarTabView: View {
         let isCurrentDay = calendar.isDate(normalizedDate, inSameDayAs: currentDay)
         let hasEvents = eventDates.contains(normalizedDate)
         let isHovered = hoveredDate.map { calendar.isDate($0, inSameDayAs: normalizedDate) } ?? false
-        let fillColor: Color = {
-            if isCurrentDay {
-                return Color.white.opacity(0.16)
-            }
-
-            if isHovered {
-                return Color.white.opacity(0.1)
-            }
-
-            return Color.white.opacity(0.06)
-        }()
+        let isHighlighted = isCurrentDay || isHovered
+        let fillColor: Color = isCurrentDay
+            ? Color.white.opacity(0.16)
+            : Color.white.opacity(0.1)
 
         return Button {
             showSelectedDay(normalizedDate)
@@ -325,12 +318,14 @@ struct CalendarTabView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(isHighlighted ? AnyShape(RoundedRectangle(cornerRadius: 10, style: .continuous)) : AnyShape(Rectangle()))
         }
         .buttonStyle(.plain)
         .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(fillColor)
+            if isHighlighted {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(fillColor)
+            }
         }
         .scaleEffect(isHovered && !isCurrentDay ? 1.02 : 1)
         .animation(.easeOut(duration: 0.14), value: isHovered)
