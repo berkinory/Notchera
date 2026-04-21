@@ -644,12 +644,7 @@ struct ClipboardTabView: View {
     }
 
     private func searchableText(for item: ClipboardHistoryItem) -> String {
-        switch item.kind {
-        case let .text(content):
-            content.lowercased()
-        case let .file(path):
-            path.lowercased()
-        }
+        item.searchText
     }
 
     private func trimmedFileName(_ fileName: String) -> String {

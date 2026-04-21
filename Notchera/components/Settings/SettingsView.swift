@@ -588,7 +588,7 @@ struct ClipboardSettings: View {
                     ClipboardHistoryManager.shared.pruneExpiredItems()
                 }
 
-                Stepper(value: $clipboardHistoryMaxStoredItems, in: 1 ... 25) {
+                Stepper(value: $clipboardHistoryMaxStoredItems, in: 1 ... 100) {
                     HStack {
                         Text("Max stored items")
                         Spacer()
@@ -600,7 +600,7 @@ struct ClipboardSettings: View {
                     ClipboardHistoryManager.shared.pruneExpiredItems()
                 }
             } footer: {
-                Text("Clipboard history stores copied text locally on this Mac. Folders, multi-file copies, and very large text are ignored.")
+                Text("Clipboard history stores copied text locally on this Mac. Folders, multi-file copies, and text longer than 6,000 characters are ignored.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

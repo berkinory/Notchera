@@ -89,7 +89,7 @@ extension Defaults.Keys {
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: true)
     static let enableClipboardHistory = Key<Bool>("enableClipboardHistory", default: true)
     static let clipboardHistoryRetention = Key<ClipboardHistoryRetention>("clipboardHistoryRetention", default: .oneWeek)
-    static let clipboardHistoryMaxStoredItems = Key<Int>("clipboardHistoryMaxStoredItems", default: 15)
+    static let clipboardHistoryMaxStoredItems = Key<Int>("clipboardHistoryMaxStoredItems", default: 50)
 
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
 

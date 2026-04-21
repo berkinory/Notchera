@@ -11,11 +11,15 @@ struct ClipboardHistoryItem: Identifiable, Codable, Hashable {
     let id: UUID
     let kind: ClipboardHistoryItemKind
     let copiedAt: Date
+    let searchText: String
+    let dedupeKey: String
 
-    init(id: UUID = UUID(), kind: ClipboardHistoryItemKind, copiedAt: Date = .now) {
+    init(id: UUID = UUID(), kind: ClipboardHistoryItemKind, copiedAt: Date = .now, searchText: String, dedupeKey: String) {
         self.id = id
         self.kind = kind
         self.copiedAt = copiedAt
+        self.searchText = searchText
+        self.dedupeKey = dedupeKey
     }
 
     var displayText: String {
@@ -44,12 +48,19 @@ final class ClipboardHistoryManager: ObservableObject {
 
     private let pasteboard = NSPasteboard.general
     private var lastChangeCount: Int
-    private var timer: Timer?
-    private var ignoredNextItem: ClipboardHistoryItemKind?
-    private let maxTextLength = 8_000
+    private var pollTask: Task<Void, Never>?
+    private var ignoredNextDedupeKey: String?
+    private let maxTextLength = 6_000
+    private let maxSearchTextLength = 1_200
+    private let activePollingInterval: Duration = .milliseconds(150)
+    private let idlePollingInterval: Duration = .milliseconds(750)
+    private let hotWindowDuration: Duration = .seconds(10)
+    private var hotPollingUntil: ContinuousClock.Instant?
+    private let clock = ContinuousClock()
+    private var saveTask: Task<Void, Never>?
 
     private var maxStoredItems: Int {
-        min(max(Defaults[.clipboardHistoryMaxStoredItems], 1), 25)
+        min(max(Defaults[.clipboardHistoryMaxStoredItems], 1), 100)
     }
 
     private var storageURL: URL {
@@ -66,31 +77,36 @@ final class ClipboardHistoryManager: ObservableObject {
     }
 
     deinit {
-        timer?.invalidate()
+        pollTask?.cancel()
+        saveTask?.cancel()
     }
 
     func startMonitoring() {
         guard Defaults[.enableClipboardHistory] else { return }
-        guard timer == nil else { return }
+        guard pollTask == nil else { return }
 
-        timer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.pollPasteboard()
+        pollTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            while !Task.isCancelled {
+                pollPasteboardIfNeeded()
+
+                let interval = isHotPollingActive ? activePollingInterval : idlePollingInterval
+                try? await Task.sleep(for: interval)
             }
-        }
-
-        if let timer {
-            RunLoop.main.add(timer, forMode: .common)
         }
     }
 
     func stopMonitoring() {
-        timer?.invalidate()
-        timer = nil
+        pollTask?.cancel()
+        pollTask = nil
+        saveTask?.cancel()
+        saveTask = nil
+        hotPollingUntil = nil
     }
 
     func copy(_ item: ClipboardHistoryItem) {
-        ignoredNextItem = item.kind
+        ignoredNextDedupeKey = item.dedupeKey
         pasteboard.clearContents()
 
         switch item.kind {
@@ -101,27 +117,38 @@ final class ClipboardHistoryManager: ObservableObject {
         }
 
         lastChangeCount = pasteboard.changeCount
+        bumpHotPollingWindow()
     }
 
     func clear() {
         items = []
-        save()
+        scheduleSave()
     }
 
     func pruneExpiredItems() {
         let cutoffDate = Date().addingTimeInterval(-Defaults[.clipboardHistoryRetention].timeInterval)
-        let prunedItems = items
-            .filter { $0.copiedAt >= cutoffDate }
-            .sorted { $0.copiedAt > $1.copiedAt }
-            .prefix(maxStoredItems)
+        let nextItems = Array(
+            items
+                .filter { $0.copiedAt >= cutoffDate }
+                .sorted { $0.copiedAt > $1.copiedAt }
+                .prefix(maxStoredItems)
+        )
 
-        let nextItems = Array(prunedItems)
         guard nextItems != items else { return }
         items = nextItems
-        save()
+        scheduleSave()
     }
 
-    private func pollPasteboard() {
+    private var isHotPollingActive: Bool {
+        guard let hotPollingUntil else { return false }
+        return clock.now < hotPollingUntil
+    }
+
+    private func bumpHotPollingWindow() {
+        hotPollingUntil = clock.now.advanced(by: hotWindowDuration)
+    }
+
+    private func pollPasteboardIfNeeded() {
         guard Defaults[.enableClipboardHistory] else { return }
         guard pasteboard.changeCount != lastChangeCount else {
             pruneExpiredItems()
@@ -129,23 +156,34 @@ final class ClipboardHistoryManager: ObservableObject {
         }
 
         lastChangeCount = pasteboard.changeCount
+        bumpHotPollingWindow()
 
-        guard let itemKind = readCurrentPasteboardItemKind() else {
+        guard let item = readCurrentPasteboardItem() else {
             return
         }
 
-        if ignoredNextItem == itemKind {
-            ignoredNextItem = nil
+        if ignoredNextDedupeKey == item.dedupeKey {
+            ignoredNextDedupeKey = nil
             return
         }
 
-        items.insert(ClipboardHistoryItem(kind: itemKind), at: 0)
-        items = Array(items.prefix(maxStoredItems))
-        pruneExpiredItems()
-        save()
+        ignoredNextDedupeKey = nil
+        insert(item)
     }
 
-    private func readCurrentPasteboardItemKind() -> ClipboardHistoryItemKind? {
+    private func insert(_ item: ClipboardHistoryItem) {
+        let cutoffDate = Date().addingTimeInterval(-Defaults[.clipboardHistoryRetention].timeInterval)
+
+        items.removeAll { existingItem in
+            existingItem.dedupeKey == item.dedupeKey || existingItem.copiedAt < cutoffDate
+        }
+
+        items.insert(item, at: 0)
+        items = Array(items.prefix(maxStoredItems))
+        scheduleSave()
+    }
+
+    private func readCurrentPasteboardItem() -> ClipboardHistoryItem? {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL], !urls.isEmpty {
             guard urls.count == 1, let url = urls.first, url.isFileURL else {
                 return nil
@@ -156,7 +194,12 @@ final class ClipboardHistoryManager: ObservableObject {
                 return nil
             }
 
-            return .file(path: url.path)
+            let path = url.path
+            return ClipboardHistoryItem(
+                kind: .file(path: path),
+                searchText: makeFileSearchText(for: path),
+                dedupeKey: "file:\(path.standardizedForClipboardSearch)"
+            )
         }
 
         guard let copiedString = pasteboard.string(forType: .string)?
@@ -167,7 +210,20 @@ final class ClipboardHistoryManager: ObservableObject {
             return nil
         }
 
-        return .text(copiedString)
+        let normalizedText = copiedString.standardizedForClipboardSearch
+
+        return ClipboardHistoryItem(
+            kind: .text(copiedString),
+            searchText: String(normalizedText.prefix(maxSearchTextLength)),
+            dedupeKey: "text:\(normalizedText)"
+        )
+    }
+
+    private func makeFileSearchText(for path: String) -> String {
+        let url = URL(fileURLWithPath: path)
+        let fileName = url.lastPathComponent
+        let joined = "\(fileName) \(path)"
+        return String(joined.standardizedForClipboardSearch.prefix(maxSearchTextLength))
     }
 
     private func load() {
@@ -176,8 +232,27 @@ final class ClipboardHistoryManager: ObservableObject {
         items = decoded.sorted { $0.copiedAt > $1.copiedAt }
     }
 
-    private func save() {
-        guard let data = try? JSONEncoder().encode(items) else { return }
-        try? data.write(to: storageURL, options: .atomic)
+    private func scheduleSave() {
+        saveTask?.cancel()
+        let snapshot = items
+
+        saveTask = Task.detached(priority: .utility) { [storageURL] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard let data = try? JSONEncoder().encode(snapshot) else { return }
+            try? data.write(to: storageURL, options: .atomic)
+        }
+    }
+}
+
+private extension String {
+    var standardizedForClipboardSearch: String {
+        let folded = folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+
+        let pieces = folded.split { character in
+            !character.isLetter && !character.isNumber
+        }
+
+        return pieces.joined(separator: " ")
     }
 }
