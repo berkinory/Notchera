@@ -103,10 +103,10 @@ class NotcheraSkyLightWindow: NSPanel {
     }
 
     override var canBecomeKey: Bool {
-        clipboardKeyboardFocusEnabled
+        false
     }
 
     override var canBecomeMain: Bool {
-        clipboardKeyboardFocusEnabled
+        false
     }
 }

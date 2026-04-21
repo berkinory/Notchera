@@ -7,7 +7,6 @@ struct CommandPaletteView: View {
     @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
     @ObservedObject private var appLauncher = AppLauncherManager.shared
     @ObservedObject private var preventSleepManager = PreventSleepManager.shared
-    @FocusState private var isSearchFieldFocused: Bool
     @State private var selectedRowID: String?
     @State private var pendingScrollRowID: String?
     @State private var pendingScrollAnchor: UnitPoint = .top
@@ -52,36 +51,55 @@ struct CommandPaletteView: View {
         .padding(.top, 0)
         .padding(.bottom, 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background {
-            CommandPaletteKeyboardHandler(
-                isEnabled: coordinator.currentView == .commandPalette,
-                onMoveUp: { moveSelection(by: -1) },
-                onMoveDown: { moveSelection(by: 1) },
-                onConfirm: { confirmSelection() }
-            )
-        }
-        .background {
-            NotchKeyboardFocusBridge(isEnabled: coordinator.currentView == .commandPalette)
-        }
         .onAppear {
             appLauncher.loadIfNeeded()
             _ = preventSleepManager
             syncSelection(force: true)
-            DispatchQueue.main.async {
-                isSearchFieldFocused = true
-            }
         }
         .onChange(of: coordinator.commandPaletteModule) { _, _ in
             syncSelection(force: true)
-            DispatchQueue.main.async {
-                isSearchFieldFocused = true
-            }
         }
         .onChange(of: coordinator.commandPaletteQuery) { _, _ in
             syncSelection(force: true)
         }
         .onChange(of: rootRowIDs) { _, _ in
             syncSelection()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardMoveUp)) { notification in
+            guard coordinator.currentView == .commandPalette,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .commandPalette
+            else { return }
+            moveSelection(by: -1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardMoveDown)) { notification in
+            guard coordinator.currentView == .commandPalette,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .commandPalette
+            else { return }
+            moveSelection(by: 1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardConfirm)) { notification in
+            guard coordinator.currentView == .commandPalette,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .commandPalette
+            else { return }
+            confirmSelection()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardAppendText)) { notification in
+            guard coordinator.currentView == .commandPalette,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .commandPalette,
+                  let text = notification.userInfo?["text"] as? String
+            else { return }
+            coordinator.commandPaletteQuery.append(text)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardBackspace)) { notification in
+            guard coordinator.currentView == .commandPalette,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .commandPalette
+            else { return }
+
+            if notification.userInfo?["clearAll"] as? Bool == true {
+                coordinator.commandPaletteQuery = ""
+            } else {
+                removeLastCharacter(from: &coordinator.commandPaletteQuery)
+            }
         }
     }
 
@@ -102,6 +120,7 @@ struct CommandPaletteView: View {
             .textFieldStyle(.plain)
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(.white)
+            .allowsHitTesting(false)
         }
         .padding(.leading, 10)
         .padding(.trailing, 6)
@@ -110,7 +129,6 @@ struct CommandPaletteView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.white.opacity(0.06))
         )
-        .focused($isSearchFieldFocused)
     }
 
     @ViewBuilder
@@ -146,6 +164,11 @@ struct CommandPaletteView: View {
                 }
             }
         }
+    }
+
+    private func removeLastCharacter(from string: inout String) {
+        guard !string.isEmpty else { return }
+        string.removeLast()
     }
 
     private func rootRow(_ row: CommandPaletteRootRow) -> some View {
@@ -428,14 +451,7 @@ private struct NotchKeyboardFocusBridge: NSViewRepresentable {
 
     private func updateWindow(for view: NSView) {
         guard let panel = view.window as? NotcheraSkyLightWindow else { return }
-
-        panel.setClipboardKeyboardFocusEnabled(isEnabled)
-
-        guard isEnabled else { return }
-
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
-        panel.orderFrontRegardless()
+        panel.setClipboardKeyboardFocusEnabled(false)
     }
 }
 

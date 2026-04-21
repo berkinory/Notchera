@@ -69,6 +69,7 @@ class NotcheraViewCoordinator: ObservableObject {
     @Published var notchKeyboardDismissActive: Bool = false
     @Published var commandPaletteModule: CommandPaletteModule = .appLauncher
     @Published var commandPaletteQuery: String = ""
+    @Published var clipboardSearchQuery: String = ""
     private let hudHidePollInterval: Duration = .milliseconds(100)
     private var hudEnableTask: Task<Void, Never>?
     private var hudHideTask: Task<Void, Never>?

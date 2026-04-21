@@ -469,11 +469,9 @@ struct ClipboardTabView: View {
     @State private var pendingScrollAnchor: UnitPoint = .top
     @State private var copiedItemID: ClipboardHistoryItem.ID?
     @State private var copyResetTask: Task<Void, Never>?
-    @State private var query: String = ""
-    @FocusState private var isSearchFieldFocused: Bool
 
     private var filteredItems: [ClipboardHistoryItem] {
-        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedQuery = coordinator.clipboardSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !normalizedQuery.isEmpty else { return clipboardHistoryManager.items }
 
         return clipboardHistoryManager.items.filter { item in
@@ -497,10 +495,17 @@ struct ClipboardTabView: View {
                     .foregroundStyle(Color.secondary.opacity(0.72))
                     .frame(width: 12)
 
-                TextField("Search clipboard", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white)
+                TextField(
+                    "Search clipboard",
+                    text: Binding(
+                        get: { coordinator.clipboardSearchQuery },
+                        set: { coordinator.clipboardSearchQuery = $0 }
+                    )
+                )
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white)
+                .allowsHitTesting(false)
             }
             .padding(.leading, 10)
             .padding(.trailing, 6)
@@ -509,7 +514,6 @@ struct ClipboardTabView: View {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Color.white.opacity(0.06))
             )
-            .focused($isSearchFieldFocused)
 
             if filteredItems.isEmpty {
                 VStack(spacing: 10) {
@@ -548,25 +552,10 @@ struct ClipboardTabView: View {
         .padding(.top, 0)
         .padding(.bottom, 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background {
-            ClipboardKeyboardHandler(
-                isEnabled: keyboardNavigationEnabled,
-                onMoveUp: { moveSelection(by: -1) },
-                onMoveDown: { moveSelection(by: 1) },
-                onConfirm: { copyHoveredItem() },
-                onCancel: { endKeyboardNavigation(shouldCloseNotch: true) }
-            )
-        }
-        .background {
-            NotchKeyboardFocusBridge(isEnabled: coordinator.currentView == .clipboard)
-        }
         .onAppear {
             clipboardHistoryManager.pruneExpiredItems()
             pendingScrollAnchor = .top
             selectFirstItemIfNeeded()
-            DispatchQueue.main.async {
-                isSearchFieldFocused = true
-            }
         }
         .onChange(of: retention) { _, _ in
             clipboardHistoryManager.pruneExpiredItems()
@@ -574,15 +563,48 @@ struct ClipboardTabView: View {
         .onChange(of: coordinator.currentView) { _, newValue in
             guard newValue == .clipboard else { return }
             selectFirstItemIfNeeded(force: true)
-            DispatchQueue.main.async {
-                isSearchFieldFocused = true
-            }
         }
-        .onChange(of: query) { _, _ in
+        .onChange(of: coordinator.clipboardSearchQuery) { _, _ in
             selectFirstItemIfNeeded(force: true)
         }
         .onChange(of: itemIDs) { _, _ in
             syncHoveredItem()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardMoveUp)) { notification in
+            guard keyboardNavigationEnabled,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .clipboard
+            else { return }
+            moveSelection(by: -1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardMoveDown)) { notification in
+            guard keyboardNavigationEnabled,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .clipboard
+            else { return }
+            moveSelection(by: 1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardConfirm)) { notification in
+            guard keyboardNavigationEnabled,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .clipboard
+            else { return }
+            copyHoveredItem()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardAppendText)) { notification in
+            guard keyboardNavigationEnabled,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .clipboard,
+                  let text = notification.userInfo?["text"] as? String
+            else { return }
+            coordinator.clipboardSearchQuery.append(text)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .notchKeyboardBackspace)) { notification in
+            guard keyboardNavigationEnabled,
+                  notification.object as? NotchKeyboardInterceptor.Mode == .clipboard
+            else { return }
+
+            if notification.userInfo?["clearAll"] as? Bool == true {
+                coordinator.clipboardSearchQuery = ""
+            } else {
+                removeLastCharacter(from: &coordinator.clipboardSearchQuery)
+            }
         }
     }
 
@@ -631,6 +653,11 @@ struct ClipboardTabView: View {
         .onHover { hovering in
             hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
         }
+    }
+
+    private func removeLastCharacter(from string: inout String) {
+        guard !string.isEmpty else { return }
+        string.removeLast()
     }
 
     private func displayText(for item: ClipboardHistoryItem) -> String {
@@ -785,14 +812,7 @@ private struct NotchKeyboardFocusBridge: NSViewRepresentable {
 
     private func updateWindow(for view: NSView) {
         guard let panel = view.window as? NotcheraSkyLightWindow else { return }
-
-        panel.setClipboardKeyboardFocusEnabled(isEnabled)
-
-        guard isEnabled else { return }
-
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
-        panel.orderFrontRegardless()
+        panel.setClipboardKeyboardFocusEnabled(false)
     }
 }
 
