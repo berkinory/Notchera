@@ -102,4 +102,6 @@ extension Defaults.Keys {
     }
 
     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)
+    static let enableAIUsage = Key<Bool>("enableAIUsage", default: false)
+    static let aiUsageShowRemaining = Key<Bool>("aiUsageShowRemaining", default: false)
 }

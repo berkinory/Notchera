@@ -22,6 +22,7 @@ public enum NotchViews: String {
     case calendar
     case clipboard
     case shelf
+    case aiUsage
 }
 
 enum SettingsEnum {

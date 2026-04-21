@@ -22,15 +22,29 @@ struct TabButton: View {
         selected ? .white : Color.white.opacity(0.5)
     }
 
+    @ViewBuilder
+    private var iconView: some View {
+        if icon.hasPrefix("asset:") {
+            Image(String(icon.dropFirst(6)))
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .frame(width: 13, height: 13)
+                .opacity(selected ? 1 : 0.72)
+        } else {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(iconColor)
+        }
+    }
+
     var body: some View {
         Button(action: onClick) {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(backgroundColor)
                 .frame(width: buttonSize, height: buttonSize)
                 .overlay {
-                    Image(systemName: icon)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(iconColor)
+                    iconView
                 }
         }
         .buttonStyle(.plain)

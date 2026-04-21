@@ -352,6 +352,9 @@ struct ContentView: View {
                     case .shelf:
                         ShelfView()
                             .transition(.opacity)
+                    case .aiUsage:
+                        AIUsageDashboardView()
+                            .transition(.opacity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

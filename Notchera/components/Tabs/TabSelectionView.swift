@@ -9,12 +9,20 @@ struct TabModel: Identifiable {
     let view: NotchViews
 }
 
-let tabs = [
-    TabModel(label: "Music", icon: "music.note", view: .home),
-    TabModel(label: "Calendar", icon: "calendar", view: .calendar),
-    TabModel(label: "Clipboard", icon: "doc.on.clipboard", view: .clipboard),
-    TabModel(label: "Shelf", icon: "folder.fill", view: .shelf)
-]
+var tabs: [TabModel] {
+    var items = [
+        TabModel(label: "Music", icon: "music.note", view: .home),
+        TabModel(label: "Calendar", icon: "calendar", view: .calendar),
+        TabModel(label: "Clipboard", icon: "doc.on.clipboard", view: .clipboard),
+        TabModel(label: "Shelf", icon: "folder.fill", view: .shelf)
+    ]
+
+    if Defaults[.enableAIUsage] {
+        items.append(TabModel(label: "AI Usage", icon: "asset:chatgpt", view: .aiUsage))
+    }
+
+    return items
+}
 
 struct CalendarTabView: View {
     @ObservedObject private var calendarManager = CalendarManager.shared

@@ -1,6 +1,8 @@
+import CryptoKit
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
+import Network
 import Sparkle
 import SwiftUI
 import SwiftUIIntrospect
@@ -772,55 +774,49 @@ func warningBadge(_ text: String, _ description: String) -> some View {
 struct AIUsageSettings: View {
     @StateObject private var store = AIUsageStore.shared
     @State private var showingAddSheet = false
+    @Default(.enableAIUsage) var enableAIUsage
+    @Default(.aiUsageShowRemaining) var aiUsageShowRemaining
 
     var body: some View {
-        List {
+        Form {
             Section {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "brain")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Track Codex usage windows across multiple accounts.")
-                            .font(.headline)
-                        Text("Notchera stores the minimum credential set locally and refreshes usage automatically when cached data becomes stale.")
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer()
+                Defaults.Toggle(key: .enableAIUsage) {
+                    Text("Enable AI usage tab")
                 }
+                Defaults.Toggle(key: .aiUsageShowRemaining) {
+                    Text("Show remaining instead of used")
+                }
+                .disabled(!enableAIUsage)
+            } footer: {
+                Text("Claude uses the currently logged-in Claude Code account. Codex supports multiple saved accounts.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            if store.accounts.isEmpty {
-                Section {
-                    ContentUnavailableView(
-                        "No accounts yet",
-                        systemImage: "person.crop.circle.badge.plus",
-                        description: Text("Add a Codex account to see its 5h and weekly usage windows.")
-                    )
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                }
-            } else {
-                Section {
+            Section {
+                if store.accounts.isEmpty {
+                    Text("No accounts added")
+                        .foregroundStyle(.secondary)
+                } else {
                     ForEach(store.accounts) { account in
-                        AIUsageAccountRow(account: account)
-                            .swipeActions(edge: .trailing) {
-                                Button("Delete", role: .destructive) {
-                                    store.removeAccount(id: account.id)
-                                }
+                        HStack(spacing: 10) {
+                            AIUsageProviderIcon(provider: account.provider)
+                            Text(account.alias)
+                            Spacer()
+                            if account.isRefreshing {
+                                ProgressView()
+                                    .controlSize(.small)
                             }
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    store.removeAccount(id: account.id)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button("Delete", role: .destructive) {
+                                store.removeAccount(id: account.id)
                             }
+                        }
                     }
-                } header: {
-                    Text("Accounts")
                 }
+            } header: {
+                Text("Accounts")
             }
         }
         .navigationTitle("AI Usage")
@@ -834,103 +830,231 @@ struct AIUsageSettings: View {
         .sheet(isPresented: $showingAddSheet) {
             AddAIUsageAccountSheet()
         }
+    }
+}
+
+struct AIUsageDashboardView: View {
+    @StateObject private var store = AIUsageStore.shared
+    @Default(.aiUsageShowRemaining) var aiUsageShowRemaining
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10)
+    ]
+
+    var body: some View {
+        ScrollView {
+            if store.accounts.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "chart.bar.xaxis")
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    Text("No accounts")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Add Codex or Claude accounts in Settings.")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 240)
+                .padding(.horizontal, 16)
+            } else {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                    ForEach(store.accounts) { account in
+                        AIUsageCard(account: account, showRemaining: aiUsageShowRemaining)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 1)
+                .padding(.bottom, 5)
+            }
+        }
         .task {
             await store.refreshIfNeeded(force: false)
         }
     }
 }
 
-private struct AIUsageAccountRow: View {
-    let account: AIUsageAccount
+struct AIUsageProviderIcon: View {
+    let provider: AIUsageProvider
+    var size: CGFloat = 12
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(account.alias)
-                        .font(.headline)
-                    Text(account.provider.displayName)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                if let snapshot = account.snapshot {
-                    Text("Updated \(snapshot.fetchedAt.formatted(date: .omitted, time: .shortened))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else if account.isRefreshing {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
-
-            if let snapshot = account.snapshot {
-                VStack(alignment: .leading, spacing: 10) {
-                    AIUsageWindowRow(
-                        title: "Current Period",
-                        usedPercent: snapshot.fiveHour.usedPercent,
-                        remainingPercent: snapshot.fiveHour.remainingPercent,
-                        resetAt: snapshot.fiveHour.resetAt,
-                        resetDescription: snapshot.fiveHour.resetDescription
-                    )
-                    AIUsageWindowRow(
-                        title: "Weekly",
-                        usedPercent: snapshot.weekly.usedPercent,
-                        remainingPercent: snapshot.weekly.remainingPercent,
-                        resetAt: snapshot.weekly.resetAt,
-                        resetDescription: snapshot.weekly.resetDescription
-                    )
-                }
-            } else if let lastError = account.lastError, !lastError.isEmpty {
-                Text(lastError)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                Text(account.isRefreshing ? "Refreshing usage…" : "Usage not available yet")
-                    .foregroundStyle(.secondary)
-            }
+        switch provider {
+        case .codex:
+            Image("chatgpt")
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .frame(width: size, height: size)
+        case .claude:
+            Image("claude")
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .frame(width: size, height: size)
         }
-        .padding(.vertical, 4)
     }
 }
 
-private struct AIUsageWindowRow: View {
-    let title: String
-    let usedPercent: Double
-    let remainingPercent: Double
-    let resetAt: Date?
-    let resetDescription: String?
+private struct AIUsageCard: View {
+    let account: AIUsageAccount
+    let showRemaining: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                Text("used \(usedPercent.formattedPercent) · left \(remainingPercent.formattedPercent)")
-                    .font(.caption)
+        VStack(alignment: .leading, spacing: 5) {
+            if let snapshot = account.snapshot {
+                HStack(alignment: .center, spacing: 5) {
+                    AIUsageProviderIcon(provider: account.provider, size: 10)
+                    Text(account.alias)
+                        .font(.system(size: 10, weight: .medium))
+                        .lineLimit(1)
+                    Group {
+                        if account.isRefreshing {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(width: 10, height: 10)
+                    Spacer(minLength: 0)
+                    Text(AIUsageMetricRow.resetText(for: snapshot.fiveHour, isWeekly: false))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .multilineTextAlignment(.trailing)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    AIUsageMetricRow(
+                        title: nil,
+                        snapshot: snapshot.fiveHour,
+                        showRemaining: showRemaining,
+                        isWeekly: false,
+                        showReset: false
+                    )
+                    AIUsageMetricRow(
+                        title: "Weekly",
+                        snapshot: snapshot.weekly,
+                        showRemaining: showRemaining,
+                        isWeekly: true,
+                        showReset: true
+                    )
+                }
+            } else if let lastError = account.lastError, !lastError.isEmpty {
+                HStack(alignment: .center, spacing: 5) {
+                    AIUsageProviderIcon(provider: account.provider, size: 10)
+                    Text(account.alias)
+                        .font(.system(size: 10, weight: .medium))
+                        .lineLimit(1)
+                    Group {
+                        if account.isRefreshing {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(width: 10, height: 10)
+                    Spacer(minLength: 0)
+                }
+                Text(lastError)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                HStack(alignment: .center, spacing: 5) {
+                    AIUsageProviderIcon(provider: account.provider, size: 10)
+                    Text(account.alias)
+                        .font(.system(size: 10, weight: .medium))
+                        .lineLimit(1)
+                    Group {
+                        if account.isRefreshing {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(width: 10, height: 10)
+                    Spacer(minLength: 0)
+                }
+                Text("No usage yet")
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
             }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+}
 
-            HStack(spacing: 12) {
-                ProgressView(value: usedPercent, total: 100)
+private struct AIUsageMetricRow: View {
+    let title: String?
+    let snapshot: AIUsageWindowSnapshot
+    let showRemaining: Bool
+    let isWeekly: Bool
+    let showReset: Bool
+
+    static func resetText(for snapshot: AIUsageWindowSnapshot, isWeekly: Bool) -> String {
+        if let resetDescription = snapshot.resetDescription, !resetDescription.isEmpty {
+            return resetDescription
+        }
+        guard let resetAt = snapshot.resetAt else {
+            return "reset unknown"
+        }
+        if isWeekly {
+            return "resets \(resetAt.formatted(.dateTime.day(.twoDigits).month(.twoDigits).hour().minute()))"
+        }
+        return "resets \(resetAt.formatted(date: .omitted, time: .shortened))"
+    }
+
+    private var displayPercent: Double {
+        showRemaining ? snapshot.remainingPercent : snapshot.usedPercent
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if showReset {
+                HStack(alignment: .center, spacing: 8) {
+                    if let title, !title.isEmpty {
+                        Text(title)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 6)
+                    Text(formattedReset)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+
+            HStack(alignment: .center, spacing: 6) {
+                ProgressView(value: displayPercent, total: 100)
                     .progressViewStyle(.linear)
-                Text(resetText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 140, alignment: .trailing)
+                    .tint(.white)
+                Text(displayPercent.formattedPercent)
+                    .font(.system(size: 9, weight: .semibold))
+                    .fixedSize()
             }
         }
     }
 
-    private var resetText: String {
-        if let resetDescription, !resetDescription.isEmpty {
-            return resetDescription
-        }
-        guard let resetAt else {
-            return "reset unknown"
-        }
-
-        return "resets \(resetAt.formatted(date: .abbreviated, time: .shortened))"
+    private var formattedReset: String {
+        Self.resetText(for: snapshot, isWeekly: isWeekly)
     }
 }
 
@@ -940,6 +1064,7 @@ private struct AddAIUsageAccountSheet: View {
     @StateObject private var loginSession = CodexLoginSession()
     @State private var alias = ""
     @State private var provider: AIUsageProvider = .codex
+    @State private var codexAutoCompleteTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -956,30 +1081,24 @@ private struct AddAIUsageAccountSheet: View {
                 .textFieldStyle(.roundedBorder)
 
             if provider == .codex {
-                if let deviceCode = loginSession.deviceCode {
+                if let authorizationURL = loginSession.authorizationURL {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Open the verification page and enter this one-time code.")
+                        Text("Browser sign-in opens automatically. If callback does not complete, paste the full redirect URL or code below.")
                             .foregroundStyle(.secondary)
 
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Verification code")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(deviceCode.userCode)
-                                    .font(.system(.title3, design: .monospaced).weight(.semibold))
-                                    .textSelection(.enabled)
-                            }
+                            Text(authorizationURL.absoluteString)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                                .foregroundStyle(.secondary)
                             Spacer()
                             Button("Open Login Page") {
-                                NSWorkspace.shared.open(deviceCode.verificationURL)
+                                NSWorkspace.shared.open(authorizationURL)
                             }
                         }
 
-                        Text(deviceCode.verificationURL.absoluteString)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
-                            .foregroundStyle(.secondary)
+                        TextField("Paste redirect URL or authorization code", text: $loginSession.manualInput)
+                            .textFieldStyle(.roundedBorder)
 
                         Text("Waiting for approval in your browser…")
                             .font(.subheadline)
@@ -1016,10 +1135,10 @@ private struct AddAIUsageAccountSheet: View {
                     loginSession.cancel()
                     dismiss()
                 }
-                Button(provider == .codex ? (loginSession.deviceCode == nil ? "Connect" : "Finish") : "Add") {
+                Button(provider == .codex ? (loginSession.authorizationURL == nil ? "Connect" : "Finish") : "Add") {
                     Task {
                         if provider == .codex {
-                            if loginSession.deviceCode == nil {
+                            if loginSession.authorizationURL == nil {
                                 await startLogin()
                             } else {
                                 await finishLogin()
@@ -1042,12 +1161,35 @@ private struct AddAIUsageAccountSheet: View {
                     .padding(16)
             }
         }
+        .onDisappear {
+            codexAutoCompleteTask?.cancel()
+            codexAutoCompleteTask = nil
+        }
     }
 
     @MainActor
     private func startLogin() async {
         do {
             try await loginSession.start()
+            codexAutoCompleteTask?.cancel()
+            codexAutoCompleteTask = Task {
+                do {
+                    let credentials = try await loginSession.completeFromCallbackOnly()
+                    await store.addAccount(
+                        alias: alias.trimmingCharacters(in: .whitespacesAndNewlines),
+                        provider: .codex,
+                        credentials: .codex(credentials)
+                    )
+                    await MainActor.run {
+                        dismiss()
+                    }
+                } catch is CancellationError {
+                } catch {
+                    await MainActor.run {
+                        loginSession.errorMessage = error.localizedDescription
+                    }
+                }
+            }
         } catch {
             loginSession.errorMessage = error.localizedDescription
         }
@@ -1056,6 +1198,8 @@ private struct AddAIUsageAccountSheet: View {
     @MainActor
     private func finishLogin() async {
         do {
+            codexAutoCompleteTask?.cancel()
+            codexAutoCompleteTask = nil
             let credentials = try await loginSession.complete()
             await store.addAccount(
                 alias: alias.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -1079,7 +1223,7 @@ private struct AddAIUsageAccountSheet: View {
     }
 }
 
-private enum AIUsageProvider: String, Codable, CaseIterable {
+enum AIUsageProvider: String, Codable, CaseIterable {
     case claude
     case codex
 
@@ -1451,13 +1595,6 @@ private struct CodexTokenResponse: Decodable {
     }
 }
 
-private struct CodexDeviceCode {
-    var verificationURL: URL
-    var userCode: String
-    var deviceAuthID: String
-    var interval: TimeInterval
-}
-
 private struct CodexOAuthCredentials {
     var accessToken: String
     var refreshToken: String
@@ -1465,26 +1602,45 @@ private struct CodexOAuthCredentials {
     var accountId: String
 }
 
+private struct CodexAuthorizationState {
+    var verifier: String
+    var state: String
+    var authorizationURL: URL
+    var callbackServer: CodexCallbackServer
+}
+
 @MainActor
 private final class CodexLoginSession: ObservableObject {
     @Published var errorMessage: String?
     @Published var isBusy = false
-    @Published var deviceCode: CodexDeviceCode?
+    @Published var authorizationURL: URL?
+    @Published var manualInput = ""
 
-    private let client = CodexDeviceAuthClient()
+    private let client = CodexBrowserAuthClient()
+    private var authState: CodexAuthorizationState?
 
     func start() async throws {
+        cancel()
         isBusy = true
         errorMessage = nil
         defer { isBusy = false }
 
-        let deviceCode = try await client.requestDeviceCode()
-        self.deviceCode = deviceCode
-        NSWorkspace.shared.open(deviceCode.verificationURL)
+        let authState = try await client.startAuthorization()
+        self.authState = authState
+        self.authorizationURL = authState.authorizationURL
+        NSWorkspace.shared.open(authState.authorizationURL)
     }
 
     func complete() async throws -> CodexStoredCredentials {
-        guard let deviceCode else {
+        try await finishLogin(manualInput: manualInput)
+    }
+
+    func completeFromCallbackOnly() async throws -> CodexStoredCredentials {
+        try await finishLogin(manualInput: "")
+    }
+
+    private func finishLogin(manualInput: String) async throws -> CodexStoredCredentials {
+        guard let authState else {
             throw AIUsageError.requestFailed("Login has not started yet")
         }
 
@@ -1492,8 +1648,8 @@ private final class CodexLoginSession: ObservableObject {
         errorMessage = nil
         defer { isBusy = false }
 
-        let credentials = try await client.completeLogin(deviceCode: deviceCode)
-        self.deviceCode = nil
+        let credentials = try await client.completeAuthorization(state: authState, manualInput: manualInput)
+        cancel()
         return CodexStoredCredentials(
             accessToken: credentials.accessToken,
             refreshToken: credentials.refreshToken,
@@ -1503,41 +1659,60 @@ private final class CodexLoginSession: ObservableObject {
     }
 
     func cancel() {
-        deviceCode = nil
+        authState?.callbackServer.cancel()
+        authState = nil
+        authorizationURL = nil
+        manualInput = ""
     }
 }
 
-private actor CodexDeviceAuthClient {
+private actor CodexBrowserAuthClient {
     private let clientID = "app_EMoamEEZ73f0CkXaXp7hrann"
-    private let issuer = URL(string: "https://auth.openai.com")!
+    private let authorizeURL = URL(string: "https://auth.openai.com/oauth/authorize")!
     private let tokenURL = URL(string: "https://auth.openai.com/oauth/token")!
-    private let redirectURL = URL(string: "https://auth.openai.com/deviceauth/callback")!
+    private let redirectURL = URL(string: "http://localhost:1455/auth/callback")!
+    private let scope = "openid profile email offline_access"
     private let session: URLSession
 
     init(session: URLSession = .shared) {
         self.session = session
     }
 
-    func requestDeviceCode() async throws -> CodexDeviceCode {
-        var request = URLRequest(url: issuer.appending(path: "/api/accounts/deviceauth/usercode"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(CodexDeviceCodeRequest(clientID: clientID))
+    func startAuthorization() async throws -> CodexAuthorizationState {
+        let verifier = Self.makeCodeVerifier()
+        let challenge = try Self.makeCodeChallenge(verifier: verifier)
+        let state = Self.makeState()
+        let callbackServer = try CodexCallbackServer(expectedState: state)
 
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response, data: data)
+        var components = URLComponents(url: authorizeURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "response_type", value: "code"),
+            URLQueryItem(name: "client_id", value: clientID),
+            URLQueryItem(name: "redirect_uri", value: redirectURL.absoluteString),
+            URLQueryItem(name: "scope", value: scope),
+            URLQueryItem(name: "code_challenge", value: challenge),
+            URLQueryItem(name: "code_challenge_method", value: "S256"),
+            URLQueryItem(name: "state", value: state),
+            URLQueryItem(name: "id_token_add_organizations", value: "true"),
+            URLQueryItem(name: "codex_cli_simplified_flow", value: "true"),
+            URLQueryItem(name: "originator", value: "notchera")
+        ]
 
-        let payload = try JSONDecoder().decode(CodexDeviceCodeResponse.self, from: data)
-        return CodexDeviceCode(
-            verificationURL: issuer.appending(path: "/codex/device"),
-            userCode: payload.userCode,
-            deviceAuthID: payload.deviceAuthID,
-            interval: payload.interval
+        guard let authorizationURL = components?.url else {
+            callbackServer.cancel()
+            throw AIUsageError.requestFailed("Failed to build Codex authorization URL")
+        }
+
+        return CodexAuthorizationState(
+            verifier: verifier,
+            state: state,
+            authorizationURL: authorizationURL,
+            callbackServer: callbackServer
         )
     }
 
-    func completeLogin(deviceCode: CodexDeviceCode) async throws -> CodexOAuthCredentials {
-        let codeResponse = try await pollForAuthorizationCode(deviceCode: deviceCode)
+    func completeAuthorization(state: CodexAuthorizationState, manualInput: String) async throws -> CodexOAuthCredentials {
+        let code = try await state.callbackServer.waitForCode(manualInput: manualInput)
 
         var request = URLRequest(url: tokenURL)
         request.httpMethod = "POST"
@@ -1545,9 +1720,9 @@ private actor CodexDeviceAuthClient {
         request.httpBody = formURLEncodedData([
             URLQueryItem(name: "grant_type", value: "authorization_code"),
             URLQueryItem(name: "client_id", value: clientID),
-            URLQueryItem(name: "code", value: codeResponse.authorizationCode),
-            URLQueryItem(name: "code_verifier", value: codeResponse.codeVerifier),
-            URLQueryItem(name: "redirect_uri", value: redirectURL.absoluteString),
+            URLQueryItem(name: "code", value: code),
+            URLQueryItem(name: "code_verifier", value: state.verifier),
+            URLQueryItem(name: "redirect_uri", value: redirectURL.absoluteString)
         ])
 
         let (data, response) = try await session.data(for: request)
@@ -1556,8 +1731,7 @@ private actor CodexDeviceAuthClient {
         let tokenResponse = try JSONDecoder().decode(CodexTokenResponse.self, from: data)
         guard let accessToken = tokenResponse.accessToken,
               let refreshToken = tokenResponse.refreshToken,
-              let expiresIn = tokenResponse.expiresIn
-        else {
+              let expiresIn = tokenResponse.expiresIn else {
             throw AIUsageError.invalidTokenResponse
         }
 
@@ -1570,106 +1744,195 @@ private actor CodexDeviceAuthClient {
         )
     }
 
-    private func pollForAuthorizationCode(deviceCode: CodexDeviceCode) async throws -> CodexDeviceTokenPollSuccess {
-        let deadline = Date().addingTimeInterval(15 * 60)
-        let interval = max(1, deviceCode.interval)
-
-        while Date() < deadline {
-            var request = URLRequest(url: issuer.appending(path: "/api/accounts/deviceauth/token"))
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONEncoder().encode(
-                CodexDeviceTokenPollRequest(
-                    deviceAuthID: deviceCode.deviceAuthID,
-                    userCode: deviceCode.userCode
-                )
-            )
-
-            let (data, response) = try await session.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw AIUsageError.invalidResponse
-            }
-
-            switch httpResponse.statusCode {
-            case 200:
-                return try JSONDecoder().decode(CodexDeviceTokenPollSuccess.self, from: data)
-            case 404:
-                try await Task.sleep(for: .seconds(interval))
-            default:
-                let message = String(data: data, encoding: .utf8) ?? "Unknown error"
-                throw AIUsageError.requestFailed(message)
-            }
-        }
-
-        throw AIUsageError.requestFailed("Device login timed out")
-    }
-
     private func validate(response: URLResponse, data: Data) throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AIUsageError.invalidResponse
         }
 
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 404 {
-                throw AIUsageError.requestFailed("Device code login is not enabled for this account yet")
-            }
             let message = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw AIUsageError.requestFailed(message)
         }
     }
-}
 
-private struct CodexDeviceCodeRequest: Encodable {
-    let clientID: String
+    private static func makeState() -> String {
+        UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+    }
 
-    enum CodingKeys: String, CodingKey {
-        case clientID = "client_id"
+    private static func makeCodeVerifier() -> String {
+        let bytes = (0..<32).map { _ in UInt8.random(in: .min ... .max) }
+        return Data(bytes).base64URLEncodedString()
+    }
+
+    private static func makeCodeChallenge(verifier: String) throws -> String {
+        guard let data = verifier.data(using: .utf8) else {
+            throw AIUsageError.requestFailed("Failed to encode PKCE verifier")
+        }
+        let digest = SHA256.hash(data: data)
+        return Data(digest).base64URLEncodedString()
     }
 }
 
-private struct CodexDeviceCodeResponse: Decodable {
-    let deviceAuthID: String
-    let userCode: String
-    let interval: TimeInterval
+private final class CodexCallbackServer: @unchecked Sendable {
+    private let expectedState: String
+    private let listener: NWListener
+    private let queue = DispatchQueue(label: "com.notchera.codex-callback")
+    private var resultContinuation: CheckedContinuation<String, Error>?
+    private var isFinished = false
 
-    enum CodingKeys: String, CodingKey {
-        case deviceAuthID = "device_auth_id"
-        case userCode = "user_code"
-        case interval
+    init(expectedState: String) throws {
+        self.expectedState = expectedState
+        listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: 1455)!)
+        listener.newConnectionHandler = { [weak self] connection in
+            self?.handle(connection: connection)
+        }
+        listener.start(queue: queue)
     }
 
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        deviceAuthID = try container.decode(String.self, forKey: .deviceAuthID)
-        userCode = try container.decode(String.self, forKey: .userCode)
-        if let rawString = try? container.decode(String.self, forKey: .interval),
-           let parsed = TimeInterval(rawString) {
-            interval = parsed
-        } else {
-            interval = try container.decode(TimeInterval.self, forKey: .interval)
+    func waitForCode(manualInput: String) async throws -> String {
+        if let code = Self.extractCode(from: manualInput, expectedState: expectedState) {
+            finish(.success(code))
+            return code
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.resultContinuation = continuation
         }
     }
-}
 
-private struct CodexDeviceTokenPollRequest: Encodable {
-    let deviceAuthID: String
-    let userCode: String
-
-    enum CodingKeys: String, CodingKey {
-        case deviceAuthID = "device_auth_id"
-        case userCode = "user_code"
+    func cancel() {
+        finish(.failure(AIUsageError.requestFailed("Login cancelled")))
     }
+
+    private func handle(connection: NWConnection) {
+        connection.start(queue: queue)
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] data, _, _, _ in
+            defer { connection.cancel() }
+            guard let self, let data, let request = String(data: data, encoding: .utf8) else {
+                return
+            }
+            let firstLine = request.split(separator: "\r\n").first.map(String.init) ?? request
+            guard let code = Self.extractCode(from: firstLine, expectedState: self.expectedState) else {
+                return
+            }
+            self.respond(connection: connection)
+            self.finish(.success(code))
+        }
+    }
+
+    private func respond(connection: NWConnection) {
+        let body = """
+<!doctype html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\">
+<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+<title>Notchera</title>
+<style>
+:root {
+    color-scheme: dark;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
+* {
+    box-sizing: border-box;
+}
+html, body {
+    margin: 0;
+    min-height: 100%;
+    background:
+        radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 36%),
+        linear-gradient(180deg, #151517 0%, #0b0b0c 100%);
+    color: #f5f5f7;
+}
+body {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+}
+.card {
+    width: min(100%, 460px);
+    padding: 32px 30px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.38);
+    backdrop-filter: blur(18px);
+    text-align: center;
+}
+.badge {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 18px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08));
+    border: 1px solid rgba(255,255,255,0.12);
+}
+h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+}
+p {
+    margin: 10px 0 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(245,245,247,0.72);
+}
+.secondary {
+    margin-top: 18px;
+    font-size: 13px;
+    color: rgba(245,245,247,0.48);
+}
+</style>
+</head>
+<body>
+<div class=\"card\">
+    <div class=\"badge\">✓</div>
+    <h1>notchera</h1>
+    <p>successful. your codex account is now connected.</p>
+    <p class=\"secondary\">you can return to the app now.</p>
+</div>
+<script>
+window.close();
+</script>
+</body>
+</html>
+"""
+        let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: \(body.utf8.count)\r\nConnection: close\r\n\r\n\(body)"
+        connection.send(content: response.data(using: .utf8), completion: .contentProcessed { _ in })
+    }
 
-private struct CodexDeviceTokenPollSuccess: Decodable {
-    let authorizationCode: String
-    let codeChallenge: String
-    let codeVerifier: String
+    private func finish(_ result: Result<String, Error>) {
+        guard !isFinished else { return }
+        isFinished = true
+        listener.cancel()
+        resultContinuation?.resume(with: result)
+        resultContinuation = nil
+    }
 
-    enum CodingKeys: String, CodingKey {
-        case authorizationCode = "authorization_code"
-        case codeChallenge = "code_challenge"
-        case codeVerifier = "code_verifier"
+    private static func extractCode(from input: String, expectedState: String) -> String? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let raw: String
+        if trimmed.hasPrefix("GET "), let pathComponent = trimmed.split(separator: " ").dropFirst().first {
+            raw = "http://localhost\(pathComponent)"
+        } else {
+            raw = trimmed
+        }
+
+        guard let url = URL(string: raw), let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return nil
+        }
+        if let state = components.queryItems?.first(where: { $0.name == "state" })?.value, state != expectedState {
+            return nil
+        }
+        return components.queryItems?.first(where: { $0.name == "code" })?.value
     }
 }
 
@@ -1800,12 +2063,23 @@ private enum ClaudeUsageParser {
     }
 
     private static func parseSection(named name: String, in text: String) throws -> AIUsageWindowSnapshot {
-        guard let startRange = text.range(of: name) else {
+        let compactSource = text.replacingOccurrences(of: #"\s+"#, with: "", options: .regularExpression)
+        let compactName = name.replacingOccurrences(of: " ", with: "")
+
+        guard let startRange = compactSource.range(of: compactName) else {
             throw AIUsageError.requestFailed("Could not parse Claude usage section: \(name)")
         }
-        let suffix = String(text[startRange.lowerBound...])
-        let usedPercent = parsePercent(from: suffix)
-        let resetDescription = parseReset(from: suffix)
+
+        let remainingText = String(compactSource[startRange.lowerBound...])
+        let sectionBody: String
+        if let nextRange = remainingText.dropFirst().range(of: "Current") {
+            sectionBody = String(remainingText[..<nextRange.lowerBound])
+        } else {
+            sectionBody = remainingText
+        }
+
+        let usedPercent = parseCompactPercent(from: sectionBody)
+        let resetDescription = parseCompactReset(from: sectionBody)
         return AIUsageWindowSnapshot(
             usedPercent: usedPercent,
             remainingPercent: max(0, 100 - usedPercent),
@@ -1814,8 +2088,8 @@ private enum ClaudeUsageParser {
         )
     }
 
-    private static func parsePercent(from text: String) -> Double {
-        let regex = try? NSRegularExpression(pattern: #"(\d+)%\s+used"#)
+    private static func parseCompactPercent(from text: String) -> Double {
+        let regex = try? NSRegularExpression(pattern: #"(\d+)%used"#)
         let range = NSRange(text.startIndex..., in: text)
         guard let match = regex?.firstMatch(in: text, range: range),
               let valueRange = Range(match.range(at: 1), in: text),
@@ -1825,14 +2099,62 @@ private enum ClaudeUsageParser {
         return value
     }
 
-    private static func parseReset(from text: String) -> String {
-        let regex = try? NSRegularExpression(pattern: #"Resets\s+([^\n\r]+)"#)
-        let range = NSRange(text.startIndex..., in: text)
-        guard let match = regex?.firstMatch(in: text, range: range),
-              let valueRange = Range(match.range(at: 1), in: text) else {
+    private static func parseCompactReset(from text: String) -> String {
+        guard let resetRange = text.range(of: "Rese") else {
             return "reset unknown"
         }
-        return "resets " + text[valueRange].trimmingCharacters(in: .whitespacesAndNewlines)
+        var value = String(text[resetRange.lowerBound...])
+        value = value.replacingOccurrences(of: #"^Reses?|^Resets"#, with: "", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"\d+%used.*$"#, with: "", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"What'?scontributing.*$"#, with: "", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"Approximate,.*$"#, with: "", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"Scanninglocalsessions.*$"#, with: "", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"Extrausage.*$"#, with: "", options: .regularExpression)
+        value = value.replacingOccurrences(of: "(Europe/Istanbul)", with: "")
+        value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let weeklyMatch = value.range(of: #"([A-Za-z]{3})(\d{1,2})at([^A-Z]+(?:am|pm))"#, options: .regularExpression) {
+            let matched = String(value[weeklyMatch])
+            let regex = try? NSRegularExpression(pattern: #"([A-Za-z]{3})(\d{1,2})at([^A-Z]+(?:am|pm))"#)
+            let nsRange = NSRange(matched.startIndex..., in: matched)
+            if let match = regex?.firstMatch(in: matched, range: nsRange),
+               let monthRange = Range(match.range(at: 1), in: matched),
+               let dayRange = Range(match.range(at: 2), in: matched),
+               let timeRange = Range(match.range(at: 3), in: matched) {
+                let month = monthNumber(String(matched[monthRange]))
+                let day = String(matched[dayRange]).leftPadding(toLength: 2, withPad: "0")
+                let time = String(matched[timeRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                return "resets \(day)/\(month) \(time)"
+            }
+        }
+
+        if let currentMatch = value.range(of: #"([0-9]{1,2}(?::[0-9]{2})?(?:am|pm))"#, options: .regularExpression) {
+            return "resets \(String(value[currentMatch]))"
+        }
+
+        if !value.isEmpty {
+            return "resets \(value)"
+        }
+
+        return "reset unknown"
+    }
+
+    private static func monthNumber(_ month: String) -> String {
+        switch month.lowercased() {
+        case "jan": return "01"
+        case "feb": return "02"
+        case "mar": return "03"
+        case "apr": return "04"
+        case "may": return "05"
+        case "jun": return "06"
+        case "jul": return "07"
+        case "aug": return "08"
+        case "sep": return "09"
+        case "oct": return "10"
+        case "nov": return "11"
+        case "dec": return "12"
+        default: return "--"
+        }
     }
 }
 
@@ -1880,6 +2202,15 @@ private extension Double {
     }
 }
 
+private extension String {
+    func leftPadding(toLength: Int, withPad character: Character) -> String {
+        if count >= toLength {
+            return self
+        }
+        return String(repeating: String(character), count: toLength - count) + self
+    }
+}
+
 private func formURLEncodedData(_ items: [URLQueryItem]) -> Data? {
     var components = URLComponents()
     components.queryItems = items
@@ -1900,6 +2231,12 @@ private extension Data {
         self.init(base64Encoded: base64)
     }
 
+    func base64URLEncodedString() -> String {
+        base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
 }
 
 #Preview {
