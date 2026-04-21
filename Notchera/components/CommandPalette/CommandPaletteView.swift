@@ -7,6 +7,8 @@ struct CommandPaletteView: View {
     @ObservedObject private var appLauncher = AppLauncherManager.shared
     @FocusState private var isSearchFieldFocused: Bool
     @State private var selectedRowID: String?
+    @State private var pendingScrollRowID: String?
+    @State private var pendingScrollAnchor: UnitPoint = .center
 
     private var appResults: [AppLauncherItem] {
         let query = coordinator.commandPaletteQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -114,15 +116,24 @@ struct CommandPaletteView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         } else {
-            ScrollView {
-                LazyVStack(spacing: 6) {
-                    ForEach(rootRows) { row in
-                        rootRow(row)
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 6) {
+                        ForEach(rootRows) { row in
+                            rootRow(row)
+                                .id(row.id)
+                        }
                     }
+                    .padding(.trailing, 2)
                 }
-                .padding(.trailing, 2)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .onAppear {
+                    scrollToSelectedRow(with: proxy, animated: false)
+                }
+                .onChange(of: pendingScrollRowID) { _, _ in
+                    scrollToSelectedRow(with: proxy)
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -187,7 +198,10 @@ struct CommandPaletteView: View {
 
         let currentIndex = rootRows.firstIndex(where: { $0.id == selectedRowID }) ?? 0
         let nextIndex = min(max(currentIndex + offset, 0), rootRows.count - 1)
-        selectedRowID = rootRows[nextIndex].id
+        let nextRowID = rootRows[nextIndex].id
+        selectedRowID = nextRowID
+        pendingScrollAnchor = offset > 0 ? .bottom : .top
+        pendingScrollRowID = nextRowID
     }
 
     private func confirmSelection() {
@@ -195,9 +209,37 @@ struct CommandPaletteView: View {
         activate(selectedRow)
     }
 
+    private func scrollToSelectedRow(with proxy: ScrollViewProxy, animated: Bool = true) {
+        guard let selectedRowID else { return }
+
+        let action = {
+            proxy.scrollTo(selectedRowID, anchor: pendingScrollAnchor)
+        }
+
+        if animated {
+            withAnimation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.22)) {
+                action()
+            }
+        } else {
+            action()
+        }
+
+        if pendingScrollRowID == selectedRowID {
+            pendingScrollRowID = nil
+        }
+    }
+
     private func activate(_ row: CommandPaletteRootRow) {
         guard let appItem = row.appItem else { return }
-        NSWorkspace.shared.openApplication(at: appItem.url, configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+
+        NSWorkspace.shared.openApplication(at: appItem.url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
+            if error == nil {
+                Task { @MainActor in
+                    appLauncher.recordLaunch(for: appItem)
+                }
+            }
+        }
+
         NotificationCenter.default.post(
             name: .endClipboardKeyboardNavigation,
             object: nil,

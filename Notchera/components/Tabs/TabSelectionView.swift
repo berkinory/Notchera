@@ -626,7 +626,6 @@ struct ClipboardTabView: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering in
-            guard !keyboardNavigationEnabled else { return }
             hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
         }
     }
@@ -714,10 +713,7 @@ struct ClipboardTabView: View {
         let items = filteredItems
         let currentIndex = items.firstIndex(where: { $0.id == hoveredItemID }) ?? 0
         let nextIndex = min(max(currentIndex + offset, 0), items.count - 1)
-        let nextItemID = items[nextIndex].id
-        hoveredItemID = nextItemID
-        pendingScrollAnchor = offset > 0 ? .bottom : .top
-        pendingScrollItemID = nextItemID
+        hoveredItemID = items[nextIndex].id
     }
 
     private func scrollToHoveredItem(with proxy: ScrollViewProxy, animated: Bool = true) {
