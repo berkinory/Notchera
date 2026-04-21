@@ -4,6 +4,7 @@ import KeyboardShortcuts
 import LaunchAtLogin
 import Network
 import Sparkle
+import Security
 import SwiftUI
 import SwiftUIIntrospect
 
@@ -1299,41 +1300,9 @@ enum AIUsageProvider: String, Codable, CaseIterable {
     }
 }
 
-private enum AIUsageCredentials: Codable {
+private enum AIUsageCredentials {
     case claude
     case codex(CodexStoredCredentials)
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case codex
-    }
-
-    enum CredentialType: String, Codable {
-        case claude
-        case codex
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(CredentialType.self, forKey: .type)
-        switch type {
-        case .claude:
-            self = .claude
-        case .codex:
-            self = .codex(try container.decode(CodexStoredCredentials.self, forKey: .codex))
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case .claude:
-            try container.encode(CredentialType.claude, forKey: .type)
-        case let .codex(credentials):
-            try container.encode(CredentialType.codex, forKey: .type)
-            try container.encode(credentials, forKey: .codex)
-        }
-    }
 }
 
 private struct CodexStoredCredentials: Codable {
@@ -1360,19 +1329,9 @@ private struct AIUsageAccount: Identifiable, Codable {
     var id: UUID
     var alias: String
     var provider: AIUsageProvider
-    var credentials: AIUsageCredentials
     var snapshot: AIUsageSnapshot?
     var lastError: String?
     var isRefreshing: Bool = false
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case alias
-        case provider
-        case credentials
-        case snapshot
-        case lastError
-    }
 }
 
 @MainActor
@@ -1381,6 +1340,7 @@ private final class AIUsageStore: ObservableObject {
 
     @Published private(set) var accounts: [AIUsageAccount] = []
 
+    private let credentialStore = AIUsageCredentialStore.shared
     private let service = AIUsageService()
     private let fileURL: URL
     private let cacheTTL: TimeInterval = 5 * 60
@@ -1398,16 +1358,24 @@ private final class AIUsageStore: ObservableObject {
             id: UUID(),
             alias: alias,
             provider: provider,
-            credentials: credentials,
             snapshot: nil,
             lastError: nil
         )
-        accounts.append(account)
-        save()
-        await refreshAccount(id: account.id, force: true)
+
+        do {
+            try credentialStore.store(credentials, for: account)
+            accounts.append(account)
+            save()
+            await refreshAccount(id: account.id, force: true)
+        } catch {
+            print("[AIUsageStore] Failed to store credentials: \(error)")
+        }
     }
 
     func removeAccount(id: UUID) {
+        if let account = accounts.first(where: { $0.id == id }) {
+            try? credentialStore.removeCredentials(for: account)
+        }
         accounts.removeAll { $0.id == id }
         save()
     }
@@ -1461,7 +1429,10 @@ private final class AIUsageStore: ObservableObject {
             let data = try Data(contentsOf: fileURL)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            accounts = try decoder.decode([AIUsageAccount].self, from: data)
+            accounts = try decoder.decode([AIUsageAccount].self, from: data).filter { account in
+                guard account.provider == .codex else { return true }
+                return (try? credentialStore.credentials(for: account)) != nil
+            }
         } catch {
             accounts = []
         }
@@ -1473,7 +1444,7 @@ private final class AIUsageStore: ObservableObject {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
 
             let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.outputFormatting = [.sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
             let data = try encoder.encode(accounts)
             try data.write(to: fileURL, options: .atomic)
@@ -1484,23 +1455,104 @@ private final class AIUsageStore: ObservableObject {
 }
 
 private actor AIUsageService {
+    private let credentialStore = AIUsageCredentialStore.shared
     private let codexAuthClient = CodexAuthClient()
     private let codexUsageClient = CodexUsageClient()
     private let claudeCLI = ClaudeCLIClient()
 
     func refreshAccount(_ account: AIUsageAccount, force _: Bool) async throws -> AIUsageAccount {
         var refreshed = account
-        switch account.credentials {
+
+        switch account.provider {
         case .claude:
             refreshed.snapshot = try await claudeCLI.fetchUsage()
-        case let .codex(credentials):
+        case .codex:
+            guard case let .codex(credentials) = try credentialStore.credentials(for: account) else {
+                throw AIUsageError.requestFailed("Missing Codex credentials")
+            }
             let updatedCredentials = try await codexAuthClient.ensureValidCredentials(credentials)
-            refreshed.credentials = .codex(updatedCredentials)
+            try credentialStore.store(.codex(updatedCredentials), for: account)
             refreshed.snapshot = try await codexUsageClient.fetchUsage(credentials: updatedCredentials)
         }
+
         refreshed.lastError = nil
         refreshed.isRefreshing = false
         return refreshed
+    }
+}
+
+private final class AIUsageCredentialStore {
+    static let shared = AIUsageCredentialStore()
+
+    private let service = "notchera.ai-usage"
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    private init() {
+        encoder.dateEncodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .iso8601
+    }
+
+    func store(_ credentials: AIUsageCredentials, for account: AIUsageAccount) throws {
+        switch credentials {
+        case .claude:
+            try removeCredentials(for: account)
+        case let .codex(storedCredentials):
+            let data = try encoder.encode(storedCredentials)
+            let query = baseQuery(for: account)
+
+            SecItemDelete(query as CFDictionary)
+
+            var item = query
+            item[kSecValueData as String] = data
+            item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+
+            let status = SecItemAdd(item as CFDictionary, nil)
+            guard status == errSecSuccess else {
+                throw AIUsageError.requestFailed("Failed to save credentials (\(status))")
+            }
+        }
+    }
+
+    func credentials(for account: AIUsageAccount) throws -> AIUsageCredentials {
+        switch account.provider {
+        case .claude:
+            return .claude
+        case .codex:
+            var query = baseQuery(for: account)
+            query[kSecReturnData as String] = true
+            query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+            var result: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+            guard status != errSecItemNotFound else {
+                throw AIUsageError.requestFailed("Missing Codex credentials")
+            }
+
+            guard status == errSecSuccess,
+                  let data = result as? Data
+            else {
+                throw AIUsageError.requestFailed("Failed to load credentials (\(status))")
+            }
+
+            return .codex(try decoder.decode(CodexStoredCredentials.self, from: data))
+        }
+    }
+
+    func removeCredentials(for account: AIUsageAccount) throws {
+        let status = SecItemDelete(baseQuery(for: account) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw AIUsageError.requestFailed("Failed to remove credentials (\(status))")
+        }
+    }
+
+    private func baseQuery(for account: AIUsageAccount) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "\(account.provider.rawValue).\(account.id.uuidString)"
+        ]
     }
 }
 
