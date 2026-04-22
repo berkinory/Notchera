@@ -560,11 +560,11 @@ class MusicManager: ObservableObject {
         return syncedLyrics[idx].text
     }
 
-    private let albumArtFlipDuration = 0.56
-    private let albumArtFlipSwapThreshold = 0.68
+    private let albumArtFlipDuration = 0.44
+    private let albumArtFlipSwapThreshold = 0.64
 
     private var albumArtFlipAnimation: Animation {
-        .linear(duration: albumArtFlipDuration)
+        .timingCurve(0.22, 0.82, 0.2, 1, duration: albumArtFlipDuration)
     }
 
     private var visibleAlbumArt: NSImage {

@@ -12,6 +12,34 @@ private extension VerticalAlignment {
     static let musicTitleRow = VerticalAlignment(MusicTitleRowAlignment.self)
 }
 
+private struct HorizontalBlurFadeTransitionModifier: ViewModifier {
+    let xOffset: CGFloat
+    let blurRadius: CGFloat
+    let opacity: Double
+
+    func body(content: Content) -> some View {
+        content
+            .offset(x: xOffset)
+            .blur(radius: blurRadius)
+            .opacity(opacity)
+    }
+}
+
+private extension AnyTransition {
+    static func horizontalBlurFade(insertionX: CGFloat, removalX: CGFloat, blur: CGFloat) -> AnyTransition {
+        .asymmetric(
+            insertion: .modifier(
+                active: HorizontalBlurFadeTransitionModifier(xOffset: insertionX, blurRadius: blur, opacity: 0),
+                identity: HorizontalBlurFadeTransitionModifier(xOffset: 0, blurRadius: 0, opacity: 1)
+            ),
+            removal: .modifier(
+                active: HorizontalBlurFadeTransitionModifier(xOffset: removalX, blurRadius: blur, opacity: 0),
+                identity: HorizontalBlurFadeTransitionModifier(xOffset: 0, blurRadius: 0, opacity: 1)
+            )
+        )
+    }
+}
+
 // MARK: - Music Player Components
 
 struct MusicPlayerView: View {
@@ -88,8 +116,12 @@ struct FlippingAlbumArtCard: View {
     private var blurRadius: CGFloat {
         guard musicManager.isFlipping else { return 0 }
 
-        let blurProgress = pow(sin(.pi * flipProgress), 0.72)
-        return 1.1 + (blurProgress * 11.4)
+        let edgeBlurProgress = pow(edgeOnProgress, 0.8)
+        let sourceLeadIn = flipProgress < artworkRevealProgressThreshold
+            ? smoothStep(flipProgress, start: 0.02, end: 0.18) * 0.32
+            : 0
+        let blurProgress = min(1, edgeBlurProgress + sourceLeadIn)
+        return blurProgress * 11.2
     }
 
     private var darkeningOpacity: Double {
@@ -295,6 +327,10 @@ struct MusicControlsView: View {
         .animation(.smooth(duration: 0.22), value: showsSyncedLyrics)
     }
 
+    private var metadataTextTransition: AnyTransition {
+        .horizontalBlurFade(insertionX: -14, removalX: 14, blur: 7)
+    }
+
     private func titleView(width: CGFloat) -> some View {
         ZStack(alignment: .leading) {
             MarqueeText(
@@ -307,19 +343,10 @@ struct MusicControlsView: View {
             .id(musicManager.songTitle)
             .fontWeight(.medium)
             .contentTransition(.interpolate)
-            .transition(
-                .asymmetric(
-                    insertion: .offset(y: 4)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.985, anchor: .leading)),
-                    removal: .offset(y: -4)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.985, anchor: .leading))
-                )
-            )
+            .transition(metadataTextTransition)
         }
         .clipped()
-        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.songTitle)
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.22), value: musicManager.songTitle)
         .alignmentGuide(.musicTitleRow) { dimensions in
             dimensions[VerticalAlignment.center]
         }
@@ -339,19 +366,10 @@ struct MusicControlsView: View {
             .id(musicManager.artistName)
             .fontWeight(.regular)
             .contentTransition(.interpolate)
-            .transition(
-                .asymmetric(
-                    insertion: .offset(y: 3)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.988, anchor: .leading)),
-                    removal: .offset(y: -3)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.988, anchor: .leading))
-                )
-            )
+            .transition(metadataTextTransition)
         }
         .clipped()
-        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.artistName)
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.22), value: musicManager.artistName)
     }
 
     private func syncedLyricLineView(width: CGFloat, currentDate: Date) -> some View {
@@ -813,6 +831,10 @@ private struct LockScreenMetadataView: View {
     @Default(.matchAlbumArtColor) private var matchAlbumArtColor
     let width: CGFloat
 
+    private var metadataTextTransition: AnyTransition {
+        .horizontalBlurFade(insertionX: -14, removalX: 14, blur: 7)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             titleView
@@ -833,19 +855,10 @@ private struct LockScreenMetadataView: View {
             )
             .id(musicManager.songTitle)
             .contentTransition(.interpolate)
-            .transition(
-                .asymmetric(
-                    insertion: .offset(y: 4)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.985, anchor: .leading)),
-                    removal: .offset(y: -4)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.985, anchor: .leading))
-                )
-            )
+            .transition(metadataTextTransition)
         }
         .clipped()
-        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.songTitle)
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.22), value: musicManager.songTitle)
     }
 
     private var artistView: some View {
@@ -861,21 +874,11 @@ private struct LockScreenMetadataView: View {
             )
             .id(musicManager.artistName)
             .contentTransition(.interpolate)
-            .transition(
-                .asymmetric(
-                    insertion: .offset(y: 3)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.988, anchor: .leading)),
-                    removal: .offset(y: -3)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.988, anchor: .leading))
-                )
-            )
+            .transition(metadataTextTransition)
         }
         .clipped()
-        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.artistName)
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.22), value: musicManager.artistName)
     }
-
 }
 
 private struct LockScreenProgressView: View {
