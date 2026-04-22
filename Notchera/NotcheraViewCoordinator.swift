@@ -198,6 +198,7 @@ struct HUDState: Equatable {
     var value: CGFloat = 0
     var icon: String = ""
     var label: String = ""
+    var duration: TimeInterval = 1.5
     var custom: ExternalHUDRequest?
 }
 
@@ -529,6 +530,7 @@ class NotcheraViewCoordinator: ObservableObject {
             value: type == .recording ? (value > 0 ? 1 : 0) : value,
             icon: icon,
             label: label,
+            duration: duration,
             custom: type == .custom ? custom : nil
         )
 
@@ -580,6 +582,7 @@ class NotcheraViewCoordinator: ObservableObject {
                     value: currentHUD.value,
                     icon: currentHUD.icon,
                     label: currentHUD.label,
+                    duration: currentHUD.duration,
                     custom: currentHUD.custom
                 )
             )

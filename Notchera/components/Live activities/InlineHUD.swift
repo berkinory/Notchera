@@ -64,6 +64,7 @@ struct WingHUDView: View {
     @Binding var value: CGFloat
     @Binding var icon: String
     @Binding var label: String
+    @Binding var duration: TimeInterval
     @Binding var custom: ExternalHUDRequest?
     @Default(.animateBluetoothAudioIndicator) var animateBluetoothAudioIndicator
     let showsPercentage: Bool
@@ -92,6 +93,10 @@ struct WingHUDView: View {
 
     private var titleWidth: CGFloat {
         max(0, wingWidth - 18 - 5 - 12)
+    }
+
+    private var marqueeDelay: Double {
+        max(0, duration / 2)
     }
 
     var body: some View {
@@ -145,13 +150,16 @@ struct WingHUDView: View {
                 .frame(width: 18, height: 18)
                 .animation(.smooth(duration: 0.14), value: hudIconKey)
 
-                Text(title)
-                    .font(.footnote)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(width: titleWidth, alignment: .leading)
+                MarqueeText(
+                    .constant(title),
+                    font: .footnote.weight(.medium),
+                    nsFont: .subheadline,
+                    textColor: .white,
+                    backgroundColor: .clear,
+                    minDuration: marqueeDelay,
+                    frameWidth: titleWidth
+                )
+                .frame(width: titleWidth, alignment: .leading)
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)
@@ -439,16 +447,26 @@ struct WingHUDView: View {
                 .id(item.animationKey)
                 .transition(.opacity.combined(with: .scale(scale: 0.92)))
         case .text:
-            Text(item.text ?? "")
-                .font(.footnote)
-                .fontWeight(.medium)
-                .foregroundStyle(item.color?.swiftUIColor ?? .white)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(
-                    width: side == .left ? titleWidth : 60,
-                    alignment: side == .left ? .leading : .trailing
+            if side == .left {
+                MarqueeText(
+                    .constant(item.text ?? ""),
+                    font: .footnote.weight(.medium),
+                    nsFont: .subheadline,
+                    textColor: item.color?.swiftUIColor ?? .white,
+                    backgroundColor: .clear,
+                    minDuration: marqueeDelay,
+                    frameWidth: titleWidth
                 )
+                .frame(width: titleWidth, alignment: .leading)
+            } else {
+                Text(item.text ?? "")
+                    .font(.footnote)
+                    .fontWeight(.medium)
+                    .foregroundStyle(item.color?.swiftUIColor ?? .white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: 60, alignment: .trailing)
+            }
         case .value:
             Text(formattedValue(for: item.value ?? 0))
                 .font(.caption)
@@ -612,6 +630,7 @@ private struct CustomHUDSliderBar: View {
         value: .constant(0.4),
         icon: .constant(""),
         label: .constant(""),
+        duration: .constant(1.5),
         custom: .constant(nil),
         showsPercentage: true,
         isOpen: false,
