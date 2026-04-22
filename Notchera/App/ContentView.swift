@@ -423,7 +423,7 @@ struct ContentView: View {
     }
 
     private func doOpen(forceView: NotchViews? = nil) {
-        suppressAutoCloseUntil = Date().addingTimeInterval(0.5)
+        suppressAutoCloseUntil = Date().addingTimeInterval(0.2)
         postOpenHoverValidationTask?.cancel()
 
         withAnimation(animationSpring) {
@@ -549,7 +549,7 @@ struct ContentView: View {
             }
         } else {
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(120))
+                try? await Task.sleep(for: .milliseconds(40))
                 guard !Task.isCancelled else { return }
 
                 await MainActor.run {
