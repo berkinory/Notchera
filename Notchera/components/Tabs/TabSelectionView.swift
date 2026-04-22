@@ -347,41 +347,47 @@ struct CalendarTabView: View {
     }
 
     private func eventRow(_ event: CalendarManager.CalendarEvent) -> some View {
-        Button {
+        let detail = event.details.trimmingCharacters(in: .whitespacesAndNewlines)
+        let marqueeText = detail.isEmpty || detail == event.calendarTitle
+            ? event.title
+            : "\(event.title)  ·  \(detail)"
+
+        return Button {
             openCalendar(for: event.startDate)
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Text(timeText(for: event))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Color.secondary.opacity(0.82))
+                    .monospacedDigit()
                     .frame(width: 62, alignment: .leading)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    MarqueeText(
-                        .constant(event.title),
-                        font: .system(size: 13, weight: .semibold),
-                        nsFont: .headline,
-                        textColor: .white,
-                        backgroundColor: .clear,
-                        minDuration: 1.5,
-                        frameWidth: 220
-                    )
+                MarqueeText(
+                    .constant(marqueeText),
+                    font: .system(size: 12.5, weight: .semibold),
+                    nsFont: .headline,
+                    textColor: .white.opacity(0.94),
+                    backgroundColor: .clear,
+                    minDuration: 1.5,
+                    frameWidth: 212
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                    MarqueeText(
-                        .constant(event.details),
-                        font: .system(size: 11, weight: .medium),
-                        nsFont: .subheadline,
-                        textColor: Color.secondary,
-                        backgroundColor: .clear,
-                        minDuration: 1.5,
-                        frameWidth: 220
-                    )
-                }
-
-                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.18))
             }
+            .padding(.horizontal, 10)
             .frame(height: 42)
-            .contentShape(Rectangle())
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.white.opacity(0.035))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.7)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
     }
