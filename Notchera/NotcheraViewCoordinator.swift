@@ -18,6 +18,168 @@ enum SneakContentType {
     case battery
     case hudEnabled
     case download
+    case custom
+}
+
+struct ExternalHUDRequest: Codable, Equatable {
+    var id: String?
+    var duration: TimeInterval
+    var left: [ExternalHUDItem]
+    var right: [ExternalHUDItem]
+
+    func normalized() -> ExternalHUDRequest? {
+        let left = Array(left.compactMap(\.normalized).prefix(2))
+        let right = Array(right.compactMap(\.normalized).prefix(3))
+
+        guard !left.isEmpty || !right.isEmpty else {
+            return nil
+        }
+
+        return ExternalHUDRequest(
+            id: id?.trimmingCharacters(in: .whitespacesAndNewlines),
+            duration: max(0.5, min(duration, 2.5)),
+            left: left,
+            right: right
+        )
+    }
+
+    var animationKey: String {
+        let leftKey = left.map(\.animationKey).joined(separator: ",")
+        let rightKey = right.map(\.animationKey).joined(separator: ",")
+        return "\(leftKey)|\(rightKey)"
+    }
+}
+
+struct ExternalHUDItem: Codable, Equatable {
+    enum ItemType: String, Codable {
+        case icon
+        case text
+        case value
+        case slider
+    }
+
+    var type: ItemType
+    var text: String?
+    var symbol: String?
+    var value: Double?
+    var color: ExternalHUDColor?
+
+    var normalized: ExternalHUDItem? {
+        let normalizedColor = color?.normalized
+
+        switch type {
+        case .icon:
+            guard let symbol = symbol?.trimmingCharacters(in: .whitespacesAndNewlines), !symbol.isEmpty else {
+                return nil
+            }
+
+            return ExternalHUDItem(type: type, text: nil, symbol: symbol, value: nil, color: normalizedColor)
+        case .text:
+            guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+                return nil
+            }
+
+            return ExternalHUDItem(type: type, text: text, symbol: nil, value: nil, color: normalizedColor)
+        case .value:
+            guard let value else {
+                return nil
+            }
+
+            return ExternalHUDItem(type: type, text: nil, symbol: nil, value: value, color: normalizedColor)
+        case .slider:
+            guard let value else {
+                return nil
+            }
+
+            return ExternalHUDItem(type: type, text: nil, symbol: nil, value: max(0, min(value, 1)), color: normalizedColor)
+        }
+    }
+
+    var animationKey: String {
+        switch type {
+        case .icon:
+            "icon:\(symbol ?? ""):\(color?.rawValue ?? "")"
+        case .text:
+            "text:\(text ?? ""):\(color?.rawValue ?? "")"
+        case .value:
+            "value:\(color?.rawValue ?? "")"
+        case .slider:
+            "slider:\(color?.rawValue ?? "")"
+        }
+    }
+}
+
+struct ExternalHUDColor: Codable, Equatable {
+    static let tokenValues = ["primary", "secondary", "green", "yellow", "red", "blue"]
+
+    let rawValue: String
+
+    init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        rawValue = try container.decode(String.self)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    var normalized: ExternalHUDColor? {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+
+        return ExternalHUDColor(rawValue: trimmed)
+    }
+
+    var swiftUIColor: Color {
+        switch rawValue.lowercased() {
+        case "primary":
+            .white
+        case "secondary":
+            .gray
+        case "green":
+            .green
+        case "yellow":
+            .yellow
+        case "red":
+            .red
+        case "blue":
+            .blue
+        default:
+            Self.hexColor(from: rawValue) ?? .white
+        }
+    }
+
+    private static func hexColor(from rawValue: String) -> Color? {
+        let hex = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "#", with: "")
+
+        guard hex.count == 6 || hex.count == 8,
+              let value = UInt64(hex, radix: 16)
+        else {
+            return nil
+        }
+
+        if hex.count == 6 {
+            let red = Double((value & 0xFF0000) >> 16) / 255
+            let green = Double((value & 0x00FF00) >> 8) / 255
+            let blue = Double(value & 0x0000FF) / 255
+            return Color(red: red, green: green, blue: blue)
+        }
+
+        let red = Double((value & 0xFF000000) >> 24) / 255
+        let green = Double((value & 0x00FF0000) >> 16) / 255
+        let blue = Double((value & 0x0000FF00) >> 8) / 255
+        let alpha = Double(value & 0x000000FF) / 255
+        return Color(red: red, green: green, blue: blue, opacity: alpha)
+    }
 }
 
 struct HUDState: Equatable {
@@ -26,6 +188,7 @@ struct HUDState: Equatable {
     var value: CGFloat = 0
     var icon: String = ""
     var label: String = ""
+    var custom: ExternalHUDRequest?
 }
 
 struct SharedHUDState: Codable {
@@ -114,6 +277,7 @@ class NotcheraViewCoordinator: ObservableObject {
     @Published var selectedScreenUUID: String = NSScreen.main?.displayUUID ?? ""
 
     private var accessibilityObserver: Any?
+    private var externalHUDObserver: NSObjectProtocol?
     private var hudReplacementCancellable: AnyCancellable?
     private var shelfStateCancellable: AnyCancellable?
     private var suppressRememberedViewUpdate = false
@@ -179,6 +343,7 @@ class NotcheraViewCoordinator: ObservableObject {
 
         InputSourceMonitor.shared.start()
         FocusModeMonitor.shared.start()
+        startExternalHUDListener()
 
         DispatchQueue.main.async {
             BluetoothAudioMonitor.shared.start()
@@ -247,6 +412,47 @@ class NotcheraViewCoordinator: ObservableObject {
         }
     }
 
+    private func startExternalHUDListener() {
+        guard externalHUDObserver == nil else { return }
+
+        externalHUDObserver = DistributedNotificationCenter.default().addObserver(
+            forName: .externalHUDRequest,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleExternalHUDNotification(notification)
+        }
+    }
+
+    private func handleExternalHUDNotification(_ notification: Notification) {
+        guard let payload = externalHUDPayload(from: notification),
+              let data = payload.data(using: .utf8),
+              let request = try? JSONDecoder().decode(ExternalHUDRequest.self, from: data),
+              let normalizedRequest = request.normalized()
+        else {
+            return
+        }
+
+        toggleHUD(
+            status: true,
+            type: .custom,
+            duration: normalizedRequest.duration,
+            custom: normalizedRequest
+        )
+    }
+
+    private func externalHUDPayload(from notification: Notification) -> String? {
+        if let payload = notification.userInfo?["payload"] as? String {
+            return payload
+        }
+
+        if let payload = notification.userInfo?["payload"] as? Data {
+            return String(data: payload, encoding: .utf8)
+        }
+
+        return notification.object as? String
+    }
+
     @objc func hudEvent(_ notification: Notification) {
         let decoder = JSONDecoder()
         guard let payload = notification.userInfo?.first?.value as? Data else { return }
@@ -284,9 +490,10 @@ class NotcheraViewCoordinator: ObservableObject {
         duration: TimeInterval = 1.5,
         value: CGFloat = 0,
         icon: String = "",
-        label: String = ""
+        label: String = "",
+        custom: ExternalHUDRequest? = nil
     ) {
-        if status, !Defaults[.hudReplacement] {
+        if status, type != .custom, !Defaults[.hudReplacement] {
             return
         }
 
@@ -299,7 +506,8 @@ class NotcheraViewCoordinator: ObservableObject {
             type: type,
             value: type == .recording ? (value > 0 ? 1 : 0) : value,
             icon: icon,
-            label: label
+            label: label,
+            custom: type == .custom ? custom : nil
         )
 
         if status {
@@ -349,7 +557,8 @@ class NotcheraViewCoordinator: ObservableObject {
                     type: currentHUD.type,
                     value: currentHUD.value,
                     icon: currentHUD.icon,
-                    label: currentHUD.label
+                    label: currentHUD.label,
+                    custom: currentHUD.custom
                 )
             )
         }
@@ -375,7 +584,7 @@ class NotcheraViewCoordinator: ObservableObject {
             Defaults[.enableScreenRecordingDetection]
         case .battery:
             Defaults[.showPowerStatusNotifications]
-        case .hudEnabled, .download:
+        case .hudEnabled, .download, .custom:
             true
         }
     }
@@ -387,7 +596,8 @@ class NotcheraViewCoordinator: ObservableObject {
             hud.show != state.show ||
             hud.type != state.type ||
             hud.icon != state.icon ||
-            hud.label != state.label
+            hud.label != state.label ||
+            (hud.type == .custom && hud.custom?.animationKey != state.custom?.animationKey)
 
         if shouldAnimate {
             withAnimation(.smooth) {
@@ -469,6 +679,7 @@ class NotcheraViewCoordinator: ObservableObject {
 }
 
 private extension Notification.Name {
+    static let externalHUDRequest = Notification.Name("com.notchera.app.externalHUDRequest")
     static let focusModeEnabled = Notification.Name("_NSDoNotDisturbEnabledNotification")
     static let focusModeDisabled = Notification.Name("_NSDoNotDisturbDisabledNotification")
     static let bluetoothDeviceConnected = Notification.Name("IOBluetoothDeviceConnectedNotification")

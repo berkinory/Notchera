@@ -64,6 +64,7 @@ struct WingHUDView: View {
     @Binding var value: CGFloat
     @Binding var icon: String
     @Binding var label: String
+    @Binding var custom: ExternalHUDRequest?
     @Default(.animateBluetoothAudioIndicator) var animateBluetoothAudioIndicator
     let showsPercentage: Bool
     let isOpen: Bool
@@ -122,31 +123,54 @@ struct WingHUDView: View {
         .animation(.smooth(duration: 0.18), value: isOpen)
     }
 
+    @ViewBuilder
     private var leftWing: some View {
-        HStack(spacing: 5) {
-            ZStack {
-                hudIcon
-                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                    .id(hudIconKey)
+        if type == .custom, let custom = custom {
+            HStack(spacing: 5) {
+                ForEach(Array(custom.left.enumerated()), id: \.offset) { entry in
+                    customItemView(entry.element, side: .left)
+                }
             }
-            .frame(width: 18, height: 18)
-            .animation(.smooth(duration: 0.14), value: hudIconKey)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .clipped()
+            .padding(.leading, 6)
+            .padding(.trailing, 6)
+        } else {
+            HStack(spacing: 5) {
+                ZStack {
+                    hudIcon
+                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                        .id(hudIconKey)
+                }
+                .frame(width: 18, height: 18)
+                .animation(.smooth(duration: 0.14), value: hudIconKey)
 
-            Text(title)
-                .font(.footnote)
-                .fontWeight(.medium)
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(width: titleWidth, alignment: .leading)
+                Text(title)
+                    .font(.footnote)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: titleWidth, alignment: .leading)
+            }
+            .padding(.leading, 6)
+            .padding(.trailing, 6)
         }
-        .padding(.leading, 6)
-        .padding(.trailing, 6)
     }
 
     @ViewBuilder
     private var rightWing: some View {
-        if type == .battery {
+        if type == .custom, let custom = custom {
+            HStack(spacing: 6) {
+                ForEach(Array(custom.right.enumerated()), id: \.offset) { entry in
+                    customItemView(entry.element, side: .right)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .clipped()
+            .padding(.leading, 6)
+            .padding(.trailing, 6)
+        } else if type == .battery {
             HStack(spacing: 6) {
                 BatteryView(
                     levelBattery: Float(clampedValue * 100),
@@ -400,6 +424,57 @@ struct WingHUDView: View {
         }
     }
 
+    private enum CustomHUDSide {
+        case left
+        case right
+    }
+
+    @ViewBuilder
+    private func customItemView(_ item: ExternalHUDItem, side: CustomHUDSide) -> some View {
+        switch item.type {
+        case .icon:
+            Image(systemName: item.symbol ?? "questionmark")
+                .foregroundStyle(item.color?.swiftUIColor ?? .white)
+                .frame(width: 18, height: 18)
+                .id(item.animationKey)
+                .transition(.opacity.combined(with: .scale(scale: 0.92)))
+        case .text:
+            Text(item.text ?? "")
+                .font(.footnote)
+                .fontWeight(.medium)
+                .foregroundStyle(item.color?.swiftUIColor ?? .white)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(
+                    width: side == .left ? titleWidth : 60,
+                    alignment: side == .left ? .leading : .trailing
+                )
+        case .value:
+            Text(formattedValue(for: item.value ?? 0))
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(item.color?.swiftUIColor ?? .gray)
+                .lineLimit(1)
+                .monospacedDigit()
+                .frame(width: 24, alignment: .trailing)
+                .contentTransition(.numericText())
+        case .slider:
+            CustomHUDSliderBar(
+                value: CGFloat(item.value ?? 0),
+                color: item.color?.swiftUIColor ?? .white
+            )
+            .frame(width: 48)
+        }
+    }
+
+    private func formattedValue(for value: Double) -> String {
+        if value.rounded() == value {
+            return String(Int(value))
+        }
+
+        return value.formatted(.number.precision(.fractionLength(0 ... 2)))
+    }
+
     private var clampedValue: CGFloat {
         max(0, min(value, 1))
     }
@@ -467,12 +542,33 @@ struct WingHUDView: View {
     }
 }
 
+private struct CustomHUDSliderBar: View {
+    let value: CGFloat
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.tertiary)
+
+                Capsule()
+                    .fill(color)
+                    .frame(width: max(0, min(geo.size.width * max(0, min(value, 1)), geo.size.width)))
+                    .animation(.smooth(duration: 0.18), value: value)
+            }
+        }
+        .frame(height: 6)
+    }
+}
+
 #Preview {
     WingHUDView(
         type: .constant(.brightness),
         value: .constant(0.4),
         icon: .constant(""),
         label: .constant(""),
+        custom: .constant(nil),
         showsPercentage: true,
         isOpen: false,
         batteryStatusText: nil,

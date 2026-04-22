@@ -6,7 +6,7 @@ SOURCE_PACKAGES := $(DERIVED_DATA)/SourcePackages
 APP_PATH := $(DERIVED_DATA)/Build/Products/Debug/Notchera.app
 XCODEBUILD_BASE := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DESTINATION)' -derivedDataPath $(DERIVED_DATA) -clonedSourcePackagesDirPath $(SOURCE_PACKAGES) -disableAutomaticPackageResolution
 
-.PHONY: open build run debug debug-run profile-build profile-run format lint check
+.PHONY: open build run debug debug-run profile-build profile-run hud-cli format lint check
 
 open:
 	open $(PROJECT)
@@ -27,6 +27,9 @@ profile-build:
 
 profile-run: profile-build
 	open $(APP_PATH)
+
+hud-cli:
+	cd tools/notcherahud && swift build -c release
 
 format:
 	@command -v swiftformat >/dev/null 2>&1 || (echo "swiftformat yok. brew install swiftformat" && exit 1)
