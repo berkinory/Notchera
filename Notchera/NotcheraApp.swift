@@ -65,6 +65,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var mouseMoveMonitor: Any?
     private var mouseDragMonitor: Any?
     private var windowVisibilityObservers: [String: AnyCancellable] = [:]
+    private var windowNotchStateObservers: [String: AnyCancellable] = [:]
     private var appCancellables: Set<AnyCancellable> = []
     private let windowInteractivityPollingInterval: TimeInterval = 1 / 15
     private weak var clipboardFocusedViewModel: NotcheraViewModel?
@@ -162,6 +163,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             windows.removeAll()
             viewModels.removeAll()
             windowVisibilityObservers.removeAll()
+            windowNotchStateObservers.removeAll()
             collapsedHoverStartDates.removeAll()
         } else if let window {
             window.close()
@@ -171,6 +173,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 windowScreenDidChangeObserver = nil
             }
             windowVisibilityObservers.removeAll()
+            windowNotchStateObservers.removeAll()
             collapsedHoverStartDates.removeAll()
             self.window = nil
         }
@@ -197,9 +200,73 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 updateWindowVisibility(window, isHidden: shouldHide)
             }
 
+        windowNotchStateObservers[key] = viewModel.$notchState
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.syncKeyboardSession()
+            }
+
         Task { @MainActor in
             self.updateWindowVisibility(window, isHidden: viewModel.hideOnClosed)
+            self.syncKeyboardSession()
         }
+    }
+
+    private func activeOpenNotchTarget() -> (window: NSWindow?, viewModel: NotcheraViewModel)? {
+        if let clipboardFocusedViewModel, clipboardFocusedViewModel.notchState == .open {
+            if Defaults[.showOnAllDisplays], let screenUUID = clipboardFocusedViewModel.screenUUID {
+                return (windows[screenUUID], clipboardFocusedViewModel)
+            }
+
+            return (window, clipboardFocusedViewModel)
+        }
+
+        if Defaults[.showOnAllDisplays] {
+            let mouseLocation = NSEvent.mouseLocation
+
+            for screen in NSScreen.screens where screen.frame.contains(mouseLocation) {
+                guard let uuid = screen.displayUUID,
+                      let viewModel = viewModels[uuid],
+                      viewModel.notchState == .open
+                else { continue }
+
+                return (windows[uuid], viewModel)
+            }
+
+            if let openEntry = viewModels.first(where: { $0.value.notchState == .open }) {
+                return (windows[openEntry.key], openEntry.value)
+            }
+
+            return nil
+        }
+
+        guard vm.notchState == .open else { return nil }
+        return (window, vm)
+    }
+
+    private func syncKeyboardSession() {
+        guard let target = activeOpenNotchTarget() else {
+            endClipboardKeyboardFocus()
+            return
+        }
+
+        if coordinator.currentView == .commandPalette || coordinator.currentView == .clipboard {
+            coordinator.clipboardKeyboardNavigationActive = true
+            coordinator.notchKeyboardDismissActive = true
+            beginClipboardKeyboardFocus(on: target.window, viewModel: target.viewModel)
+            return
+        }
+
+        guard coordinator.notchKeyboardDismissActive else { return }
+        clipboardFocusedViewModel = target.viewModel
+
+        guard let panel = target.window as? NotcheraSkyLightWindow else { return }
+        panel.setClipboardKeyboardFocusEnabled(false)
+        coordinator.clipboardKeyboardNavigationActive = false
+        NotchKeyboardInterceptor.shared.start(mode: .dismissOnly)
+        startKeyboardDismissClickMonitoring(for: panel, viewModel: target.viewModel)
     }
 
     private func collapsedHitTestWidth(for viewModel: NotcheraViewModel) -> CGFloat {
@@ -641,9 +708,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         coordinator.$currentView
             .removeDuplicates()
             .receive(on: RunLoop.main)
-            .sink { [weak self] view in
-                guard let self, self.coordinator.notchKeyboardDismissActive else { return }
-                NotchKeyboardInterceptor.shared.start(mode: keyboardSessionMode(for: view))
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.syncKeyboardSession()
             }
             .store(in: &appCancellables)
 
