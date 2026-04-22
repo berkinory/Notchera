@@ -1031,7 +1031,7 @@ struct ClipboardResultsView: View {
         return Button {
             clipboardHistoryManager.activateSelection(for: item)
             showCopiedState(for: item.id)
-            endKeyboardNavigation()
+            endKeyboardNavigation(shouldCloseNotch: Defaults[.clipboardSelectionAction] == .paste)
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: item.isFile ? "text.document" : "character.cursor.ibeam")
