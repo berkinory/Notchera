@@ -664,6 +664,207 @@ struct MusicSpectrumIndicatorView: View {
     }
 }
 
+struct LockScreenMediaView: View {
+    @ObservedObject private var musicManager = MusicManager.shared
+    let albumArtNamespace: Namespace.ID
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .center, spacing: 12) {
+                    FlippingAlbumArtCard(
+                        albumArtNamespace: albumArtNamespace,
+                        cornerRadius: 16
+                    )
+                    .frame(width: 64, height: 64)
+                    .scaleEffect(musicManager.isPlaying ? 1 : 0.94)
+
+                    HStack(alignment: .center, spacing: 4) {
+                        LockScreenMetadataView(width: 194)
+
+                        MusicSpectrumIndicatorView(
+                            albumArtNamespace: albumArtNamespace,
+                            isPlaying: musicManager.isPlaying,
+                            avgColor: musicManager.avgColor,
+                            barWidth: 52,
+                            spectrumSize: CGSize(width: 17, height: 12),
+                            containerSize: CGSize(width: 24, height: 22),
+                            cornerRadius: 7
+                        )
+                        .offset(y: 1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                LockScreenProgressView()
+
+                LockScreenControlsRow()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+        }
+        .frame(width: 328, alignment: .top)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.white.opacity(0.082))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(.white.opacity(0.075), lineWidth: 0.8)
+                }
+        )
+        .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
+    }
+}
+
+struct LockScreenMediaOverlayView: View {
+    @Namespace private var albumArtNamespace
+
+    var body: some View {
+        ZStack {
+            Color.clear
+
+            LockScreenMediaView(albumArtNamespace: albumArtNamespace)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .preferredColorScheme(.dark)
+    }
+}
+
+private struct LockScreenMetadataView: View {
+    @ObservedObject var musicManager = MusicManager.shared
+    @Default(.matchAlbumArtColor) private var matchAlbumArtColor
+    let width: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            titleView
+            artistView
+        }
+        .frame(width: width, height: 42, alignment: .center)
+        .clipped()
+    }
+
+    private var titleView: some View {
+        ZStack(alignment: .leading) {
+            MarqueeText(
+                $musicManager.songTitle,
+                font: .system(size: 13.5, weight: .semibold),
+                nsFont: .headline,
+                textColor: .white,
+                frameWidth: width
+            )
+            .id(musicManager.songTitle)
+            .contentTransition(.interpolate)
+            .transition(
+                .asymmetric(
+                    insertion: .offset(y: 4)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.985, anchor: .leading)),
+                    removal: .offset(y: -4)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.985, anchor: .leading))
+                )
+            )
+        }
+        .clipped()
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.songTitle)
+    }
+
+    private var artistView: some View {
+        ZStack(alignment: .leading) {
+            MarqueeText(
+                $musicManager.artistName,
+                font: .system(size: 11.5, weight: .medium),
+                nsFont: .subheadline,
+                textColor: matchAlbumArtColor
+                    ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
+                    : .white.opacity(0.58),
+                frameWidth: width
+            )
+            .id(musicManager.artistName)
+            .contentTransition(.interpolate)
+            .transition(
+                .asymmetric(
+                    insertion: .offset(y: 3)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.988, anchor: .leading)),
+                    removal: .offset(y: -3)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.988, anchor: .leading))
+                )
+            )
+        }
+        .clipped()
+        .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.18), value: musicManager.artistName)
+    }
+
+}
+
+private struct LockScreenProgressView: View {
+    @ObservedObject var musicManager = MusicManager.shared
+    @State private var sliderValue: Double
+    @State private var dragging: Bool = false
+    @State private var lastDragged: Date = .distantPast
+
+    init() {
+        _sliderValue = State(initialValue: MusicManager.shared.estimatedPlaybackPosition())
+    }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.2 : nil)) { timeline in
+            MusicSliderView(
+                sliderValue: $sliderValue,
+                duration: $musicManager.songDuration,
+                lastDragged: $lastDragged,
+                color: musicManager.avgColor,
+                dragging: $dragging,
+                currentDate: timeline.date,
+                timestampDate: musicManager.timestampDate,
+                elapsedTime: musicManager.elapsedTime,
+                playbackRate: musicManager.playbackRate,
+                isPlaying: musicManager.isPlaying
+            ) { newValue in
+                MusicManager.shared.seek(to: newValue)
+            }
+            .frame(height: 24)
+        }
+        .onAppear {
+            syncSliderValue()
+        }
+        .onChange(of: musicManager.elapsedTime) {
+            syncSliderValue()
+        }
+        .onChange(of: musicManager.songDuration) {
+            syncSliderValue()
+        }
+        .onChange(of: musicManager.timestampDate) {
+            syncSliderValue()
+        }
+    }
+
+    private func syncSliderValue() {
+        guard !dragging, musicManager.timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
+        sliderValue = min(musicManager.estimatedPlaybackPosition(), musicManager.songDuration)
+    }
+}
+
+private struct LockScreenControlsRow: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            HoverButton(icon: "backward.fill", scale: .medium, tapEffect: .nudgeLeft) {
+                MusicManager.shared.previousTrack()
+            }
+
+            OptimisticPlayPauseButton()
+
+            HoverButton(icon: "forward.fill", scale: .medium, tapEffect: .nudgeRight) {
+                MusicManager.shared.nextTrack()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+}
+
 private extension [MusicControlButton] {
     func padded(to length: Int, filler: MusicControlButton) -> [MusicControlButton] {
         if count >= length { return self }

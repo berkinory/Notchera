@@ -24,8 +24,16 @@ struct ContentView: View {
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
     private let liveActivityAnimation = Animation.interactiveSpring(response: 0.42, dampingFraction: 0.82, blendDuration: 0)
 
-    private var topCornerRadius: CGFloat {
+    private var isLockScreenInteractionDisabled: Bool {
+        coordinator.isScreenLocked && Defaults[.showOnLockScreen]
+    }
+
+    private var usesExpandedShell: Bool {
         vm.notchState == .open
+    }
+
+    private var topCornerRadius: CGFloat {
+        usesExpandedShell
             ? cornerRadiusInsets.opened.top
             : cornerRadiusInsets.closed.top
     }
@@ -33,10 +41,14 @@ struct ContentView: View {
     private var currentNotchShape: NotchShape {
         NotchShape(
             topCornerRadius: topCornerRadius,
-            bottomCornerRadius: vm.notchState == .open
+            bottomCornerRadius: usesExpandedShell
                 ? cornerRadiusInsets.opened.bottom
                 : cornerRadiusInsets.closed.bottom
         )
+    }
+
+    private var shellHeight: CGFloat? {
+        usesExpandedShell ? vm.notchSize.height : nil
     }
 
     private var computedChinWidth: CGFloat {
@@ -88,11 +100,11 @@ struct ContentView: View {
                     .frame(alignment: .top)
                     .padding(
                         .horizontal,
-                        vm.notchState == .open
+                        usesExpandedShell
                             ? cornerRadiusInsets.opened.top
                             : cornerRadiusInsets.closed.bottom
                     )
-                    .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
+                    .padding([.horizontal, .bottom], usesExpandedShell ? 12 : 0)
                     .background(.black)
                     .clipShape(currentNotchShape)
                     .overlay(alignment: .top) {
@@ -107,8 +119,9 @@ struct ContentView: View {
                                 .fill(.clear)
                                 .contentShape(Rectangle())
                                 .frame(height: 12)
-                                .allowsHitTesting(vm.notchState == .closed)
+                                .allowsHitTesting(vm.notchState == .closed && !isLockScreenInteractionDisabled)
                                 .onTapGesture {
+                                    guard !isLockScreenInteractionDisabled else { return }
                                     doOpen()
                                 }
                         }
@@ -117,7 +130,7 @@ struct ContentView: View {
                     .shadow(
                         color: closedNotchHoverEffectActive
                             ? .black.opacity(0.72)
-                            : (vm.notchState == .open || isHovering)
+                            : (usesExpandedShell || isHovering)
                             ? .black.opacity(0.4)
                             : .clear,
                         radius: closedNotchHoverEffectActive ? 16 : 1,
@@ -129,7 +142,7 @@ struct ContentView: View {
                     )
 
                 mainLayout
-                    .frame(height: vm.notchState == .open ? vm.notchSize.height : nil)
+                    .frame(height: shellHeight)
                     .conditionalModifier(true) { view in
                         let shellAnimation = Animation.interactiveSpring(response: 0.34, dampingFraction: 0.86, blendDuration: 0)
 
@@ -139,10 +152,11 @@ struct ContentView: View {
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in
+                        guard !isLockScreenInteractionDisabled else { return }
                         handleHover(hovering)
                     }
                     .onTapGesture {
-                        guard vm.notchState == .closed else { return }
+                        guard !isLockScreenInteractionDisabled, vm.notchState == .closed else { return }
                         doOpen()
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
@@ -183,12 +197,14 @@ struct ContentView: View {
                         }
                     }
                     .contextMenu {
-                        Button("Settings") {
-                            DispatchQueue.main.async {
-                                SettingsWindowController.shared.showWindow()
+                        if !isLockScreenInteractionDisabled {
+                            Button("Settings") {
+                                DispatchQueue.main.async {
+                                    SettingsWindowController.shared.showWindow()
+                                }
                             }
+                            .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
                         }
-                        .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
                     }
 
                 if vm.chinHeight > 0 {

@@ -25,6 +25,7 @@ class NotcheraViewCoordinator: ObservableObject {
     @Published var helloAnimationRunning: Bool = false
     @Published var clipboardKeyboardNavigationActive: Bool = false
     @Published var notchKeyboardDismissActive: Bool = false
+    @Published var isScreenLocked: Bool = false
     @Published var commandPaletteModule: CommandPaletteModule = .appLauncher
     @Published var commandPaletteQuery: String = ""
     @Published var clipboardSearchQuery: String = ""

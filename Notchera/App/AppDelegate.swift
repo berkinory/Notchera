@@ -11,6 +11,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windows: [String: NSWindow] = [:]
     var viewModels: [String: NotcheraViewModel] = [:]
     var window: NSWindow?
+    var lockScreenMediaWindow: NSWindow?
     let vm: NotcheraViewModel = .init()
     let musicManager = MusicManager.shared
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
@@ -54,6 +55,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         MusicManager.shared.destroy()
         cleanupDragDetectors()
         cleanupWindows()
+        cleanupLockScreenMediaWindow()
         stopKeyboardDismissClickMonitoring()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         ScreenRecordingManager.shared.stopMonitoring()
@@ -63,16 +65,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenLocked(_: Notification) {
         isScreenLocked = true
+        coordinator.isScreenLocked = true
+        NotchKeyboardInterceptor.shared.stop()
+        endClipboardKeyboardFocus(shouldCloseNotch: true)
+        vm.close()
+        viewModels.values.forEach { $0.close() }
+
         if !Defaults[.showOnLockScreen] {
             cleanupWindows()
         } else {
             enableSkyLightOnAllWindows()
+            updateLockScreenMediaWindowVisibility()
         }
     }
 
     @MainActor
     func onScreenUnlocked(_: Notification) {
         isScreenLocked = false
+        coordinator.isScreenLocked = false
+        cleanupLockScreenMediaWindow()
         if !Defaults[.showOnLockScreen] {
             adjustWindowPosition(changeAlpha: true)
         } else {
@@ -142,9 +153,54 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var shouldShowLockScreenMediaWindow: Bool {
+        isScreenLocked
+            && Defaults[.showOnLockScreen]
+            && coordinator.musicLiveActivityEnabled
+            && (musicManager.isPlaying || !musicManager.isPlayerIdle)
+    }
+
+    @MainActor
+    private func cleanupLockScreenMediaWindow() {
+        lockScreenMediaWindow?.close()
+        if let lockScreenMediaWindow {
+            NotchSpaceManager.shared.notchSpace.windows.remove(lockScreenMediaWindow)
+        }
+        lockScreenMediaWindow = nil
+    }
+
+    @MainActor
+    private func updateLockScreenMediaWindowVisibility() {
+        guard shouldShowLockScreenMediaWindow else {
+            cleanupLockScreenMediaWindow()
+            return
+        }
+
+        let screen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
+            ?? window?.screen
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
+
+        guard let screen else {
+            cleanupLockScreenMediaWindow()
+            return
+        }
+
+        if lockScreenMediaWindow == nil {
+            lockScreenMediaWindow = createLockScreenMediaWindow(for: screen)
+        }
+
+        if let lockScreenMediaWindow {
+            positionLockScreenMediaWindow(lockScreenMediaWindow, on: screen)
+            lockScreenMediaWindow.orderFrontRegardless()
+        }
+    }
+
     @MainActor
     private func updateWindowVisibility(_ window: NSWindow, isHidden: Bool) {
-        window.ignoresMouseEvents = isHidden
+        let interactionBlocked = isScreenLocked && Defaults[.showOnLockScreen]
+
+        window.ignoresMouseEvents = isHidden || interactionBlocked
         window.alphaValue = isHidden ? 0 : 1
 
         if isHidden {
@@ -210,6 +266,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func syncKeyboardSession() {
+        guard !(isScreenLocked && Defaults[.showOnLockScreen]) else {
+            NotchKeyboardInterceptor.shared.stop()
+            endClipboardKeyboardFocus()
+            return
+        }
+
         guard let target = activeOpenNotchTarget() else {
             endClipboardKeyboardFocus()
             return
@@ -298,6 +360,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     private func updateWindowInteractivity() {
+        guard !(isScreenLocked && Defaults[.showOnLockScreen]) else {
+            collapsedHoverStartDates.removeAll()
+
+            if Defaults[.showOnAllDisplays] {
+                for window in windows.values {
+                    window.ignoresMouseEvents = true
+                }
+            } else {
+                window?.ignoresMouseEvents = true
+            }
+
+            return
+        }
+
         let mouseLocation = NSEvent.mouseLocation
 
         if Defaults[.showOnAllDisplays] {
@@ -559,6 +635,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    private func createLockScreenMediaWindow(for screen: NSScreen) -> NSWindow {
+        let size = CGSize(width: 330, height: 144)
+        let window = NotcheraSkyLightWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow],
+            backing: .buffered,
+            defer: false
+        )
+
+        window.contentView = NSHostingView(rootView: LockScreenMediaOverlayView())
+        window.ignoresMouseEvents = false
+        window.hasShadow = false
+        window.enableSkyLight()
+        positionLockScreenMediaWindow(window, on: screen)
+        NotchSpaceManager.shared.notchSpace.windows.insert(window)
+        return window
+    }
+
+    private func positionLockScreenMediaWindow(_ window: NSWindow, on screen: NSScreen) {
+        let frame = screen.frame
+        let yOffset: CGFloat = 160
+        window.setFrameOrigin(
+            NSPoint(
+                x: frame.midX - window.frame.width / 2,
+                y: frame.midY - window.frame.height / 2 - yOffset
+            )
+        )
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationCenter.default.addObserver(
             self,
@@ -677,6 +782,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &appCancellables)
 
+        Defaults.publisher(.showOnLockScreen)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateLockScreenMediaWindowVisibility()
+            }
+            .store(in: &appCancellables)
+
+        coordinator.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateLockScreenMediaWindowVisibility()
+            }
+            .store(in: &appCancellables)
+
+        Publishers.CombineLatest(
+            musicManager.$isPlaying.removeDuplicates(),
+            musicManager.$isPlayerIdle.removeDuplicates()
+        )
+        .receive(on: RunLoop.main)
+        .sink { [weak self] _, _ in
+            self?.updateLockScreenMediaWindowVisibility()
+        }
+        .store(in: &appCancellables)
+
         NotificationCenter.default.addObserver(
             forName: .endClipboardKeyboardNavigation,
             object: nil,
@@ -688,7 +819,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyDown(for: .commandPalette) { [weak self] in
             Task { [weak self] in
-                guard let self else { return }
+                guard let self, !(self.isScreenLocked && Defaults[.showOnLockScreen]) else { return }
                 let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
@@ -716,7 +847,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyDown(for: .clipboardHistoryPanel) { [weak self] in
             Task { [weak self] in
-                guard let self else { return }
+                guard let self, !(self.isScreenLocked && Defaults[.showOnLockScreen]) else { return }
                 let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
@@ -743,7 +874,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyDown(for: .toggleNotchOpen) { [weak self] in
             Task { [weak self] in
-                guard let self else { return }
+                guard let self, !(self.isScreenLocked && Defaults[.showOnLockScreen]) else { return }
 
                 let target = targetWindowAndViewModelForShortcut()
                 let viewModel = target.viewModel
@@ -922,6 +1053,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        updateLockScreenMediaWindowVisibility()
     }
 
     @objc func togglePopover(_: Any?) {
