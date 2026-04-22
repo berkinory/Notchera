@@ -34,7 +34,26 @@ struct CommandPaletteView: View {
             )
         })
 
+        if let googleSearchRow {
+            rows.append(googleSearchRow)
+        }
+
         return rows
+    }
+
+    private var googleSearchRow: CommandPaletteRootRow? {
+        guard !trimmedQuery.isEmpty else { return nil }
+
+        return CommandPaletteRootRow(
+            id: "action.google-search.\(trimmedQuery)",
+            title: "Search Web for \"\(trimmedQuery)\"",
+            subtitle: nil,
+            imageAssetName: "google",
+            icon: nil,
+            appItem: nil,
+            action: .googleSearch(trimmedQuery),
+            usageKey: nil
+        )
     }
 
     private var rootRowIDs: [String] {
@@ -207,6 +226,11 @@ struct CommandPaletteView: View {
                         .resizable()
                         .frame(width: 16, height: 16)
                         .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                } else if let imageAssetName = row.imageAssetName {
+                    Image(imageAssetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
                 } else if let icon = row.icon {
                     Image(systemName: icon)
                         .font(.system(size: 10, weight: .semibold))
@@ -438,6 +462,20 @@ struct CommandPaletteView: View {
             pasteboard.clearContents()
             pasteboard.setString(value, forType: .string)
             closePalette()
+        case let .googleSearch(query):
+            var components = URLComponents()
+            components.scheme = "https"
+            components.host = "www.google.com"
+            components.path = "/search"
+            components.queryItems = [
+                URLQueryItem(name: "q", value: query),
+            ]
+
+            if let url = components.url {
+                NSWorkspace.shared.open(url)
+            }
+
+            closePalette()
         case .togglePreventSleep:
             preventSleepManager.toggle()
             closePalette()
@@ -483,15 +521,17 @@ private struct CommandPaletteRootRow: Identifiable {
     let id: String
     let title: String
     let subtitle: String?
+    let imageAssetName: String?
     let icon: String?
     let appItem: AppLauncherItem?
     let action: CommandPaletteAction?
     let usageKey: String?
 
-    init(id: String, title: String, subtitle: String?, icon: String?, appItem: AppLauncherItem? = nil, action: CommandPaletteAction? = nil, usageKey: String? = nil) {
+    init(id: String, title: String, subtitle: String?, imageAssetName: String? = nil, icon: String?, appItem: AppLauncherItem? = nil, action: CommandPaletteAction? = nil, usageKey: String? = nil) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
+        self.imageAssetName = imageAssetName
         self.icon = icon
         self.appItem = appItem
         self.action = action
@@ -653,6 +693,7 @@ private final class CommandPaletteUsageManager {
 
 private enum CommandPaletteAction {
     case copyToClipboard(String)
+    case googleSearch(String)
     case togglePreventSleep
     case enablePreventSleep(duration: TimeInterval)
 }
