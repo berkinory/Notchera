@@ -11,7 +11,8 @@ final class AIUsageStore: ObservableObject {
     private let credentialStore = AIUsageCredentialStore.shared
     private let service = AIUsageService()
     private let fileURL: URL
-    private let cacheTTL: TimeInterval = 3 * 60
+    private let codexCacheTTL: TimeInterval = 3 * 60
+    private let claudeCacheTTL: TimeInterval = 5 * 60
 
     private init() {
         let baseDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
@@ -62,7 +63,16 @@ final class AIUsageStore: ObservableObject {
             return true
         }
 
-        return Date().timeIntervalSince(fetchedAt) >= cacheTTL
+        return Date().timeIntervalSince(fetchedAt) >= cacheTTL(for: account.provider)
+    }
+
+    private func cacheTTL(for provider: AIUsageProvider) -> TimeInterval {
+        switch provider {
+        case .codex:
+            codexCacheTTL
+        case .claude:
+            claudeCacheTTL
+        }
     }
 
     private func refreshAccount(id: UUID, force: Bool) async {
@@ -721,8 +731,7 @@ private actor ClaudeCLIClient {
             throw AIUsageError.requestFailed("Claude Code is not logged in")
         }
 
-        let usageOutput = try runPTYUsage(currentDirectoryURL: workingDirectory)
-        return try ClaudeUsageParser.parse(usageOutput)
+        return try runPTYUsage(currentDirectoryURL: workingDirectory)
     }
 
     private func isolatedWorkingDirectory() throws -> URL {
@@ -755,44 +764,152 @@ private actor ClaudeCLIClient {
         return output
     }
 
-    private func runPTYUsage(currentDirectoryURL: URL) throws -> String {
+    private func runPTYUsage(currentDirectoryURL: URL) throws -> AIUsageSnapshot {
         let script = #"""
-        import os, pty, subprocess, select, time, sys
+        import json, os, pty, re, select, signal, subprocess, sys, time
+
         cwd = sys.argv[1]
         master, slave = pty.openpty()
-        proc = subprocess.Popen(['claude'], stdin=slave, stdout=slave, stderr=slave, text=False, cwd=cwd)
+        proc = subprocess.Popen(
+            ['claude'],
+            stdin=slave,
+            stdout=slave,
+            stderr=slave,
+            text=False,
+            cwd=cwd,
+            start_new_session=True,
+        )
         os.close(slave)
-        out = b''
+
+        chunks = []
+        total = 0
+        max_bytes = 65536
+
+        def append_chunk(data):
+            global total
+            if not data:
+                return
+            chunks.append(data)
+            total += len(data)
+            while total > max_bytes and chunks:
+                removed = chunks.pop(0)
+                total -= len(removed)
+
+        def transcript():
+            return b''.join(chunks).decode('utf-8', 'ignore')
+
         def drain(seconds):
             end = time.time() + seconds
-            global out
             while time.time() < end:
-                r,_,_ = select.select([master], [], [], 0.2)
-                if master in r:
-                    try:
-                        data = os.read(master, 4096)
-                    except OSError:
-                        return
-                    if not data:
-                        return
-                    out += data
-        for _ in range(25):
-            drain(0.25)
-            if b'Claude Code' in out or b'/help' in out or b'Welcome back' in out or '❯'.encode() in out:
-                break
-        os.write(master, b'/usage\r')
-        for _ in range(24):
-            drain(0.25)
-            low = out.lower()
-            if b'current session' in low and b'current week' in low:
-                break
-        os.write(master, b'\x03')
-        drain(1.0)
+                r, _, _ = select.select([master], [], [], 0.2)
+                if master not in r:
+                    continue
+                try:
+                    data = os.read(master, 4096)
+                except OSError:
+                    return
+                if not data:
+                    return
+                append_chunk(data)
+
+        def parse_reset(value):
+            if not value:
+                return 'reset unknown'
+            value = re.sub(r'^Reses?|^Resets', '', value)
+            value = re.sub(r'\d+%used.*$', '', value)
+            value = re.sub(r"What'?scontributing.*$", '', value)
+            value = re.sub(r'Approximate,.*$', '', value)
+            value = re.sub(r'Scanninglocalsessions.*$', '', value)
+            value = re.sub(r'Extrausage.*$', '', value)
+            value = value.replace('(Europe/Istanbul)', '').strip()
+
+            weekly = re.search(r'([A-Za-z]{3})(\d{1,2})at([^A-Z]+(?:am|pm))', value)
+            if weekly:
+                months = {
+                    'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+                    'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                }
+                month = months.get(weekly.group(1).lower(), '--')
+                day = weekly.group(2).zfill(2)
+                return f'resets {day}/{month} {weekly.group(3).strip()}'
+
+            current = re.search(r'([0-9]{1,2}(?::[0-9]{2})?(?:am|pm))', value)
+            if current:
+                return f'resets {current.group(1)}'
+
+            return f'resets {value}' if value else 'reset unknown'
+
+        def parse_section(name, text):
+            compact = re.sub(r'\s+', '', re.sub(r'\x1B\[[0-9;?]*[ -/]*[@-~]', '', text))
+            compact_name = name.replace(' ', '')
+            start = compact.find(compact_name)
+            if start < 0:
+                raise ValueError(f'Could not parse Claude usage section: {name}')
+            remaining = compact[start:]
+            next_index = remaining[1:].find('Current')
+            section = remaining[:next_index + 1] if next_index >= 0 else remaining
+            used_match = re.search(r'(\d+)%used', section)
+            used = float(used_match.group(1)) if used_match else 0.0
+            reset_match = section[section.find('Rese'):] if 'Rese' in section else ''
+            return {
+                'usedPercent': used,
+                'remainingPercent': max(0.0, 100.0 - used),
+                'resetAt': None,
+                'resetDescription': parse_reset(reset_match),
+            }
+
         try:
-            proc.terminate()
-        except Exception:
-            pass
-        sys.stdout.write(out.decode('utf-8', 'ignore'))
+            for _ in range(25):
+                drain(0.25)
+                text = transcript()
+                if 'Claude Code' in text or '/help' in text or 'Welcome back' in text or '❯' in text:
+                    break
+
+            os.write(master, b'/usage\r')
+
+            for _ in range(24):
+                drain(0.25)
+                lower = transcript().lower()
+                if 'current session' in lower and 'current week' in lower:
+                    break
+
+            output = transcript()
+            payload = {
+                'fiveHour': parse_section('Current session', output),
+                'weekly': parse_section('Current week', output),
+            }
+            sys.stdout.write(json.dumps(payload))
+        finally:
+            try:
+                os.write(master, b'\x03')
+            except Exception:
+                pass
+            drain(0.3)
+            try:
+                os.killpg(proc.pid, signal.SIGTERM)
+            except Exception:
+                try:
+                    proc.terminate()
+                except Exception:
+                    pass
+            try:
+                proc.wait(timeout=2)
+            except Exception:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except Exception:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+                try:
+                    proc.wait(timeout=1)
+                except Exception:
+                    pass
+            try:
+                os.close(master)
+            except Exception:
+                pass
         """#
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
@@ -806,15 +923,23 @@ private actor ClaudeCLIClient {
         try process.run()
         process.waitUntilExit()
 
-        let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let handle = outputPipe.fileHandleForReading
+        let data = handle.readDataToEndOfFile()
+        try? handle.close()
         let output = String(bytes: data, encoding: .utf8) ?? ""
 
-        guard !output.isEmpty else {
+        guard process.terminationStatus == 0, !output.isEmpty else {
             throw AIUsageError.requestFailed("Failed to read Claude Code usage")
         }
 
-        return output
+        let decoded = try JSONDecoder().decode(ClaudeUsagePayload.self, from: data)
+        return AIUsageSnapshot(fiveHour: decoded.fiveHour, weekly: decoded.weekly, fetchedAt: Date())
     }
+}
+
+private struct ClaudeUsagePayload: Decodable {
+    let fiveHour: AIUsageWindowSnapshot
+    let weekly: AIUsageWindowSnapshot
 }
 
 private enum ClaudeUsageParser {
