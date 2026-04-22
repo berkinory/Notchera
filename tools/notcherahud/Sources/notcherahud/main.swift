@@ -31,6 +31,7 @@ enum HUDItemType: String, Codable {
     case value
     case slider
     case loading
+    case spinner
 }
 
 struct HUDItem: Codable {
@@ -143,6 +144,9 @@ struct NotcheraHUDCLI {
             case "--left-loading":
                 left.append(HUDItem(type: .loading, text: nil, symbol: nil, value: nil, color: nil))
                 lastItem = ItemReference(side: .left, index: left.index(before: left.endIndex))
+            case "--left-spinner":
+                left.append(HUDItem(type: .spinner, text: nil, symbol: nil, value: nil, color: nil))
+                lastItem = ItemReference(side: .left, index: left.index(before: left.endIndex))
             case "--right-icon":
                 let symbol = try readValue(after: flag, from: arguments, index: &index)
                 right.append(HUDItem(type: .icon, text: nil, symbol: symbol, value: nil, color: nil))
@@ -167,6 +171,9 @@ struct NotcheraHUDCLI {
                 lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
             case "--right-loading":
                 right.append(HUDItem(type: .loading, text: nil, symbol: nil, value: nil, color: nil))
+                lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
+            case "--right-spinner":
+                right.append(HUDItem(type: .spinner, text: nil, symbol: nil, value: nil, color: nil))
                 lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
             case "--color":
                 let raw = try readValue(after: flag, from: arguments, index: &index)
@@ -263,12 +270,14 @@ flags:
   --left-value <number>
   --left-slider <0...1>
   --left-loading
+  --left-spinner
 
   --right-icon <sf-symbol>
   --right-text <text>
   --right-value <number>
   --right-slider <0...1>
   --right-loading
+  --right-spinner
 
 notes:
   - left max 2 item
@@ -295,7 +304,7 @@ examples:
   notcherahud \
     --left-text "syncing" \
     --color "#E2E8F0" \
-    --right-loading \
+    --right-spinner \
     --color blue
 """
 }

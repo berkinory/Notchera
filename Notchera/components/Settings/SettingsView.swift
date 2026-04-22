@@ -853,8 +853,8 @@ struct AIUsageSettings: View {
                             Text(account.alias)
                             Spacer()
                             if account.isRefreshing {
-                                ProgressView()
-                                    .controlSize(.small)
+                                NotcheraSpinner(color: .white.opacity(0.85), lineWidth: 1.5)
+                                    .frame(width: 12, height: 12)
                             }
                             Button(role: .destructive) {
                                 store.removeAccount(id: account.id)
@@ -1032,9 +1032,7 @@ private struct AIUsageAccountRow: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     if account.isRefreshing {
-                        ProgressView()
-                            .controlSize(.small)
-                            .scaleEffect(0.75)
+                        NotcheraSpinner(color: Color.white.opacity(0.82), lineWidth: 1.4)
                             .frame(width: 8, height: 8)
                     }
 
@@ -1401,8 +1399,8 @@ private struct AddAIUsageAccountSheet: View {
         .frame(width: 520)
         .overlay(alignment: .topTrailing) {
             if loginSession.isBusy, provider == .codex {
-                ProgressView()
-                    .controlSize(.small)
+                NotcheraSpinner(color: .white.opacity(0.9), lineWidth: 1.6)
+                    .frame(width: 14, height: 14)
                     .padding(16)
             }
         }

@@ -470,6 +470,9 @@ struct WingHUDView: View {
                 .tint(item.color?.swiftUIColor ?? .white)
                 .scaleEffect(0.55)
                 .frame(width: 18, height: 18)
+        case .spinner:
+            NotcheraSpinner(color: item.color?.swiftUIColor ?? .white, lineWidth: 1.5)
+                .frame(width: 18, height: 18)
         }
     }
 
@@ -544,6 +547,41 @@ struct WingHUDView: View {
             KeyboardBacklightManager.shared.setAbsolute(value: Float(newValue))
         default:
             break
+        }
+    }
+}
+
+struct NotcheraSpinner: View {
+    let color: Color
+    var lineWidth: CGFloat = 1.8
+
+    @State private var isAnimating = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            let inset = lineWidth / 2 + 0.75
+
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.18), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .padding(inset)
+
+                Circle()
+                    .trim(from: 0.1, to: 0.6)
+                    .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .padding(inset)
+                    .rotationEffect(Angle.degrees(isAnimating ? 360 : 0))
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .drawingGroup()
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .animation(.linear(duration: 0.75).repeatForever(autoreverses: false), value: isAnimating)
+        .onAppear {
+            isAnimating = true
+        }
+        .onDisappear {
+            isAnimating = false
         }
     }
 }
