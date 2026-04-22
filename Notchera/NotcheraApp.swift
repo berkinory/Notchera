@@ -662,6 +662,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
+                    if target.viewModel.notchState == .open,
+                       self.coordinator.currentView == .commandPalette,
+                       self.coordinator.commandPaletteModule == .appLauncher
+                    {
+                        self.closeNotchTask?.cancel()
+                        self.closeNotchTask = nil
+                        target.viewModel.close()
+                        self.endClipboardKeyboardFocus()
+                        return
+                    }
+
                     self.closeNotchTask?.cancel()
                     self.closeNotchTask = nil
                     self.coordinator.clipboardKeyboardNavigationActive = true
@@ -679,6 +690,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
+                    if target.viewModel.notchState == .open,
+                       self.coordinator.currentView == .clipboard
+                    {
+                        self.closeNotchTask?.cancel()
+                        self.closeNotchTask = nil
+                        target.viewModel.close()
+                        self.endClipboardKeyboardFocus()
+                        return
+                    }
+
                     self.closeNotchTask?.cancel()
                     self.closeNotchTask = nil
                     self.coordinator.clipboardKeyboardNavigationActive = true
@@ -694,7 +715,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { [weak self] in
                 guard let self else { return }
 
-                let viewModel = targetWindowAndViewModelForShortcut().viewModel
+                let target = targetWindowAndViewModelForShortcut()
+                let viewModel = target.viewModel
 
                 closeNotchTask?.cancel()
                 closeNotchTask = nil
@@ -704,7 +726,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     await MainActor.run {
                         self.coordinator.notchKeyboardDismissActive = true
                         viewModel.open()
-                        self.beginClipboardKeyboardFocus(on: self.targetWindowAndViewModelForShortcut().window, viewModel: viewModel)
+                        self.beginClipboardKeyboardFocus(on: target.window, viewModel: viewModel)
                     }
 
                     let task = Task { [weak self, weak viewModel] in
@@ -1008,6 +1030,22 @@ final class NotchKeyboardInterceptor {
         }
     }
 
+    private func shouldPassThroughShortcut(_ event: NSEvent) -> Bool {
+        let shortcuts: [KeyboardShortcuts.Name] = [
+            .commandPalette,
+            .clipboardHistoryPanel,
+            .toggleNotchOpen,
+        ]
+
+        let eventFlags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+        return shortcuts.contains { name in
+            guard let shortcut = name.shortcut else { return false }
+            return Int(shortcut.carbonKeyCode) == Int(event.keyCode)
+                && shortcut.modifiers.intersection(.deviceIndependentFlagsMask) == eventFlags
+        }
+    }
+
     private func handle(type: CGEventType, cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let eventTap {
@@ -1027,7 +1065,10 @@ final class NotchKeyboardInterceptor {
 
         switch action {
         case .none:
-            return mode == .dismissOnly ? Unmanaged.passRetained(cgEvent) : nil
+            if mode == .dismissOnly || shouldPassThroughShortcut(event) {
+                return Unmanaged.passRetained(cgEvent)
+            }
+            return nil
         default:
             DispatchQueue.main.async {
                 self.dispatch(action, for: mode)
