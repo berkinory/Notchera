@@ -922,7 +922,7 @@ struct TabSelectionView: View {
     }
 
     private func tabGroup(_ items: [TabModel]) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 1) {
             ForEach(items) { tab in
                 TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
                     withAnimation(.smooth) {
