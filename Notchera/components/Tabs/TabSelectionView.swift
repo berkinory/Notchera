@@ -659,9 +659,6 @@ struct ClipboardTabView: View {
                     .foregroundStyle(.white)
                     .frame(width: 12)
                     .opacity(isHovered || isCopied ? 1 : 0)
-                    .scaleEffect(isCopied ? 1.05 : 1)
-                    .animation(.spring(response: 0.42, dampingFraction: 0.88), value: isCopied)
-                    .animation(.easeOut(duration: 0.18), value: isHovered)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 9)
@@ -797,15 +794,7 @@ struct ClipboardTabView: View {
 
         clipboardHistoryManager.copy(item)
         showCopiedState(for: item.id)
-
-        Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                endKeyboardNavigation(shouldCloseNotch: true)
-            }
-        }
+        endKeyboardNavigation(shouldCloseNotch: true)
     }
 
     private func endKeyboardNavigation(shouldCloseNotch: Bool = false) {
