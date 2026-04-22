@@ -13,7 +13,8 @@ struct ContentView: View {
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
-    @State private var hoverTask: Task<Void, Never>?
+    @State private var hoverOpenTask: Task<Void, Never>?
+    @State private var closeTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
     @State private var suppressAutoCloseUntil: Date = .distantPast
@@ -161,17 +162,7 @@ struct ContentView: View {
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
                         if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive {
-                            hoverTask?.cancel()
-                            hoverTask = Task {
-                                try? await Task.sleep(for: .milliseconds(100))
-                                guard !Task.isCancelled else { return }
-                                await MainActor.run {
-                                    guard Date() >= suppressAutoCloseUntil else { return }
-                                    if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
-                                        vm.close()
-                                    }
-                                }
-                            }
+                            scheduleClose(after: .milliseconds(100))
                         }
                     }
                     .onChange(of: vm.notchState) { _, newState in
@@ -183,17 +174,7 @@ struct ContentView: View {
                     }
                     .onChange(of: vm.isBatteryPopoverActive) {
                         if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
-                            hoverTask?.cancel()
-                            hoverTask = Task {
-                                try? await Task.sleep(for: .milliseconds(100))
-                                guard !Task.isCancelled else { return }
-                                await MainActor.run {
-                                    guard Date() >= suppressAutoCloseUntil else { return }
-                                    if !vm.isBatteryPopoverActive, !isHovering, vm.notchState == .open, !SharingStateManager.shared.preventNotchClose {
-                                        vm.close()
-                                    }
-                                }
-                            }
+                            scheduleClose(after: .milliseconds(100))
                         }
                     }
                     .contextMenu {
@@ -424,6 +405,8 @@ struct ContentView: View {
 
     private func doOpen(forceView: NotchViews? = nil) {
         suppressAutoCloseUntil = Date().addingTimeInterval(0.2)
+        hoverOpenTask?.cancel()
+        closeTask?.cancel()
         postOpenHoverValidationTask?.cancel()
 
         withAnimation(animationSpring) {
@@ -436,14 +419,19 @@ struct ContentView: View {
 
             await MainActor.run {
                 guard vm.notchState == .open else { return }
-                guard !isPointerWithinTopNotchRegion() else { return }
+
+                let pointerInsideTopRegion = isPointerWithinTopNotchRegion()
+                if pointerInsideTopRegion {
+                    isHovering = true
+                    return
+                }
 
                 withAnimation(animationSpring) {
                     isHovering = false
                 }
 
                 if !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
-                    vm.close()
+                    closeIfPossible()
                 }
             }
         }
@@ -510,7 +498,8 @@ struct ContentView: View {
     }
 
     private func handleKeyboardEscape() {
-        hoverTask?.cancel()
+        hoverOpenTask?.cancel()
+        closeTask?.cancel()
         postOpenHoverValidationTask?.cancel()
         anyDropDebounceTask?.cancel()
 
@@ -524,9 +513,10 @@ struct ContentView: View {
 
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch { return }
-        hoverTask?.cancel()
 
         if hovering {
+            closeTask?.cancel()
+
             withAnimation(animationSpring) {
                 isHovering = true
             }
@@ -535,7 +525,8 @@ struct ContentView: View {
                   !coordinator.hud.show,
                   Defaults[.openNotchOnHover] else { return }
 
-            hoverTask = Task {
+            hoverOpenTask?.cancel()
+            hoverOpenTask = Task {
                 try? await Task.sleep(for: .seconds(Defaults[.minimumHoverDuration]))
                 guard !Task.isCancelled else { return }
 
@@ -548,22 +539,43 @@ struct ContentView: View {
                 }
             }
         } else {
-            hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(40))
-                guard !Task.isCancelled else { return }
+            hoverOpenTask?.cancel()
 
-                await MainActor.run {
-                    withAnimation(animationSpring) {
-                        isHovering = false
-                    }
+            withAnimation(animationSpring) {
+                isHovering = false
+            }
 
-                    guard Date() >= suppressAutoCloseUntil else { return }
+            scheduleClose(after: .milliseconds(40))
+        }
+    }
 
-                    if vm.notchState == .open, !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
-                        vm.close()
-                    }
-                }
+    private func scheduleClose(after delay: Duration) {
+        closeTask?.cancel()
+        closeTask = Task {
+            try? await Task.sleep(for: delay)
+
+            let remainingSuppressDuration = suppressAutoCloseUntil.timeIntervalSinceNow
+            if remainingSuppressDuration > 0 {
+                try? await Task.sleep(for: .seconds(remainingSuppressDuration))
+            }
+
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                closeIfPossible()
             }
         }
+    }
+
+    private func closeIfPossible() {
+        guard vm.notchState == .open,
+              !isHovering,
+              !vm.isBatteryPopoverActive,
+              !SharingStateManager.shared.preventNotchClose
+        else {
+            return
+        }
+
+        vm.close()
     }
 }
