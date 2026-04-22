@@ -471,11 +471,26 @@ struct ClipboardTabView: View {
     @State private var hoverSuppressionTask: Task<Void, Never>?
 
     private var filteredItems: [ClipboardHistoryItem] {
-        let normalizedQuery = coordinator.clipboardSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalizedQuery.isEmpty else { return clipboardHistoryManager.items }
+        let rawQuery = coordinator.clipboardSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawQuery.isEmpty else { return clipboardHistoryManager.items }
+
+        let normalizedQuery = normalizedClipboardSearchQuery(rawQuery)
+        let shouldUseNormalizedSearch = rawQuery.allSatisfy { $0.isLetter || $0.isNumber || $0.isWhitespace }
+        let shouldSearchFilePaths = rawQuery.contains("/") || rawQuery.contains(".") || rawQuery.contains("~") || rawQuery.contains(":")
 
         return clipboardHistoryManager.items.filter { item in
-            searchableText(for: item).contains(normalizedQuery)
+            if primaryRawSearchText(for: item).localizedCaseInsensitiveContains(rawQuery) {
+                return true
+            }
+
+            if shouldSearchFilePaths,
+               filePathSearchText(for: item).localizedCaseInsensitiveContains(rawQuery)
+            {
+                return true
+            }
+
+            guard shouldUseNormalizedSearch, !normalizedQuery.isEmpty else { return false }
+            return primaryNormalizedSearchText(for: item).contains(normalizedQuery)
         }
     }
 
@@ -693,8 +708,39 @@ struct ClipboardTabView: View {
         return lines.count > 1 ? "\(firstLine)..." : firstLine
     }
 
-    private func searchableText(for item: ClipboardHistoryItem) -> String {
-        item.searchText
+    private func primaryNormalizedSearchText(for item: ClipboardHistoryItem) -> String {
+        switch item.kind {
+        case .text:
+            return item.searchText
+        case let .file(path):
+            return normalizedClipboardSearchQuery(URL(fileURLWithPath: path).lastPathComponent)
+        }
+    }
+
+    private func primaryRawSearchText(for item: ClipboardHistoryItem) -> String {
+        switch item.kind {
+        case let .text(content):
+            return content
+        case let .file(path):
+            return URL(fileURLWithPath: path).lastPathComponent
+        }
+    }
+
+    private func filePathSearchText(for item: ClipboardHistoryItem) -> String {
+        guard case let .file(path) = item.kind else { return "" }
+        return path
+    }
+
+    private func normalizedClipboardSearchQuery(_ query: String) -> String {
+        let folded = query
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+
+        let pieces = folded.split { character in
+            !character.isLetter && !character.isNumber
+        }
+
+        return pieces.joined(separator: " ")
     }
 
     private func trimmedFileName(_ fileName: String) -> String {
