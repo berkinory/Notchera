@@ -893,10 +893,11 @@ struct AIUsageSettings: View {
 struct AIUsageDashboardView: View {
     @StateObject private var store = AIUsageStore.shared
     @Default(.aiUsageShowRemaining) var aiUsageShowRemaining
+    @State private var selectedAccountID: AIUsageAccount.ID?
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 8),
-    ]
+    private var accountIDs: [AIUsageAccount.ID] {
+        store.accounts.map(\.id)
+    }
 
     var body: some View {
         Group {
@@ -947,9 +948,16 @@ struct AIUsageDashboardView: View {
                 .padding(.bottom, 6)
             } else {
                 ScrollView(showsIndicators: false) {
-                    LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+                    LazyVStack(spacing: 4) {
                         ForEach(store.accounts) { account in
-                            AIUsageCard(account: account, showRemaining: aiUsageShowRemaining)
+                            AIUsageAccountRow(
+                                account: account,
+                                showRemaining: aiUsageShowRemaining,
+                                isSelected: selectedAccountID == account.id,
+                                action: {
+                                    selectedAccountID = selectedAccountID == account.id ? nil : account.id
+                                }
+                            )
                         }
                     }
                     .padding(.horizontal, 8)
@@ -960,6 +968,23 @@ struct AIUsageDashboardView: View {
         }
         .task {
             await store.refreshIfNeeded(force: false)
+            syncSelection()
+        }
+        .onChange(of: accountIDs) { _, _ in
+            syncSelection()
+        }
+    }
+
+    private func syncSelection() {
+        guard !store.accounts.isEmpty else {
+            selectedAccountID = nil
+            return
+        }
+
+        if let selectedAccountID,
+           !store.accounts.contains(where: { $0.id == selectedAccountID })
+        {
+            self.selectedAccountID = nil
         }
     }
 }
@@ -986,82 +1011,240 @@ struct AIUsageProviderIcon: View {
     }
 }
 
-private struct AIUsageCard: View {
+private struct AIUsageAccountRow: View {
     let account: AIUsageAccount
     let showRemaining: Bool
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            header
+        VStack(alignment: .leading, spacing: isSelected ? 7 : 0) {
+            Button(action: action) {
+                HStack(spacing: 8) {
+                    AIUsageProviderIcon(provider: account.provider, size: 12)
 
+                    Text(account.alias)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(isSelected ? Color.white.opacity(0.92) : Color.white.opacity(0.74))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if account.isRefreshing {
+                        ProgressView()
+                            .controlSize(.small)
+                            .scaleEffect(0.75)
+                            .frame(width: 8, height: 8)
+                    }
+
+                    if let snapshot = account.snapshot {
+                        HStack(spacing: 8) {
+                            AIUsageCompactMetric(label: "5H", snapshot: snapshot.fiveHour, showRemaining: showRemaining)
+                            AIUsageCompactMetric(label: "W", snapshot: snapshot.weekly, showRemaining: showRemaining)
+                        }
+                    } else {
+                        Text(statusText)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Color.secondary.opacity(0.72))
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+                .padding(.horizontal, 8)
+                .background(backgroundShape.fill(backgroundFill))
+                .overlay {
+                    backgroundShape
+                        .strokeBorder(borderColor, lineWidth: 0.7)
+                }
+                .contentShape(backgroundShape)
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+
+            if isSelected {
+                selectedDetail
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 7)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.14), value: isSelected)
+        .animation(.easeOut(duration: 0.1), value: isHovered)
+    }
+
+    private var selectedDetail: some View {
+        Group {
             if let snapshot = account.snapshot {
-                VStack(alignment: .leading, spacing: 7) {
-                    AIUsageMetricRow(
-                        title: "Current",
-                        snapshot: snapshot.fiveHour,
-                        showRemaining: showRemaining,
-                        isWeekly: false
-                    )
-                    AIUsageMetricRow(
-                        title: "Weekly",
-                        snapshot: snapshot.weekly,
-                        showRemaining: showRemaining,
-                        isWeekly: true
-                    )
+                let percentageWidth = AIUsageMetricTone.percentageWidth(
+                    for: [snapshot.fiveHour, snapshot.weekly],
+                    showRemaining: showRemaining
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    AIUsageExpandedMetric(title: "Current", snapshot: snapshot.fiveHour, showRemaining: showRemaining, isWeekly: false, percentageWidth: percentageWidth)
+                    AIUsageExpandedMetric(title: "Weekly", snapshot: snapshot.weekly, showRemaining: showRemaining, isWeekly: true, percentageWidth: percentageWidth)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(Color.white.opacity(0.03))
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.045), lineWidth: 0.6)
                 }
             } else if let lastError = account.lastError, !lastError.isEmpty {
                 Text(lastError)
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Color.secondary.opacity(0.84))
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.82))
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 7)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(Color.white.opacity(0.03))
+                    )
             } else {
                 Text("No usage yet")
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Color.secondary.opacity(0.84))
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.82))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 7)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(Color.white.opacity(0.03))
+                    )
             }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-
-            shape
-                .fill(Color.white.opacity(0.045))
-                .overlay {
-                    shape
-                        .strokeBorder(Color.white.opacity(0.065), lineWidth: 0.7)
-                }
         }
     }
 
-    private var header: some View {
-        HStack(alignment: .center, spacing: 7) {
-            AIUsageProviderIcon(provider: account.provider, size: 12)
+    private var statusText: String {
+        if let lastError = account.lastError, !lastError.isEmpty {
+            return "Error"
+        }
 
-            Text(account.alias)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.92))
-                .lineLimit(1)
+        return "Empty"
+    }
 
-            Spacer(minLength: 0)
+    private var backgroundShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+    }
 
-            if account.isRefreshing {
-                ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.8)
-                    .frame(width: 10, height: 10)
+    private var backgroundFill: Color {
+        if isSelected {
+            return Color.white.opacity(0.07)
+        }
+
+        if isHovered {
+            return Color.white.opacity(0.055)
+        }
+
+        return Color.white.opacity(0.04)
+    }
+
+    private var borderColor: Color {
+        if isSelected {
+            return Color.white.opacity(0.09)
+        }
+
+        if isHovered {
+            return Color.white.opacity(0.065)
+        }
+
+        return Color.white.opacity(0.05)
+    }
+}
+
+private struct AIUsageCompactMetric: View {
+    let label: String
+    let snapshot: AIUsageWindowSnapshot
+    let showRemaining: Bool
+
+    private var displayPercent: Double {
+        showRemaining ? snapshot.remainingPercent : snapshot.usedPercent
+    }
+
+    private var metricColor: Color {
+        AIUsageMetricTone.color(for: snapshot.usedPercent)
+    }
+
+    private let metricWidth: CGFloat = 72
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.58))
+                    .frame(minWidth: 14, alignment: .leading)
+
+                Spacer(minLength: 4)
+
+                Text(displayPercent.formattedPercent)
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(metricColor)
+                    .fixedSize()
+            }
+            .frame(width: metricWidth)
+
+            AIUsageProgressBar(value: displayPercent, color: metricColor)
+                .frame(width: metricWidth, height: 4)
+        }
+    }
+}
+
+private struct AIUsageExpandedMetric: View {
+    let title: String
+    let snapshot: AIUsageWindowSnapshot
+    let showRemaining: Bool
+    let isWeekly: Bool
+    let percentageWidth: CGFloat
+
+    private var displayPercent: Double {
+        showRemaining ? snapshot.remainingPercent : snapshot.usedPercent
+    }
+
+    private var metricColor: Color {
+        AIUsageMetricTone.color(for: snapshot.usedPercent)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center, spacing: 8) {
+                Text(title)
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.74))
+                    .lineLimit(1)
+
+                Spacer(minLength: 6)
+
+                Text(AIUsageMetricTone.resetText(for: snapshot, isWeekly: isWeekly))
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.72))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+
+            HStack(alignment: .center, spacing: 7) {
+                AIUsageProgressBar(value: displayPercent, color: metricColor)
+                    .frame(height: 5)
+
+                Text(displayPercent.formattedPercent)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(metricColor)
+                    .monospacedDigit()
+                    .frame(width: percentageWidth, alignment: .trailing)
             }
         }
     }
 }
 
-private struct AIUsageMetricRow: View {
-    let title: String?
-    let snapshot: AIUsageWindowSnapshot
-    let showRemaining: Bool
-    let isWeekly: Bool
-
+private enum AIUsageMetricTone {
     static func resetText(for snapshot: AIUsageWindowSnapshot, isWeekly: Bool) -> String {
         if let resetDescription = snapshot.resetDescription, !resetDescription.isEmpty {
             return resetDescription
@@ -1075,13 +1258,7 @@ private struct AIUsageMetricRow: View {
         return "resets \(resetAt.formatted(date: .omitted, time: .shortened))"
     }
 
-    private var displayPercent: Double {
-        showRemaining ? snapshot.remainingPercent : snapshot.usedPercent
-    }
-
-    private var metricColor: Color {
-        let usedPercent = snapshot.usedPercent
-
+    static func color(for usedPercent: Double) -> Color {
         if usedPercent < 60 {
             return .green
         }
@@ -1091,40 +1268,13 @@ private struct AIUsageMetricRow: View {
         return .red
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .center, spacing: 8) {
-                if let title, !title.isEmpty {
-                    Text(title)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.74))
-                        .lineLimit(1)
-                }
+    static func percentageWidth(for snapshots: [AIUsageWindowSnapshot], showRemaining: Bool) -> CGFloat {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
 
-                Spacer(minLength: 6)
-
-                Text(formattedReset)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.secondary.opacity(0.72))
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .multilineTextAlignment(.trailing)
-            }
-
-            HStack(alignment: .center, spacing: 7) {
-                AIUsageProgressBar(value: displayPercent, color: metricColor)
-                    .frame(height: 6)
-
-                Text(displayPercent.formattedPercent)
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(metricColor)
-                    .fixedSize()
-            }
-        }
-    }
-
-    private var formattedReset: String {
-        Self.resetText(for: snapshot, isWeekly: isWeekly)
+        return (snapshots.map { snapshot in
+            let value = showRemaining ? snapshot.remainingPercent : snapshot.usedPercent
+            return (value.formattedPercent as NSString).size(withAttributes: [.font: font]).width
+        }.max() ?? 0).rounded(.up)
     }
 }
 
@@ -1375,7 +1525,7 @@ private final class AIUsageStore: ObservableObject {
     private let credentialStore = AIUsageCredentialStore.shared
     private let service = AIUsageService()
     private let fileURL: URL
-    private let cacheTTL: TimeInterval = 5 * 60
+    private let cacheTTL: TimeInterval = 3 * 60
 
     private init() {
         let baseDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
