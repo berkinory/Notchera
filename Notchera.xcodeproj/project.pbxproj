@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03B54B02B620D4147D8C9A82 /* ClipboardTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9BF49EBB48340E13073B369 /* ClipboardTabView.swift */; };
 		1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */; };
 		110029272E84FD4C00035A57 /* TemporaryFileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */; };
 		1113ABC52E80E27000EC13B2 /* ShelfItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1113ABC32E80E27000EC13B2 /* ShelfItemView.swift */; };
@@ -46,21 +47,18 @@
 		118EBE2D2E97165600D54B5A /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118EBE2C2E97165600D54B5A /* Bookmark.swift */; };
 		118EBE312E9717DB00D54B5A /* URL+SecurityScoped.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118EBE302E9717DB00D54B5A /* URL+SecurityScoped.swift */; };
 		118EBE3B2E9720C500D54B5A /* ShelfStateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118EBE3A2E9720C500D54B5A /* ShelfStateViewModel.swift */; };
-		1194E87C2EA19E09009C82D6 /* ImageProcessingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1194E87B2EA19E09009C82D6 /* ImageProcessingService.swift */; };
 		1194E8852EA57D23009C82D6 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 1194E8842EA57D23009C82D6 /* SkyLightWindow */; };
 		1194E8872EA6DDA7009C82D6 /* NotcheraSkyLightWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1194E8862EA6DDA7009C82D6 /* NotcheraSkyLightWindow.swift */; };
 		1194E9402EACC652009C82D6 /* Color+AccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1194E93F2EACC652009C82D6 /* Color+AccentColor.swift */; };
 		11A45C792E34E63100CEB175 /* MediaChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A45C782E34E63100CEB175 /* MediaChecker.swift */; };
 		11C5E3132DFE85970065821E /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5E3112DFE85970065821E /* SettingsWindowController.swift */; };
 		11C5E3162DFE88510065821E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5E3152DFE88510065821E /* SettingsView.swift */; };
-		11CC44A22CEE614100C7244B /* NotcheraViewCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CC44A12CEE614100C7244B /* NotcheraViewCoordinator.swift */; };
 		11CFC65B2E097E9D00748C80 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC65A2E097E9D00748C80 /* WelcomeView.swift */; };
 		11CFC65F2E097F2F00748C80 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC65E2E097F2100748C80 /* OnboardingView.swift */; };
 		11CFC6612E097F6800748C80 /* PermissionsRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */; };
 		11CFC6632E09918400748C80 /* MusicControllerSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6622E09917B00748C80 /* MusicControllerSelectionView.swift */; };
 		11CFC6652E09C7B300748C80 /* OnboardingFinishView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6642E09C7B300748C80 /* OnboardingFinishView.swift */; };
 		11D58EA22E760AE100FA8377 /* ImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D58EA12E760AE100FA8377 /* ImageService.swift */; };
-		C0A1A2B32F10000100A1B2C3 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A2B32F10000000A1B2C3 /* CalendarManager.swift */; };
 		11EFCD702E8E92D600D0B974 /* ShelfItemViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EFCD6F2E8E92D600D0B974 /* ShelfItemViewModel.swift */; };
 		11F747CE2EC75CEA00F841DB /* DragPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F747CD2EC75CEA00F841DB /* DragPreviewView.swift */; };
 		11F7485B2EC9AABA00F841DB /* NotcheraXPCHelper.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 11F7484F2EC9AABA00F841DB /* NotcheraXPCHelper.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -69,64 +67,75 @@
 		11F748822ECB07A400F841DB /* MusicControlButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F748812ECB07A400F841DB /* MusicControlButton.swift */; };
 		11F748842ECB27DC00F841DB /* MusicSlotConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F748832ECB27DC00F841DB /* MusicSlotConfigurationView.swift */; };
 		14288DDC2C6E015000B9F80C /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14288DD62C6E015000B9F80C /* AudioPlayer.swift */; };
-		14288DE82C6E01C800B9F80C /* ProgressIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14288DE72C6E01C800B9F80C /* ProgressIndicator.swift */; };
 		14288E0C2C6F8EC000B9F80C /* AppIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14288E0B2C6F8EC000B9F80C /* AppIcons.swift */; };
-		1443E7F32C609DCE0027C1FC /* matters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1443E7F22C609DCE0027C1FC /* matters.swift */; };
+		145B4573A61479CD540B414B /* AIUsageServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3A4DCD82BB1D2A3796757B /* AIUsageServices.swift */; };
 		147163982C5D35B70068B555 /* MusicVisualizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147163972C5D35B70068B555 /* MusicVisualizer.swift */; };
 		1471639A2C5D35FF0068B555 /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147163992C5D35FF0068B555 /* MusicManager.swift */; };
 		1471A8592C6281BD0058408D /* NotcheraWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1471A8582C6281BD0058408D /* NotcheraWindow.swift */; };
 		14A7E5882C64A89C008C1BE9 /* HelloAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A7E5872C64A89C008C1BE9 /* HelloAnimation.swift */; };
 		14A7E5972C65FD31008C1BE9 /* notchera.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 14A7E5962C65FD31008C1BE9 /* notchera.m4a */; };
 		14C08BC12C8E03AD000F8AA0 /* NSImage+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C08BC02C8E03AD000F8AA0 /* NSImage+Extensions.swift */; };
-		14CEF4162C5CAED300855D72 /* NotcheraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CEF4152C5CAED300855D72 /* NotcheraApp.swift */; };
-		14CEF4182C5CAED300855D72 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CEF4172C5CAED300855D72 /* ContentView.swift */; };
 		14CEF41A2C5CAED400855D72 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 14CEF4192C5CAED400855D72 /* Assets.xcassets */; };
 		14CEF41D2C5CAED400855D72 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 14CEF41C2C5CAED400855D72 /* Preview Assets.xcassets */; };
 		14D0321A2C68F32E0096E6A1 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 14D032192C68F32E0096E6A1 /* LaunchAtLogin */; };
 		14D0321D2C68F3350096E6A1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 14D0321C2C68F3350096E6A1 /* Sparkle */; };
-		14D570B92C5E98A20011E668 /* drop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570B82C5E98A20011E668 /* drop.swift */; };
-		14D570BC2C5E98EB0011E668 /* generic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570BB2C5E98EB0011E668 /* generic.swift */; };
 		14D570C02C5EA5870011E668 /* AnimatedFace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570BF2C5EA5870011E668 /* AnimatedFace.swift */; };
-		14D570C22C5EAFBF0011E668 /* EmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570C12C5EAFBF0011E668 /* EmptyState.swift */; };
 		14D570C62C5F38210011E668 /* NotcheraHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570C52C5F38210011E668 /* NotcheraHeader.swift */; };
 		14D570C92C5F38890011E668 /* NotcheraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570C82C5F38890011E668 /* NotcheraViewModel.swift */; };
 		14D570CB2C5F4B2C0011E668 /* BatteryStatusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570CA2C5F4B2C0011E668 /* BatteryStatusViewModel.swift */; };
 		14D570CD2C5F4BB70011E668 /* NotcheraBattery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570CC2C5F4BB70011E668 /* NotcheraBattery.swift */; };
 		14D570D22C5F6C6A0011E668 /* NotcheraExtrasMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570D12C5F6C6A0011E668 /* NotcheraExtrasMenu.swift */; };
-		14E9FEAA2C70BF610062E83F /* DownloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FEA92C70BF610062E83F /* DownloadView.swift */; };
 		14E9FEAE2C7325770062E83F /* Button+Bouncing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FEAD2C7325770062E83F /* Button+Bouncing.swift */; };
 		14FC6E502C7DED5600C7BEA5 /* DataTypes+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FC6E4F2C7DED5600C7BEA5 /* DataTypes+Extensions.swift */; };
+		165F41B886C74D8178F2F1F9 /* TabModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E84CDEBD730F9A1A62D6EF /* TabModel.swift */; };
+		1F854E8C97D118DAE232FA60 /* CommandPaletteActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F494557B3727E8C012EF834 /* CommandPaletteActions.swift */; };
+		261E434EB7A7F6C9F78885F7 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92046B39BCA8E9D1D538509 /* AppearanceSettingsView.swift */; };
+		34F9456483082B3AA0929811 /* ClipboardSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107D415EACF208DE9E9DA2C8 /* ClipboardSettingsView.swift */; };
+		3BB04499B562A662D2B1E8CA /* MusicCompactActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F744629B3B8BE084D891CA8 /* MusicCompactActivityView.swift */; };
+		49234EF4A9F68FC89EC496AD /* CommandPaletteUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87414A7A9070106FD8FC94EF /* CommandPaletteUsage.swift */; };
+		4C184B21B4B233917E062820 /* NotcheraViewCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85F042A086A7B4B55C34E65B /* NotcheraViewCoordinator.swift */; };
 		507266DB2C908E2E00A2D00D /* HoverButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 507266DA2C908E2E00A2D00D /* HoverButton.swift */; };
 		5917FD112E57891600E87F1C /* MediaKeyInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */; };
 		5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */; };
 		59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D8C23B2E589FAA00147B33 /* VolumeManager.swift */; };
+		5A114A91B14E347B49C765B4 /* FocusModeSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB944DDB82C2570DCFE2496F /* FocusModeSupport.swift */; };
+		5D2E47829083D77EF8D8C31D /* DynamicNotchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72B242C19DEA2C0C8D0F36FA /* DynamicNotchApp.swift */; };
+		607C48CD97B3ADEFA5B2047F /* NotcheraAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BC3442D9D35108947E13221 /* NotcheraAnimations.swift */; };
+		65D040AAAF890CE29EF3A5CD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8642F1AFD4203F98DA811E /* ContentView.swift */; };
 		6A1B2C3D4E5F60718293A4B5 /* ScreenRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1B2C3D4E5F60718293A4B4 /* ScreenRecordingManager.swift */; };
+		702A4EEF9C758080C2BD7E32 /* AIUsageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A68445A8383A2322E47A37A /* AIUsageModels.swift */; };
+		73ED4D3696AADBEAA437C09B /* NotchKeyboardInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DB7471FA6963CC07699EE74 /* NotchKeyboardInterceptor.swift */; };
 		7B1C2D3E4F5061728394A5B6 /* ClipboardHistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1C2D3E4F5061728394A5B5 /* ClipboardHistoryManager.swift */; };
 		7B1C2D3E4F5061728394A5B8 /* AppLauncherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1C2D3E4F5061728394A5B7 /* AppLauncherManager.swift */; };
+		879643F786999F0E75E2A10A /* NotchSizing.swift in Sources */ = {isa = PBXBuildFile; fileRef = F07949F59369845AB0535762 /* NotchSizing.swift */; };
+		8C694B5A8EA7CC45D3126CF2 /* Notification+Notchera.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBA94F10B33EA97C95FFE3F7 /* Notification+Notchera.swift */; };
+		8D104D19B27999B614604424 /* HUDSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25BF43BC92FBCACF288807CD /* HUDSettingsView.swift */; };
 		9A0887322C7A693000C160EA /* TabButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887312C7A693000C160EA /* TabButton.swift */; };
 		9A0887352C7AFF8E00C160EA /* TabSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */; };
 		9A0887372C7AFF8E00C160EA /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887362C7AFF8E00C160EA /* CommandPaletteView.swift */; };
 		9A987A0D2C73CA66005CA465 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A987A032C73CA66005CA465 /* ShelfView.swift */; };
 		9A987A102C73CA8D005CA465 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 9A987A0F2C73CA8D005CA465 /* Collections */; };
 		9AB0C6BD2C73C9CB00F7CD30 /* NotchHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB0C6BB2C73C9CB00F7CD30 /* NotchHomeView.swift */; };
+		9DE14D8EA044D4146BBD3478 /* CalendarTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B47A48FDA5FC807772F2A665 /* CalendarTabView.swift */; };
+		A87B4634B626F659242FADC8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3174BAE8C0FCB1A5533C7CA /* AppDelegate.swift */; };
+		AC1C4AE1B06AA9AB0D21D167 /* ShelfSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C149DBB43CD05B7990F342 /* ShelfSettingsView.swift */; };
+		ACD048CC99C9CC77E2198C59 /* MediaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EAA42ECA64B1714D032FF54 /* MediaSettingsView.swift */; };
+		B05E47A6A1C4B2AAC6385AA3 /* AIUsageSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24754605A9A07CB6E9A795BE /* AIUsageSettingsView.swift */; };
 		B10348D92C74E56000475897 /* ConditionalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10348D82C74E56000475897 /* ConditionalModifier.swift */; };
-		B10F84A32C6C9596009F3026 /* TestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10F84A22C6C9596009F3026 /* TestView.swift */; };
 		B141C2412CA5F53F00AC8CC8 /* SparkleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B141C2402CA5F53E00AC8CC8 /* SparkleView.swift */; };
 		B1628B922CC260C0003D8DF3 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = B1628B912CC260C0003D8DF3 /* SwiftUIIntrospect */; };
 		B17266DF2C64DFA00031BA0D /* BundleInfos.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17266DE2C64DFA00031BA0D /* BundleInfos.swift */; };
 		B17266E12C6532560031BA0D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B17266E02C6532560031BA0D /* Localizable.xcstrings */; };
-		B17266E32C65F7FB0031BA0D /* WhatsNewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17266E22C65F7FB0031BA0D /* WhatsNewView.swift */; };
 		B172AAC02C95DA0B001623F1 /* InlineHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B172AABF2C95DA0B001623F1 /* InlineHUD.swift */; };
 		B18654392C6F4990000B926A /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = B18654382C6F4990000B926A /* KeyboardShortcuts */; };
 		B186543C2C6F49AE000B926A /* ShortcutConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B186543B2C6F49AE000B926A /* ShortcutConstants.swift */; };
 		B19016222CC15B3D00E3F12E /* Defaults in Frameworks */ = {isa = PBXBuildFile; productRef = B19016212CC15B3D00E3F12E /* Defaults */; };
 		B19016242CC15B5000E3F12E /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B19016232CC15B4D00E3F12E /* Constants.swift */; };
+		B1A34E5F91D2A57F832F3A02 /* SettingsBadges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90034ACB918F6ACEFA18A818 /* SettingsBadges.swift */; };
 		B1A78C822C8BA08100BD51B0 /* FullscreenMediaDetection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A78C812C8BA08100BD51B0 /* FullscreenMediaDetection.swift */; };
 		B1B112912C6A572100093D8F /* EditPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B112902C6A572100093D8F /* EditPanelView.swift */; };
 		B1B112932C6A577E00093D8F /* MouseTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B112922C6A577E00093D8F /* MouseTracker.swift */; };
 		B1C448962C9712C4001F0858 /* ActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C448952C9712C4001F0858 /* ActionBar.swift */; };
-		B1C448982C972CC4001F0858 /* ListItemPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C448972C972CC4001F0858 /* ListItemPopover.swift */; };
-		B1C4489B2C97376A001F0858 /* TipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C4489A2C97376A001F0858 /* TipStore.swift */; };
 		B1C974342C642B6D0000E707 /* MarqueeTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C974332C642B6D0000E707 /* MarqueeTextView.swift */; };
 		B1CE8CFE2C6F659400DD9871 /* KeyboardShortcutsHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE8CFD2C6F659400DD9871 /* KeyboardShortcutsHelper.swift */; };
 		B1D365CE2C6A979C0047BDBC /* LiveActivityModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D365CD2C6A979C0047BDBC /* LiveActivityModifier.swift */; };
@@ -134,7 +143,21 @@
 		B1D6FD432C6603730015F173 /* SoftwareUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */; };
 		B1F0A0022E60000100000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F0A0012E60000100000001 /* BrightnessManager.swift */; };
 		B2A1F0012EFA100100000001 /* BluetoothHUDAnimations in Resources */ = {isa = PBXBuildFile; fileRef = B2A1F0002EFA100100000001 /* BluetoothHUDAnimations */; };
+		B2E74D0B90146A376CA9F502 /* AudioEnvironmentSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDB4C709EAA26253D630170 /* AudioEnvironmentSupport.swift */; };
+		C0A1A2B32F10000100A1B2C3 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A2B32F10000000A1B2C3 /* CalendarManager.swift */; };
+		D1AF4DA2B585287BE627E4ED /* TrackpadTabSwitchRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEAD41B4A5301B7AC4078040 /* TrackpadTabSwitchRegion.swift */; };
+		D72542B990387C981D189A9D /* AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3341B09B119051A37DE142 /* AboutSettingsView.swift */; };
+		D86D4F9185CADDEC44256961 /* HUDModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B074609935AD6334B69172A /* HUDModels.swift */; };
+		DA0E4DFEA66660B3A9EF56EB /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B006413296AC1F224E671884 /* GeneralSettingsView.swift */; };
+		E3A149F0894ED8B80E8F4F12 /* CGRect+Hashable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85A0473F947EC35195C560E5 /* CGRect+Hashable.swift */; };
+		E49E4C3CA3BF8E649D3D7D01 /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BA458DA458FF113DCDB7F2 /* AdvancedSettingsView.swift */; };
+		E7AD48BE8CC5E9C9377A6CAB /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FD41D091C419AC0585B162 /* ShortcutsSettingsView.swift */; };
+		E8B74CA989C901F22F55530B /* SelectionRowPressStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A44C3CBA1F50916F206BE1 /* SelectionRowPressStyle.swift */; };
+		F1D54F868AEEE736FD10E3F8 /* NotchEscapeKeyHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8B4B588099F2576ABB4FFC /* NotchEscapeKeyHandler.swift */; };
+		F34B43B5B8399F7297AD0777 /* AppEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70074CFFA1EC76C66F7B1B56 /* AppEnums.swift */; };
 		F38DE6482D8243E7008B5C6D /* BatteryActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */; };
+		F6AA43AD81C6D11BED798EC3 /* CommandPaletteSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3514CC8BD2EA32DDC838FCD /* CommandPaletteSupport.swift */; };
+		FA6B4AE18FFD9FA199E5609C /* ContentViewDropDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83784F5B82181A1812CF9FB6 /* ContentViewDropDelegates.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,6 +196,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		09FD41D091C419AC0585B162 /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShortcutsSettingsView.swift; path = Notchera/components/Settings/ShortcutsSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		0EAA42ECA64B1714D032FF54 /* MediaSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MediaSettingsView.swift; path = Notchera/components/Settings/MediaSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		107D415EACF208DE9E9DA2C8 /* ClipboardSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClipboardSettingsView.swift; path = Notchera/components/Settings/ClipboardSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSItemProvider+LoadHelpers.swift"; sourceTree = "<group>"; };
 		110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryFileStorageService.swift; sourceTree = "<group>"; };
 		1113ABB72E80E27000EC13B2 /* ShelfItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItem.swift; sourceTree = "<group>"; };
@@ -187,7 +213,7 @@
 		111BEA602ED09B1B0079DD4E /* NSScreen+UUID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+UUID.swift"; sourceTree = "<group>"; };
 		112B0EB32E30DD0F00562D6C /* mediaremote-adapter.pl */ = {isa = PBXFileReference; lastKnownFileType = text.script.perl; path = "mediaremote-adapter.pl"; sourceTree = "<group>"; };
 		112B0EB52E30DD0F00562D6C /* MediaRemoteAdapterTestClient */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = MediaRemoteAdapterTestClient; sourceTree = "<group>"; };
-		112B0EBA2E30DD5000562D6C /* MediaRemoteAdapter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemoteAdapter.framework; path = "mediaremote-adapter/MediaRemoteAdapter.framework"; sourceTree = "<group>"; };
+		112B0EBA2E30DD5000562D6C /* MediaRemoteAdapter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemoteAdapter.framework; path = "vendor/mediaremote-adapter/MediaRemoteAdapter.framework"; sourceTree = "<group>"; };
 		112FB7342CCF16F70015238C /* NotchSpaceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSpaceManager.swift; sourceTree = "<group>"; };
 		1132E5102E777B6E0068732D /* YouTubeMusicModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeMusicModels.swift; sourceTree = "<group>"; };
 		1132E5132E777B920068732D /* YouTubeMusicNetworking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeMusicNetworking.swift; sourceTree = "<group>"; };
@@ -207,20 +233,17 @@
 		118EBE2C2E97165600D54B5A /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
 		118EBE302E9717DB00D54B5A /* URL+SecurityScoped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+SecurityScoped.swift"; sourceTree = "<group>"; };
 		118EBE3A2E9720C500D54B5A /* ShelfStateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStateViewModel.swift; sourceTree = "<group>"; };
-		1194E87B2EA19E09009C82D6 /* ImageProcessingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingService.swift; sourceTree = "<group>"; };
 		1194E8862EA6DDA7009C82D6 /* NotcheraSkyLightWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotcheraSkyLightWindow.swift; sourceTree = "<group>"; };
 		1194E93F2EACC652009C82D6 /* Color+AccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+AccentColor.swift"; sourceTree = "<group>"; };
 		11A45C782E34E63100CEB175 /* MediaChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaChecker.swift; sourceTree = "<group>"; };
 		11C5E3112DFE85970065821E /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		11C5E3152DFE88510065821E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		11CC44A12CEE614100C7244B /* NotcheraViewCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotcheraViewCoordinator.swift; sourceTree = "<group>"; };
 		11CFC65A2E097E9D00748C80 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		11CFC65E2E097F2100748C80 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsRequestView.swift; sourceTree = "<group>"; };
 		11CFC6622E09917B00748C80 /* MusicControllerSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicControllerSelectionView.swift; sourceTree = "<group>"; };
 		11CFC6642E09C7B300748C80 /* OnboardingFinishView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFinishView.swift; sourceTree = "<group>"; };
 		11D58EA12E760AE100FA8377 /* ImageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageService.swift; sourceTree = "<group>"; };
-		C0A1A2B32F10000000A1B2C3 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
 		11EFCD6F2E8E92D600D0B974 /* ShelfItemViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItemViewModel.swift; sourceTree = "<group>"; };
 		11F747CD2EC75CEA00F841DB /* DragPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragPreviewView.swift; sourceTree = "<group>"; };
 		11F7484F2EC9AABA00F841DB /* NotcheraXPCHelper.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = NotcheraXPCHelper.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -229,9 +252,7 @@
 		11F748812ECB07A400F841DB /* MusicControlButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicControlButton.swift; sourceTree = "<group>"; };
 		11F748832ECB27DC00F841DB /* MusicSlotConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSlotConfigurationView.swift; sourceTree = "<group>"; };
 		14288DD62C6E015000B9F80C /* AudioPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
-		14288DE72C6E01C800B9F80C /* ProgressIndicator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProgressIndicator.swift; sourceTree = "<group>"; };
 		14288E0B2C6F8EC000B9F80C /* AppIcons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIcons.swift; sourceTree = "<group>"; };
-		1443E7F22C609DCE0027C1FC /* matters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = matters.swift; sourceTree = "<group>"; };
 		1443E7F42C609E650027C1FC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		147163972C5D35B70068B555 /* MusicVisualizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicVisualizer.swift; sourceTree = "<group>"; };
 		147163992C5D35FF0068B555 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
@@ -240,44 +261,58 @@
 		14A7E5962C65FD31008C1BE9 /* notchera.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = notchera.m4a; sourceTree = "<group>"; };
 		14C08BC02C8E03AD000F8AA0 /* NSImage+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSImage+Extensions.swift"; sourceTree = "<group>"; };
 		14CEF4122C5CAED300855D72 /* Notchera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notchera.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		14CEF4152C5CAED300855D72 /* NotcheraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotcheraApp.swift; sourceTree = "<group>"; };
-		14CEF4172C5CAED300855D72 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		14CEF4192C5CAED400855D72 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		14CEF41C2C5CAED400855D72 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		B2A1F0002EFA100100000001 /* BluetoothHUDAnimations */ = {isa = PBXFileReference; lastKnownFileType = folder; path = private/BluetoothHUDAnimations; sourceTree = "<group>"; };
 		14CEF41E2C5CAED400855D72 /* Notchera.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Notchera.entitlements; sourceTree = "<group>"; };
 		14D031ED2C689DB70096E6A1 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		14D031EF2C689DC00096E6A1 /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
-		14D570B82C5E98A20011E668 /* drop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = drop.swift; sourceTree = "<group>"; };
-		14D570BB2C5E98EB0011E668 /* generic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = generic.swift; sourceTree = "<group>"; };
 		14D570BF2C5EA5870011E668 /* AnimatedFace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedFace.swift; sourceTree = "<group>"; };
-		14D570C12C5EAFBF0011E668 /* EmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyState.swift; sourceTree = "<group>"; };
 		14D570C52C5F38210011E668 /* NotcheraHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotcheraHeader.swift; sourceTree = "<group>"; };
 		14D570C82C5F38890011E668 /* NotcheraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotcheraViewModel.swift; sourceTree = "<group>"; };
 		14D570CA2C5F4B2C0011E668 /* BatteryStatusViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryStatusViewModel.swift; sourceTree = "<group>"; };
 		14D570CC2C5F4BB70011E668 /* NotcheraBattery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotcheraBattery.swift; sourceTree = "<group>"; };
 		14D570D12C5F6C6A0011E668 /* NotcheraExtrasMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotcheraExtrasMenu.swift; sourceTree = "<group>"; };
-		14E9FEA92C70BF610062E83F /* DownloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadView.swift; sourceTree = "<group>"; };
 		14E9FEAD2C7325770062E83F /* Button+Bouncing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Button+Bouncing.swift"; sourceTree = "<group>"; };
 		14FC6E4F2C7DED5600C7BEA5 /* DataTypes+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DataTypes+Extensions.swift"; sourceTree = "<group>"; };
+		15A44C3CBA1F50916F206BE1 /* SelectionRowPressStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SelectionRowPressStyle.swift; path = Notchera/components/Shared/SelectionRowPressStyle.swift; sourceTree = SOURCE_ROOT; };
+		24754605A9A07CB6E9A795BE /* AIUsageSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIUsageSettingsView.swift; path = Notchera/components/Settings/AIUsageSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		25BF43BC92FBCACF288807CD /* HUDSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HUDSettingsView.swift; path = Notchera/components/Settings/HUDSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		3B3A4DCD82BB1D2A3796757B /* AIUsageServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIUsageServices.swift; path = Notchera/components/Settings/AIUsageServices.swift; sourceTree = SOURCE_ROOT; };
+		3BC3442D9D35108947E13221 /* NotcheraAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotcheraAnimations.swift; path = Notchera/animations/NotcheraAnimations.swift; sourceTree = SOURCE_ROOT; };
+		4E8B4B588099F2576ABB4FFC /* NotchEscapeKeyHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotchEscapeKeyHandler.swift; path = Notchera/App/NotchEscapeKeyHandler.swift; sourceTree = SOURCE_ROOT; };
 		507266DA2C908E2E00A2D00D /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
 		5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyInterceptor.swift; sourceTree = "<group>"; };
 		5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationRelauncher.swift; sourceTree = "<group>"; };
 		59D8C23B2E589FAA00147B33 /* VolumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeManager.swift; sourceTree = "<group>"; };
+		5D3341B09B119051A37DE142 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AboutSettingsView.swift; path = Notchera/components/Settings/AboutSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		6A1B2C3D4E5F60718293A4B4 /* ScreenRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecordingManager.swift; sourceTree = "<group>"; };
+		6FDB4C709EAA26253D630170 /* AudioEnvironmentSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioEnvironmentSupport.swift; path = Notchera/Coordination/AudioEnvironmentSupport.swift; sourceTree = SOURCE_ROOT; };
+		70074CFFA1EC76C66F7B1B56 /* AppEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppEnums.swift; path = Notchera/enums/AppEnums.swift; sourceTree = SOURCE_ROOT; };
+		72B242C19DEA2C0C8D0F36FA /* DynamicNotchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DynamicNotchApp.swift; path = Notchera/App/DynamicNotchApp.swift; sourceTree = SOURCE_ROOT; };
+		7B074609935AD6334B69172A /* HUDModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HUDModels.swift; path = Notchera/Coordination/HUDModels.swift; sourceTree = SOURCE_ROOT; };
 		7B1C2D3E4F5061728394A5B5 /* ClipboardHistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryManager.swift; sourceTree = "<group>"; };
 		7B1C2D3E4F5061728394A5B7 /* AppLauncherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLauncherManager.swift; sourceTree = "<group>"; };
+		81C149DBB43CD05B7990F342 /* ShelfSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShelfSettingsView.swift; path = Notchera/components/Settings/ShelfSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		83784F5B82181A1812CF9FB6 /* ContentViewDropDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentViewDropDelegates.swift; path = Notchera/App/ContentViewDropDelegates.swift; sourceTree = SOURCE_ROOT; };
+		85A0473F947EC35195C560E5 /* CGRect+Hashable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "CGRect+Hashable.swift"; path = "Notchera/extensions/CGRect+Hashable.swift"; sourceTree = SOURCE_ROOT; };
+		85F042A086A7B4B55C34E65B /* NotcheraViewCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotcheraViewCoordinator.swift; path = Notchera/Coordination/NotcheraViewCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		87414A7A9070106FD8FC94EF /* CommandPaletteUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CommandPaletteUsage.swift; path = Notchera/components/CommandPalette/CommandPaletteUsage.swift; sourceTree = SOURCE_ROOT; };
+		8A68445A8383A2322E47A37A /* AIUsageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIUsageModels.swift; path = Notchera/components/Settings/AIUsageModels.swift; sourceTree = SOURCE_ROOT; };
+		8DB7471FA6963CC07699EE74 /* NotchKeyboardInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotchKeyboardInterceptor.swift; path = Notchera/observers/NotchKeyboardInterceptor.swift; sourceTree = SOURCE_ROOT; };
+		8F494557B3727E8C012EF834 /* CommandPaletteActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CommandPaletteActions.swift; path = Notchera/components/CommandPalette/CommandPaletteActions.swift; sourceTree = SOURCE_ROOT; };
+		8F744629B3B8BE084D891CA8 /* MusicCompactActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicCompactActivityView.swift; path = Notchera/App/MusicCompactActivityView.swift; sourceTree = SOURCE_ROOT; };
+		90034ACB918F6ACEFA18A818 /* SettingsBadges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsBadges.swift; path = Notchera/components/Settings/SettingsBadges.swift; sourceTree = SOURCE_ROOT; };
 		9A0887312C7A693000C160EA /* TabButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabButton.swift; sourceTree = "<group>"; };
 		9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSelectionView.swift; sourceTree = "<group>"; };
 		9A0887362C7AFF8E00C160EA /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
 		9A987A032C73CA66005CA465 /* ShelfView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
 		9AB0C6BB2C73C9CB00F7CD30 /* NotchHomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NotchHomeView.swift; sourceTree = "<group>"; };
+		A9E84CDEBD730F9A1A62D6EF /* TabModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TabModel.swift; path = Notchera/components/Tabs/TabModel.swift; sourceTree = SOURCE_ROOT; };
+		B006413296AC1F224E671884 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GeneralSettingsView.swift; path = Notchera/components/Settings/GeneralSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		B10348D82C74E56000475897 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
-		B10F84A22C6C9596009F3026 /* TestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestView.swift; sourceTree = "<group>"; };
 		B141C2402CA5F53E00AC8CC8 /* SparkleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleView.swift; sourceTree = "<group>"; };
 		B17266DE2C64DFA00031BA0D /* BundleInfos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleInfos.swift; sourceTree = "<group>"; };
 		B17266E02C6532560031BA0D /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		B17266E22C65F7FB0031BA0D /* WhatsNewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewView.swift; sourceTree = "<group>"; };
 		B172AABF2C95DA0B001623F1 /* InlineHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineHUD.swift; sourceTree = "<group>"; };
 		B186543B2C6F49AE000B926A /* ShortcutConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutConstants.swift; sourceTree = "<group>"; };
 		B19016232CC15B4D00E3F12E /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -285,19 +320,30 @@
 		B1B112902C6A572100093D8F /* EditPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPanelView.swift; sourceTree = "<group>"; };
 		B1B112922C6A577E00093D8F /* MouseTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseTracker.swift; sourceTree = "<group>"; };
 		B1C448952C9712C4001F0858 /* ActionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionBar.swift; sourceTree = "<group>"; };
-		B1C448972C972CC4001F0858 /* ListItemPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListItemPopover.swift; sourceTree = "<group>"; };
-		B1C4489A2C97376A001F0858 /* TipStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipStore.swift; sourceTree = "<group>"; };
 		B1C974332C642B6D0000E707 /* MarqueeTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarqueeTextView.swift; sourceTree = "<group>"; };
 		B1CE8CFD2C6F659400DD9871 /* KeyboardShortcutsHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsHelper.swift; sourceTree = "<group>"; };
 		B1D365CD2C6A979C0047BDBC /* LiveActivityModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityModifier.swift; sourceTree = "<group>"; };
 		B1D365CF2C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventIndicatorModifier.swift; sourceTree = "<group>"; };
 		B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareUpdater.swift; sourceTree = "<group>"; };
 		B1F0A0012E60000100000001 /* BrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManager.swift; sourceTree = "<group>"; };
+		B2A1F0002EFA100100000001 /* BluetoothHUDAnimations */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BluetoothHUDAnimations; sourceTree = "<group>"; };
+		B47A48FDA5FC807772F2A665 /* CalendarTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CalendarTabView.swift; path = Notchera/components/Tabs/CalendarTabView.swift; sourceTree = SOURCE_ROOT; };
+		BEAD41B4A5301B7AC4078040 /* TrackpadTabSwitchRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TrackpadTabSwitchRegion.swift; path = Notchera/App/TrackpadTabSwitchRegion.swift; sourceTree = SOURCE_ROOT; };
+		C0A1A2B32F10000000A1B2C3 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
+		C7BA458DA458FF113DCDB7F2 /* AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AdvancedSettingsView.swift; path = Notchera/components/Settings/AdvancedSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		CB944DDB82C2570DCFE2496F /* FocusModeSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FocusModeSupport.swift; path = Notchera/Coordination/FocusModeSupport.swift; sourceTree = SOURCE_ROOT; };
+		D92046B39BCA8E9D1D538509 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppearanceSettingsView.swift; path = Notchera/components/Settings/AppearanceSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		D9BF49EBB48340E13073B369 /* ClipboardTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClipboardTabView.swift; path = Notchera/components/Tabs/ClipboardTabView.swift; sourceTree = SOURCE_ROOT; };
+		DBA94F10B33EA97C95FFE3F7 /* Notification+Notchera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Notification+Notchera.swift"; path = "Notchera/extensions/Notification+Notchera.swift"; sourceTree = SOURCE_ROOT; };
+		E3514CC8BD2EA32DDC838FCD /* CommandPaletteSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CommandPaletteSupport.swift; path = Notchera/components/CommandPalette/CommandPaletteSupport.swift; sourceTree = SOURCE_ROOT; };
+		EB8642F1AFD4203F98DA811E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = Notchera/App/ContentView.swift; sourceTree = SOURCE_ROOT; };
+		F07949F59369845AB0535762 /* NotchSizing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotchSizing.swift; path = Notchera/sizing/NotchSizing.swift; sourceTree = SOURCE_ROOT; };
+		F3174BAE8C0FCB1A5533C7CA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Notchera/App/AppDelegate.swift; sourceTree = SOURCE_ROOT; };
 		F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryActivityManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		11F7485C2EC9AABA00F841DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		11F7485C2EC9AABA00F841DB = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -308,7 +354,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		112FB72F2CCF12CC0015238C /* private */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = private; sourceTree = "<group>"; };
-		11F748502EC9AABA00F841DB /* NotcheraXPCHelper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (11F7485C2EC9AABA00F841DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = NotcheraXPCHelper; sourceTree = "<group>"; };
+		11F748502EC9AABA00F841DB /* NotcheraXPCHelper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (11F7485C2EC9AABA00F841DB, ); explicitFileTypes = {}; explicitFolders = (); path = NotcheraXPCHelper; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -353,7 +399,6 @@
 		1113ABBF2E80E27000EC13B2 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				1194E87B2EA19E09009C82D6 /* ImageProcessingService.swift */,
 				110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */,
 				1113ABCF2E80E6BB00EC13B2 /* ThumbnailService.swift */,
 				1113ABBA2E80E27000EC13B2 /* QuickLookService.swift */,
@@ -384,16 +429,17 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		112B0EB62E30DD0F00562D6C /* mediaremote-adapter */ = {
+		112B0EB62E30DD0F00562D6C /* MediaRemoteAdapter */ = {
 			isa = PBXGroup;
 			children = (
 				112B0EB32E30DD0F00562D6C /* mediaremote-adapter.pl */,
 				112B0EB52E30DD0F00562D6C /* MediaRemoteAdapterTestClient */,
 			);
-			path = "mediaremote-adapter";
+			name = MediaRemoteAdapter;
+			path = MediaRemoteAdapter;
 			sourceTree = "<group>";
 		};
-		1132E5232E78D6DA0068732D /* YouTube Music Controller */ = {
+		1132E5232E78D6DA0068732D /* YouTubeMusic */ = {
 			isa = PBXGroup;
 			children = (
 				1132E5152E777C140068732D /* YouTubeMusicAuthentication.swift */,
@@ -401,26 +447,20 @@
 				1132E5102E777B6E0068732D /* YouTubeMusicModels.swift */,
 				1153BDA62D99B22200979FB0 /* YouTubeMusicController.swift */,
 			);
-			path = "YouTube Music Controller";
+			name = YouTubeMusic;
+			path = YouTubeMusic;
 			sourceTree = "<group>";
 		};
 		1153BD8E2D986B1F00979FB0 /* MediaControllers */ = {
 			isa = PBXGroup;
 			children = (
-				1132E5232E78D6DA0068732D /* YouTube Music Controller */,
+				1132E5232E78D6DA0068732D /* YouTubeMusic */,
 				1153BD8D2D986B1F00979FB0 /* MediaControllerProtocol.swift */,
 				1153BD922D986E4300979FB0 /* AppleMusicController.swift */,
 				1153BD992D98824300979FB0 /* SpotifyController.swift */,
 				1153BD9B2D98853B00979FB0 /* NowPlayingController.swift */,
 			);
 			path = MediaControllers;
-			sourceTree = "<group>";
-		};
-		116398942DF5D6B40052E6AF /* Providers */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Providers;
 			sourceTree = "<group>";
 		};
 		11F748672EC9AC9600F841DB /* XPCHelperClient */ = {
@@ -451,6 +491,7 @@
 				111BE9942ECF2DEF0079DD4E /* DragDetector.swift */,
 				B1A78C812C8BA08100BD51B0 /* FullscreenMediaDetection.swift */,
 				5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */,
+				8DB7471FA6963CC07699EE74 /* NotchKeyboardInterceptor.swift */,
 			);
 			path = observers;
 			sourceTree = "<group>";
@@ -458,7 +499,7 @@
 		1443E7F12C609DB90027C1FC /* sizing */ = {
 			isa = PBXGroup;
 			children = (
-				1443E7F22C609DCE0027C1FC /* matters.swift */,
+				F07949F59369845AB0535762 /* NotchSizing.swift */,
 			);
 			path = sizing;
 			sourceTree = "<group>";
@@ -470,17 +511,14 @@
 				B141C23B2CA5F50900AC8CC8 /* Onboarding */,
 				B1C448992C97375A001F0858 /* Tips */,
 				9A987A042C73CA66005CA465 /* Shelf */,
-				B18654312C6F45AE000B926A /* Live activities */,
+				B18654312C6F45AE000B926A /* LiveActivities */,
 				B18654302C6F4590000B926A /* Settings */,
 				B186542F2C6F455E000B926A /* Notch */,
 				9A0887332C7AFF7E00C160EA /* Tabs */,
 				B186542E2C6F453B000B926A /* Music */,
 				14D570BF2C5EA5870011E668 /* AnimatedFace.swift */,
-				14288DE72C6E01C800B9F80C /* ProgressIndicator.swift */,
-				14D570C12C5EAFBF0011E668 /* EmptyState.swift */,
-				B17266E22C65F7FB0031BA0D /* WhatsNewView.swift */,
-				B10F84A22C6C9596009F3026 /* TestView.swift */,
 				507266DA2C908E2E00A2D00D /* HoverButton.swift */,
+				3175464682A9CD15AAFCBB5B /* Shared */,
 			);
 			path = components;
 			sourceTree = "<group>";
@@ -505,9 +543,7 @@
 		14CEF4092C5CAED200855D72 = {
 			isa = PBXGroup;
 			children = (
-				112B0EB62E30DD0F00562D6C /* mediaremote-adapter */,
 				14CEF4142C5CAED300855D72 /* Notchera */,
-				B2A1F0002EFA100100000001 /* BluetoothHUDAnimations */,
 				11F748502EC9AABA00F841DB /* NotcheraXPCHelper */,
 				14CEF4132C5CAED300855D72 /* Products */,
 				14D031EC2C689DB70096E6A1 /* Frameworks */,
@@ -527,7 +563,6 @@
 			isa = PBXGroup;
 			children = (
 				11F748672EC9AC9600F841DB /* XPCHelperClient */,
-				116398942DF5D6B40052E6AF /* Providers */,
 				14288DE22C6E016F00B9F80C /* observers */,
 				14288DD92C6E015000B9F80C /* helpers */,
 				B186543A2C6F49A4000B926A /* Shortcuts */,
@@ -539,16 +574,13 @@
 				1153BD8E2D986B1F00979FB0 /* MediaControllers */,
 				B15063502C63D3F600EBB0E3 /* extensions */,
 				1471639B2C5D362F0068B555 /* components */,
-				14CEF4152C5CAED300855D72 /* NotcheraApp.swift */,
-				14CEF4172C5CAED300855D72 /* ContentView.swift */,
-				B17266E02C6532560031BA0D /* Localizable.xcstrings */,
-				14CEF4192C5CAED400855D72 /* Assets.xcassets */,
-				14A7E5962C65FD31008C1BE9 /* notchera.m4a */,
 				1443E7F42C609E650027C1FC /* Info.plist */,
 				14CEF41E2C5CAED400855D72 /* Notchera.entitlements */,
 				14CEF41B2C5CAED400855D72 /* Preview Content */,
 				112FB72F2CCF12CC0015238C /* private */,
-				11CC44A12CEE614100C7244B /* NotcheraViewCoordinator.swift */,
+				9ED3459FB645CC7D23B060C7 /* App */,
+				151447E3AC2331F8034F801C /* Coordination */,
+				C65444EEA7D1F58ED545BC51 /* Resources */,
 			);
 			path = Notchera;
 			sourceTree = "<group>";
@@ -574,8 +606,8 @@
 		14D570B72C5E98960011E668 /* animations */ = {
 			isa = PBXGroup;
 			children = (
-				14D570B82C5E98A20011E668 /* drop.swift */,
 				14A7E5872C64A89C008C1BE9 /* HelloAnimation.swift */,
+				3BC3442D9D35108947E13221 /* NotcheraAnimations.swift */,
 			);
 			path = animations;
 			sourceTree = "<group>";
@@ -583,7 +615,7 @@
 		14D570BA2C5E98E30011E668 /* enums */ = {
 			isa = PBXGroup;
 			children = (
-				14D570BB2C5E98EB0011E668 /* generic.swift */,
+				70074CFFA1EC76C66F7B1B56 /* AppEnums.swift */,
 			);
 			path = enums;
 			sourceTree = "<group>";
@@ -601,11 +633,62 @@
 			path = models;
 			sourceTree = "<group>";
 		};
+		151447E3AC2331F8034F801C /* Coordination */ = {
+			isa = PBXGroup;
+			children = (
+				85F042A086A7B4B55C34E65B /* NotcheraViewCoordinator.swift */,
+				7B074609935AD6334B69172A /* HUDModels.swift */,
+				CB944DDB82C2570DCFE2496F /* FocusModeSupport.swift */,
+				6FDB4C709EAA26253D630170 /* AudioEnvironmentSupport.swift */,
+			);
+			name = Coordination;
+			path = Coordination;
+			sourceTree = "<group>";
+		};
+		226F4EB693400BE3176C4C95 /* Animations */ = {
+			isa = PBXGroup;
+			children = (
+				B2A1F0002EFA100100000001 /* BluetoothHUDAnimations */,
+			);
+			name = Animations;
+			path = Animations;
+			sourceTree = "<group>";
+		};
+		3175464682A9CD15AAFCBB5B /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				15A44C3CBA1F50916F206BE1 /* SelectionRowPressStyle.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		4C83472EA0F6D63BB6D07EA6 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				112B0EB62E30DD0F00562D6C /* MediaRemoteAdapter */,
+			);
+			name = Support;
+			path = Support;
+			sourceTree = "<group>";
+		};
+		81DB4B7D96ABD5DB8413EC7D /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				14A7E5962C65FD31008C1BE9 /* notchera.m4a */,
+			);
+			name = Audio;
+			path = Audio;
+			sourceTree = "<group>";
+		};
 		9A0887332C7AFF7E00C160EA /* Tabs */ = {
 			isa = PBXGroup;
 			children = (
 				9A0887312C7A693000C160EA /* TabButton.swift */,
 				9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */,
+				A9E84CDEBD730F9A1A62D6EF /* TabModel.swift */,
+				B47A48FDA5FC807772F2A665 /* CalendarTabView.swift */,
+				D9BF49EBB48340E13073B369 /* ClipboardTabView.swift */,
 			);
 			path = Tabs;
 			sourceTree = "<group>";
@@ -614,6 +697,9 @@
 			isa = PBXGroup;
 			children = (
 				9A0887362C7AFF8E00C160EA /* CommandPaletteView.swift */,
+				E3514CC8BD2EA32DDC838FCD /* CommandPaletteSupport.swift */,
+				87414A7A9070106FD8FC94EF /* CommandPaletteUsage.swift */,
+				8F494557B3727E8C012EF834 /* CommandPaletteActions.swift */,
 			);
 			path = CommandPalette;
 			sourceTree = "<group>";
@@ -627,6 +713,30 @@
 				1113ABC42E80E27000EC13B2 /* Views */,
 			);
 			path = Shelf;
+			sourceTree = "<group>";
+		};
+		9DE54E7E8D4A95BF5B6E0601 /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				B17266E02C6532560031BA0D /* Localizable.xcstrings */,
+			);
+			name = Localization;
+			path = Localization;
+			sourceTree = "<group>";
+		};
+		9ED3459FB645CC7D23B060C7 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				72B242C19DEA2C0C8D0F36FA /* DynamicNotchApp.swift */,
+				F3174BAE8C0FCB1A5533C7CA /* AppDelegate.swift */,
+				EB8642F1AFD4203F98DA811E /* ContentView.swift */,
+				83784F5B82181A1812CF9FB6 /* ContentViewDropDelegates.swift */,
+				8F744629B3B8BE084D891CA8 /* MusicCompactActivityView.swift */,
+				4E8B4B588099F2576ABB4FFC /* NotchEscapeKeyHandler.swift */,
+				BEAD41B4A5301B7AC4078040 /* TrackpadTabSwitchRegion.swift */,
+			);
+			name = App;
+			path = App;
 			sourceTree = "<group>";
 		};
 		B141C23B2CA5F50900AC8CC8 /* Onboarding */ = {
@@ -658,6 +768,8 @@
 				B10348D82C74E56000475897 /* ConditionalModifier.swift */,
 				14FC6E4F2C7DED5600C7BEA5 /* DataTypes+Extensions.swift */,
 				B1C448952C9712C4001F0858 /* ActionBar.swift */,
+				DBA94F10B33EA97C95FFE3F7 /* Notification+Notchera.swift */,
+				85A0473F947EC35195C560E5 /* CGRect+Hashable.swift */,
 			);
 			path = extensions;
 			sourceTree = "<group>";
@@ -691,12 +803,24 @@
 				11C5E3112DFE85970065821E /* SettingsWindowController.swift */,
 				B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */,
 				B1B112902C6A572100093D8F /* EditPanelView.swift */,
-				B1C448972C972CC4001F0858 /* ListItemPopover.swift */,
+				B006413296AC1F224E671884 /* GeneralSettingsView.swift */,
+				25BF43BC92FBCACF288807CD /* HUDSettingsView.swift */,
+				0EAA42ECA64B1714D032FF54 /* MediaSettingsView.swift */,
+				5D3341B09B119051A37DE142 /* AboutSettingsView.swift */,
+				81C149DBB43CD05B7990F342 /* ShelfSettingsView.swift */,
+				107D415EACF208DE9E9DA2C8 /* ClipboardSettingsView.swift */,
+				D92046B39BCA8E9D1D538509 /* AppearanceSettingsView.swift */,
+				C7BA458DA458FF113DCDB7F2 /* AdvancedSettingsView.swift */,
+				09FD41D091C419AC0585B162 /* ShortcutsSettingsView.swift */,
+				90034ACB918F6ACEFA18A818 /* SettingsBadges.swift */,
+				24754605A9A07CB6E9A795BE /* AIUsageSettingsView.swift */,
+				8A68445A8383A2322E47A37A /* AIUsageModels.swift */,
+				3B3A4DCD82BB1D2A3796757B /* AIUsageServices.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		B18654312C6F45AE000B926A /* Live activities */ = {
+		B18654312C6F45AE000B926A /* LiveActivities */ = {
 			isa = PBXGroup;
 			children = (
 				115C12EB2ED3D003009754CA /* OpenNotchHUD.swift */,
@@ -704,10 +828,10 @@
 				B1C974332C642B6D0000E707 /* MarqueeTextView.swift */,
 				B1D365CD2C6A979C0047BDBC /* LiveActivityModifier.swift */,
 				B1D365CF2C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift */,
-				14E9FEA92C70BF610062E83F /* DownloadView.swift */,
 				B172AABF2C95DA0B001623F1 /* InlineHUD.swift */,
 			);
-			path = "Live activities";
+			name = LiveActivities;
+			path = LiveActivities;
 			sourceTree = "<group>";
 		};
 		B186543A2C6F49A4000B926A /* Shortcuts */ = {
@@ -721,9 +845,30 @@
 		B1C448992C97375A001F0858 /* Tips */ = {
 			isa = PBXGroup;
 			children = (
-				B1C4489A2C97376A001F0858 /* TipStore.swift */,
 			);
 			path = Tips;
+			sourceTree = "<group>";
+		};
+		C638459795476AA7E55FD08A /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				14CEF4192C5CAED400855D72 /* Assets.xcassets */,
+			);
+			name = Assets;
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		C65444EEA7D1F58ED545BC51 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C638459795476AA7E55FD08A /* Assets */,
+				81DB4B7D96ABD5DB8413EC7D /* Audio */,
+				9DE54E7E8D4A95BF5B6E0601 /* Localization */,
+				226F4EB693400BE3176C4C95 /* Animations */,
+				4C83472EA0F6D63BB6D07EA6 /* Support */,
+			);
+			name = Resources;
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -877,7 +1022,6 @@
 				C0A1A2B32F10000100A1B2C3 /* CalendarManager.swift in Sources */,
 				5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */,
 				147163982C5D35B70068B555 /* MusicVisualizer.swift in Sources */,
-				11CC44A22CEE614100C7244B /* NotcheraViewCoordinator.swift in Sources */,
 				B186543C2C6F49AE000B926A /* ShortcutConstants.swift in Sources */,
 				11A45C792E34E63100CEB175 /* MediaChecker.swift in Sources */,
 				B1D365CE2C6A979C0047BDBC /* LiveActivityModifier.swift in Sources */,
@@ -887,7 +1031,6 @@
 				B1D6FD432C6603730015F173 /* SoftwareUpdater.swift in Sources */,
 				111BE9952ECF2DF40079DD4E /* DragDetector.swift in Sources */,
 				B1D365D02C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift in Sources */,
-				1194E87C2EA19E09009C82D6 /* ImageProcessingService.swift in Sources */,
 				1194E8872EA6DDA7009C82D6 /* NotcheraSkyLightWindow.swift in Sources */,
 				14D570CB2C5F4B2C0011E668 /* BatteryStatusViewModel.swift in Sources */,
 				9A0887322C7A693000C160EA /* TabButton.swift in Sources */,
@@ -895,12 +1038,10 @@
 				1194E9402EACC652009C82D6 /* Color+AccentColor.swift in Sources */,
 				B141C2412CA5F53F00AC8CC8 /* SparkleView.swift in Sources */,
 				59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */,
-				14D570B92C5E98A20011E668 /* drop.swift in Sources */,
 				11EFCD702E8E92D600D0B974 /* ShelfItemViewModel.swift in Sources */,
 				1153BDA72D99B22200979FB0 /* YouTubeMusicController.swift in Sources */,
 				1153BD9A2D98824300979FB0 /* SpotifyController.swift in Sources */,
 				B1C974342C642B6D0000E707 /* MarqueeTextView.swift in Sources */,
-				14288DE82C6E01C800B9F80C /* ProgressIndicator.swift in Sources */,
 				1113ABC52E80E27000EC13B2 /* ShelfItemView.swift in Sources */,
 				1113ABC62E80E27000EC13B2 /* ShelfPersistenceService.swift in Sources */,
 				1113ABC82E80E27000EC13B2 /* ShelfItem.swift in Sources */,
@@ -921,21 +1062,15 @@
 				1153BD8F2D986B1F00979FB0 /* MediaControllerProtocol.swift in Sources */,
 				9AB0C6BD2C73C9CB00F7CD30 /* NotchHomeView.swift in Sources */,
 				B172AAC02C95DA0B001623F1 /* InlineHUD.swift in Sources */,
-				14E9FEAA2C70BF610062E83F /* DownloadView.swift in Sources */,
 				B1B112912C6A572100093D8F /* EditPanelView.swift in Sources */,
-				B1C4489B2C97376A001F0858 /* TipStore.swift in Sources */,
 				1153BD912D986DB300979FB0 /* PlaybackState.swift in Sources */,
 				B1A78C822C8BA08100BD51B0 /* FullscreenMediaDetection.swift in Sources */,
 				14E9FEAE2C7325770062E83F /* Button+Bouncing.swift in Sources */,
 				14D570C92C5F38890011E668 /* NotcheraViewModel.swift in Sources */,
-				14D570BC2C5E98EB0011E668 /* generic.swift in Sources */,
 				118EBE272E92DE8400D54B5A /* NSMenu+AssociatedObject.swift in Sources */,
 				B1CE8CFE2C6F659400DD9871 /* KeyboardShortcutsHelper.swift in Sources */,
 				14D570C62C5F38210011E668 /* NotcheraHeader.swift in Sources */,
-				B17266E32C65F7FB0031BA0D /* WhatsNewView.swift in Sources */,
 				14D570CD2C5F4BB70011E668 /* NotcheraBattery.swift in Sources */,
-				B10F84A32C6C9596009F3026 /* TestView.swift in Sources */,
-				1443E7F32C609DCE0027C1FC /* matters.swift in Sources */,
 				11C5E3162DFE88510065821E /* SettingsView.swift in Sources */,
 				1153BD932D986E4300979FB0 /* AppleMusicController.swift in Sources */,
 				11C5E3132DFE85970065821E /* SettingsWindowController.swift in Sources */,
@@ -943,19 +1078,16 @@
 				11CFC6652E09C7B300748C80 /* OnboardingFinishView.swift in Sources */,
 				507266DB2C908E2E00A2D00D /* HoverButton.swift in Sources */,
 				1471A8592C6281BD0058408D /* NotcheraWindow.swift in Sources */,
-				14CEF4182C5CAED300855D72 /* ContentView.swift in Sources */,
 				9A987A0D2C73CA66005CA465 /* ShelfView.swift in Sources */,
 				1132E5142E777B920068732D /* YouTubeMusicNetworking.swift in Sources */,
 				1132E5122E777B6E0068732D /* YouTubeMusicModels.swift in Sources */,
 				11CFC65F2E097F2F00748C80 /* OnboardingView.swift in Sources */,
-				14CEF4162C5CAED300855D72 /* NotcheraApp.swift in Sources */,
 				B17266DF2C64DFA00031BA0D /* BundleInfos.swift in Sources */,
 				118EBE3B2E9720C500D54B5A /* ShelfStateViewModel.swift in Sources */,
 				11F747CE2EC75CEA00F841DB /* DragPreviewView.swift in Sources */,
 				F38DE6482D8243E7008B5C6D /* BatteryActivityManager.swift in Sources */,
 				B10348D92C74E56000475897 /* ConditionalModifier.swift in Sources */,
 				118D1FD12E98FF5F00A2FF63 /* SharingStateManager.swift in Sources */,
-				14D570C22C5EAFBF0011E668 /* EmptyState.swift in Sources */,
 				118EBE252E92DCCB00D54B5A /* AssociatedObject.swift in Sources */,
 				11F748682EC9AC9600F841DB /* NotcheraXPCHelperProtocol.swift in Sources */,
 				11F748692EC9AC9600F841DB /* XPCHelperClient.swift in Sources */,
@@ -971,7 +1103,6 @@
 				11F748822ECB07A400F841DB /* MusicControlButton.swift in Sources */,
 				14288DDC2C6E015000B9F80C /* AudioPlayer.swift in Sources */,
 				14288E0C2C6F8EC000B9F80C /* AppIcons.swift in Sources */,
-				B1C448982C972CC4001F0858 /* ListItemPopover.swift in Sources */,
 				B19016242CC15B5000E3F12E /* Constants.swift in Sources */,
 				1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */,
 				11CFC6632E09918400748C80 /* MusicControllerSelectionView.swift in Sources */,
@@ -980,6 +1111,43 @@
 				7B1C2D3E4F5061728394A5B6 /* ClipboardHistoryManager.swift in Sources */,
 				7B1C2D3E4F5061728394A5B8 /* AppLauncherManager.swift in Sources */,
 				9A0887372C7AFF8E00C160EA /* CommandPaletteView.swift in Sources */,
+				5D2E47829083D77EF8D8C31D /* DynamicNotchApp.swift in Sources */,
+				A87B4634B626F659242FADC8 /* AppDelegate.swift in Sources */,
+				65D040AAAF890CE29EF3A5CD /* ContentView.swift in Sources */,
+				FA6B4AE18FFD9FA199E5609C /* ContentViewDropDelegates.swift in Sources */,
+				3BB04499B562A662D2B1E8CA /* MusicCompactActivityView.swift in Sources */,
+				F1D54F868AEEE736FD10E3F8 /* NotchEscapeKeyHandler.swift in Sources */,
+				D1AF4DA2B585287BE627E4ED /* TrackpadTabSwitchRegion.swift in Sources */,
+				4C184B21B4B233917E062820 /* NotcheraViewCoordinator.swift in Sources */,
+				D86D4F9185CADDEC44256961 /* HUDModels.swift in Sources */,
+				5A114A91B14E347B49C765B4 /* FocusModeSupport.swift in Sources */,
+				B2E74D0B90146A376CA9F502 /* AudioEnvironmentSupport.swift in Sources */,
+				DA0E4DFEA66660B3A9EF56EB /* GeneralSettingsView.swift in Sources */,
+				8D104D19B27999B614604424 /* HUDSettingsView.swift in Sources */,
+				ACD048CC99C9CC77E2198C59 /* MediaSettingsView.swift in Sources */,
+				D72542B990387C981D189A9D /* AboutSettingsView.swift in Sources */,
+				AC1C4AE1B06AA9AB0D21D167 /* ShelfSettingsView.swift in Sources */,
+				34F9456483082B3AA0929811 /* ClipboardSettingsView.swift in Sources */,
+				261E434EB7A7F6C9F78885F7 /* AppearanceSettingsView.swift in Sources */,
+				E49E4C3CA3BF8E649D3D7D01 /* AdvancedSettingsView.swift in Sources */,
+				E7AD48BE8CC5E9C9377A6CAB /* ShortcutsSettingsView.swift in Sources */,
+				B1A34E5F91D2A57F832F3A02 /* SettingsBadges.swift in Sources */,
+				B05E47A6A1C4B2AAC6385AA3 /* AIUsageSettingsView.swift in Sources */,
+				702A4EEF9C758080C2BD7E32 /* AIUsageModels.swift in Sources */,
+				145B4573A61479CD540B414B /* AIUsageServices.swift in Sources */,
+				F6AA43AD81C6D11BED798EC3 /* CommandPaletteSupport.swift in Sources */,
+				49234EF4A9F68FC89EC496AD /* CommandPaletteUsage.swift in Sources */,
+				1F854E8C97D118DAE232FA60 /* CommandPaletteActions.swift in Sources */,
+				165F41B886C74D8178F2F1F9 /* TabModel.swift in Sources */,
+				9DE14D8EA044D4146BBD3478 /* CalendarTabView.swift in Sources */,
+				03B54B02B620D4147D8C9A82 /* ClipboardTabView.swift in Sources */,
+				E8B74CA989C901F22F55530B /* SelectionRowPressStyle.swift in Sources */,
+				73ED4D3696AADBEAA437C09B /* NotchKeyboardInterceptor.swift in Sources */,
+				8C694B5A8EA7CC45D3126CF2 /* Notification+Notchera.swift in Sources */,
+				E3A149F0894ED8B80E8F4F12 /* CGRect+Hashable.swift in Sources */,
+				607C48CD97B3ADEFA5B2047F /* NotcheraAnimations.swift in Sources */,
+				F34B43B5B8399F7297AD0777 /* AppEnums.swift in Sources */,
+				879643F786999F0E75E2A10A /* NotchSizing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1190,7 +1358,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/mediaremote-adapter",
+					"$(PROJECT_DIR)/vendor/mediaremote-adapter",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Notchera/Info.plist;
@@ -1240,7 +1408,7 @@
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/mediaremote-adapter",
+					"$(PROJECT_DIR)/vendor/mediaremote-adapter",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Notchera/Info.plist;

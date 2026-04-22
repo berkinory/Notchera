@@ -29,7 +29,7 @@ profile-run: profile-build
 	open $(APP_PATH)
 
 hud-cli:
-	cd tools/notcherahud && swift build -c release
+	cd cli/notcherahud && swift build -c release
 
 format:
 	@command -v swiftformat >/dev/null 2>&1 || (echo "swiftformat yok. brew install swiftformat" && exit 1)

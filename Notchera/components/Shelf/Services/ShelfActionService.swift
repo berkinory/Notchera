@@ -1,7 +1,6 @@
 import AppKit
 import Foundation
 
-/// A service providing common actions for `ShelfItem`s, such as opening, revealing, or copying paths.
 @MainActor
 enum ShelfActionService {
     private static var copiedFileURLs: [URL] = []

@@ -1,8 +1,6 @@
 import Foundation
 import IOKit.ps
 
-/// Manages and monitors battery status changes on the device
-/// - Note: This class uses the IOKit framework to monitor battery status
 class BatteryActivityManager {
     static let shared = BatteryActivityManager()
 
@@ -258,7 +256,6 @@ class BatteryActivityManager {
     }
 }
 
-/// Struct to hold battery information
 struct BatteryInfo {
     var isPluggedIn: Bool
     var isCharging: Bool
