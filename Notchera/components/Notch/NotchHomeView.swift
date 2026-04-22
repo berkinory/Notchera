@@ -493,20 +493,30 @@ struct MusicToolbarRowView: View {
 
     private var activeControlColor: Color {
         matchAlbumArtColor
-            ? Color(nsColor: musicManager.avgColor)
+            ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.72)
             : .white
     }
 
-    private var activeToggleBackgroundColor: Color {
-        activeControlColor.opacity(matchAlbumArtColor ? 0.18 : 0.14)
-    }
-
     private var inactiveControlColor: Color {
-        .secondary.opacity(0.5)
-    }
+        if matchAlbumArtColor,
+           let rgbColor = musicManager.avgColor.usingColorSpace(.sRGB)
+        {
+            var hue: CGFloat = 0
+            var saturation: CGFloat = 0
+            var brightness: CGFloat = 0
+            var alpha: CGFloat = 0
 
-    private var inactiveToggleBackgroundColor: Color {
-        Color.white.opacity(0.04)
+            rgbColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+
+            return Color(
+                hue: Double(hue),
+                saturation: Double(max(0.08, saturation * 0.16)),
+                brightness: Double(max(0.34, brightness * 0.42)),
+                opacity: 0.9
+            )
+        }
+
+        return Color.white.opacity(0.3)
     }
 
     @ViewBuilder
@@ -516,7 +526,7 @@ struct MusicToolbarRowView: View {
             HoverButton(
                 icon: "shuffle",
                 iconColor: musicManager.isShuffled ? activeControlColor : inactiveControlColor,
-                backgroundColor: musicManager.isShuffled ? activeToggleBackgroundColor : inactiveToggleBackgroundColor,
+                backgroundColor: .clear,
                 scale: .medium,
                 tapEffect: .rotateCounterClockwise
             ) {
@@ -526,7 +536,7 @@ struct MusicToolbarRowView: View {
             HoverButton(
                 icon: "quote.bubble",
                 iconColor: enableLyrics ? activeControlColor : inactiveControlColor,
-                backgroundColor: enableLyrics ? activeToggleBackgroundColor : inactiveToggleBackgroundColor,
+                backgroundColor: .clear,
                 scale: .medium,
                 tapEffect: .bounce
             ) {
@@ -917,8 +927,49 @@ private struct LockScreenProgressView: View {
 }
 
 private struct LockScreenControlsRow: View {
+    @ObservedObject private var musicManager = MusicManager.shared
+    @Default(.matchAlbumArtColor) private var matchAlbumArtColor
+
+    private var activeControlColor: Color {
+        matchAlbumArtColor
+            ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.72)
+            : .white
+    }
+
+    private var inactiveControlColor: Color {
+        if matchAlbumArtColor,
+           let rgbColor = musicManager.avgColor.usingColorSpace(.sRGB)
+        {
+            var hue: CGFloat = 0
+            var saturation: CGFloat = 0
+            var brightness: CGFloat = 0
+            var alpha: CGFloat = 0
+
+            rgbColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+
+            return Color(
+                hue: Double(hue),
+                saturation: Double(max(0.08, saturation * 0.16)),
+                brightness: Double(max(0.34, brightness * 0.42)),
+                opacity: 0.9
+            )
+        }
+
+        return Color.white.opacity(0.3)
+    }
+
     var body: some View {
         HStack(spacing: 10) {
+            HoverButton(
+                icon: "shuffle",
+                iconColor: musicManager.isShuffled ? activeControlColor : inactiveControlColor,
+                backgroundColor: .clear,
+                scale: .medium,
+                tapEffect: .rotateCounterClockwise
+            ) {
+                MusicManager.shared.toggleShuffle()
+            }
+
             HoverButton(icon: "backward.fill", scale: .medium, tapEffect: .nudgeLeft) {
                 MusicManager.shared.previousTrack()
             }
@@ -928,6 +979,8 @@ private struct LockScreenControlsRow: View {
             HoverButton(icon: "forward.fill", scale: .medium, tapEffect: .nudgeRight) {
                 MusicManager.shared.nextTrack()
             }
+
+            HoverButton(icon: "laptopcomputer", backgroundColor: .clear, scale: .medium) {}
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
