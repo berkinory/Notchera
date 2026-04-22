@@ -465,10 +465,10 @@ struct ClipboardTabView: View {
     @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
     @Default(.clipboardHistoryRetention) private var retention
     @State private var hoveredItemID: ClipboardHistoryItem.ID?
-    @State private var pendingScrollItemID: ClipboardHistoryItem.ID?
-    @State private var pendingScrollAnchor: UnitPoint = .top
     @State private var copiedItemID: ClipboardHistoryItem.ID?
     @State private var copyResetTask: Task<Void, Never>?
+    @State private var suppressMouseHover = false
+    @State private var hoverSuppressionTask: Task<Void, Never>?
 
     private var filteredItems: [ClipboardHistoryItem] {
         let normalizedQuery = coordinator.clipboardSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -526,18 +526,32 @@ struct ClipboardTabView: View {
                                 .opacity(showsCaret ? 1 : 0)
                         }
                     }
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 11.5, weight: .regular))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .allowsHitTesting(false)
                 }
             }
-            .padding(.leading, 10)
+            .padding(.leading, 9)
             .padding(.trailing, 6)
-            .frame(height: 28)
+            .frame(height: 26)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Color.white.opacity(0.06))
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.08),
+                                Color.white.opacity(0.03),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.7
+                    )
+            }
 
             if filteredItems.isEmpty {
                 VStack(spacing: 10) {
@@ -553,7 +567,7 @@ struct ClipboardTabView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 6) {
+                        LazyVStack(spacing: 4) {
                             ForEach(filteredItems) { item in
                                 clipboardRow(for: item)
                                     .id(item.id)
@@ -565,8 +579,8 @@ struct ClipboardTabView: View {
                     .onAppear {
                         scrollToHoveredItem(with: proxy, animated: false)
                     }
-                    .onChange(of: pendingScrollItemID) { _, _ in
-                        scrollToHoveredItem(with: proxy)
+                    .onChange(of: hoveredItemID) { _, _ in
+                        scrollToHoveredItem(with: proxy, animated: false)
                     }
                 }
             }
@@ -578,7 +592,6 @@ struct ClipboardTabView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear {
             clipboardHistoryManager.pruneExpiredItems()
-            pendingScrollAnchor = .top
             selectFirstItemIfNeeded()
         }
         .onChange(of: retention) { _, _ in
@@ -589,7 +602,10 @@ struct ClipboardTabView: View {
             selectFirstItemIfNeeded(force: true)
         }
         .onChange(of: coordinator.clipboardSearchQuery) { _, _ in
-            selectFirstItemIfNeeded(force: true)
+            if keyboardInputActive {
+                temporarilySuppressMouseHover()
+            }
+            syncHoveredItem()
         }
         .onChange(of: itemIDs) { _, _ in
             syncHoveredItem()
@@ -630,50 +646,33 @@ struct ClipboardTabView: View {
                 removeLastCharacter(from: &coordinator.clipboardSearchQuery)
             }
         }
+        .onDisappear {
+            copyResetTask?.cancel()
+            hoverSuppressionTask?.cancel()
+            hoverSuppressionTask = nil
+            suppressMouseHover = false
+        }
     }
 
     private func clipboardRow(for item: ClipboardHistoryItem) -> some View {
-        let isHovered = hoveredItemID == item.id
-        let isCopied = copiedItemID == item.id
-
-        return Button {
-            clipboardHistoryManager.activateSelection(for: item)
-            showCopiedState(for: item.id)
-            endKeyboardNavigation(shouldCloseNotch: Defaults[.clipboardSelectionAction] == .paste)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: item.isFile ? "text.document" : "character.cursor.ibeam")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Color.secondary.opacity(0.62))
-                    .frame(width: 10)
-
-                Text(displayText(for: item))
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.66))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: isCopied ? "checkmark.app.fill" : "doc.on.doc")
-                    .font(.system(size: isCopied ? 11 : 10, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 12)
-                    .opacity(isHovered || isCopied ? 1 : 0)
+        ClipboardHistoryRowView(
+            id: item.id,
+            title: displayText(for: item),
+            icon: item.isFile ? "text.document" : "character.cursor.ibeam",
+            isSelected: hoveredItemID == item.id,
+            isHovered: hoveredItemID == item.id,
+            isCopied: copiedItemID == item.id,
+            action: {
+                clipboardHistoryManager.activateSelection(for: item)
+                showCopiedState(for: item.id)
+                endKeyboardNavigation(shouldCloseNotch: Defaults[.clipboardSelectionAction] == .paste)
+            },
+            onHover: { hovering in
+                guard !suppressMouseHover else { return }
+                hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 9)
-            .padding(.trailing, 6)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isHovered ? Color.white.opacity(0.1) : Color.white.opacity(0.05))
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
-        }
+        )
+        .equatable()
     }
 
     private func removeLastCharacter(from string: inout String) {
@@ -707,7 +706,11 @@ struct ClipboardTabView: View {
             return fileName
         }
 
-        let visiblePrefixCount = min(6, baseName.count)
+        guard baseName.count > 10 else {
+            return fileName
+        }
+
+        let visiblePrefixCount = 6
         let prefix = String(baseName.prefix(visiblePrefixCount))
         return "\(prefix)... .\(fileExtension)"
     }
@@ -724,6 +727,20 @@ struct ClipboardTabView: View {
                 if copiedItemID == itemID {
                     copiedItemID = nil
                 }
+            }
+        }
+    }
+
+    private func temporarilySuppressMouseHover() {
+        hoverSuppressionTask?.cancel()
+        suppressMouseHover = true
+
+        hoverSuppressionTask = Task {
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                suppressMouseHover = false
             }
         }
     }
@@ -759,10 +776,9 @@ struct ClipboardTabView: View {
         let items = filteredItems
         let currentIndex = items.firstIndex(where: { $0.id == hoveredItemID }) ?? 0
         let nextIndex = min(max(currentIndex + offset, 0), items.count - 1)
-        let nextItemID = items[nextIndex].id
-        hoveredItemID = nextItemID
-        pendingScrollAnchor = offset > 0 ? .bottom : .top
-        pendingScrollItemID = nextItemID
+        guard nextIndex != currentIndex else { return }
+        temporarilySuppressMouseHover()
+        hoveredItemID = items[nextIndex].id
     }
 
     private func scrollToHoveredItem(with proxy: ScrollViewProxy, animated: Bool = true) {
@@ -773,15 +789,11 @@ struct ClipboardTabView: View {
         }
 
         if animated {
-            withAnimation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.22)) {
+            withAnimation(.easeOut(duration: 0.12)) {
                 action()
             }
         } else {
             action()
-        }
-
-        if pendingScrollItemID == hoveredItemID {
-            pendingScrollItemID = nil
         }
     }
 
@@ -803,6 +815,109 @@ struct ClipboardTabView: View {
             object: nil,
             userInfo: ["shouldCloseNotch": shouldCloseNotch]
         )
+    }
+}
+
+private struct ClipboardHistoryRowView: View, Equatable {
+    let id: ClipboardHistoryItem.ID
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let isHovered: Bool
+    let isCopied: Bool
+    let action: () -> Void
+    let onHover: (Bool) -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
+            && lhs.title == rhs.title
+            && lhs.icon == rhs.icon
+            && lhs.isSelected == rhs.isSelected
+            && lhs.isHovered == rhs.isHovered
+            && lhs.isCopied == rhs.isCopied
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                iconView
+
+                Text(title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.9) : Color.white.opacity(0.72))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: isCopied ? "checkmark.app.fill" : "doc.on.doc")
+                    .font(.system(size: isCopied ? 10.5 : 9.5, weight: .semibold))
+                    .foregroundStyle(isCopied ? Color.white.opacity(0.9) : Color.white.opacity(0.7))
+                    .frame(width: 12)
+                    .opacity(isSelected || isCopied ? 1 : 0)
+                    .scaleEffect(isCopied ? 1.03 : 1)
+                    .animation(.easeOut(duration: 0.12), value: isCopied)
+            }
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+            .padding(.leading, 6)
+            .padding(.trailing, 6)
+            .background(backgroundShape.fill(backgroundFill))
+            .overlay {
+                backgroundShape
+                    .strokeBorder(borderColor, lineWidth: 0.6)
+            }
+            .contentShape(backgroundShape)
+        }
+        .buttonStyle(ClipboardHistoryPressStyle())
+        .animation(.easeOut(duration: 0.1), value: isHovered)
+        .onHover(perform: onHover)
+    }
+
+    private var backgroundShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 9, style: .continuous)
+    }
+
+    private var backgroundFill: Color {
+        if isSelected {
+            return Color.white.opacity(0.082)
+        }
+
+        if isHovered {
+            return Color.white.opacity(0.055)
+        }
+
+        return Color.white.opacity(0.036)
+    }
+
+    private var borderColor: Color {
+        if isSelected {
+            return Color.white.opacity(0.095)
+        }
+
+        if isHovered {
+            return Color.white.opacity(0.06)
+        }
+
+        return Color.white.opacity(0.03)
+    }
+
+    private var iconView: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isSelected ? Color.white.opacity(0.09) : Color.white.opacity(0.045))
+
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(isSelected ? Color.white.opacity(0.78) : Color.secondary.opacity(0.62))
+        }
+        .frame(width: 18, height: 18)
+    }
+}
+
+private struct ClipboardHistoryPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.996 : 1)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }
 

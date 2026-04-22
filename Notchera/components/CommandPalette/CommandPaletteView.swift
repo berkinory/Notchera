@@ -8,8 +8,9 @@ struct CommandPaletteView: View {
     @ObservedObject private var appLauncher = AppLauncherManager.shared
     @ObservedObject private var preventSleepManager = PreventSleepManager.shared
     @State private var selectedRowID: String?
-    @State private var pendingScrollRowID: String?
-    @State private var pendingScrollAnchor: UnitPoint = .top
+    @State private var hoveredRowID: String?
+    @State private var suppressMouseHover = false
+    @State private var hoverSuppressionTask: Task<Void, Never>?
 
     private var trimmedQuery: String {
         coordinator.commandPaletteQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -83,7 +84,7 @@ struct CommandPaletteView: View {
             syncSelection(force: true)
         }
         .onChange(of: coordinator.commandPaletteQuery) { _, _ in
-            syncSelection(force: true)
+            syncSelection()
         }
         .onChange(of: rootRowIDs) { _, _ in
             syncSelection()
@@ -124,6 +125,11 @@ struct CommandPaletteView: View {
                 removeLastCharacter(from: &coordinator.commandPaletteQuery)
             }
         }
+        .onDisappear {
+            hoverSuppressionTask?.cancel()
+            hoverSuppressionTask = nil
+            suppressMouseHover = false
+        }
     }
 
     private var input: some View {
@@ -160,18 +166,32 @@ struct CommandPaletteView: View {
                             .opacity(showsCaret ? 1 : 0)
                     }
                 }
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11.5, weight: .regular))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .allowsHitTesting(false)
             }
         }
-        .padding(.leading, 10)
+        .padding(.leading, 9)
         .padding(.trailing, 6)
-        .frame(height: 28)
+        .frame(height: 26)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.white.opacity(0.06))
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.03),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.7
+                )
+        }
     }
 
     @ViewBuilder
@@ -190,7 +210,7 @@ struct CommandPaletteView: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 6) {
+                    LazyVStack(spacing: 4) {
                         ForEach(rootRows) { row in
                             rootRow(row)
                                 .id(row.id)
@@ -202,8 +222,8 @@ struct CommandPaletteView: View {
                 .onAppear {
                     scrollToSelectedRow(with: proxy, animated: false)
                 }
-                .onChange(of: pendingScrollRowID) { _, _ in
-                    scrollToSelectedRow(with: proxy)
+                .onChange(of: selectedRowID) { _, _ in
+                    scrollToSelectedRow(with: proxy, animated: false)
                 }
             }
         }
@@ -215,52 +235,25 @@ struct CommandPaletteView: View {
     }
 
     private func rootRow(_ row: CommandPaletteRootRow) -> some View {
-        let isSelected = selectedRowID == row.id
+        CommandPaletteRowView(
+            row: row,
+            isSelected: selectedRowID == row.id,
+            isHovered: hoveredRowID == row.id,
+            action: {
+                activate(row)
+            },
+            onHover: { hovering in
+                guard !suppressMouseHover else { return }
 
-        return Button {
-            activate(row)
-        } label: {
-            HStack(spacing: 8) {
-                if let appItem = row.appItem {
-                    Image(nsImage: appItem.icon)
-                        .resizable()
-                        .frame(width: 16, height: 16)
-                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                } else if let imageAssetName = row.imageAssetName {
-                    Image(imageAssetName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 16)
-                } else if let icon = row.icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color.secondary.opacity(0.62))
-                        .frame(width: 10)
+                if hovering {
+                    hoveredRowID = row.id
+                    selectedRowID = row.id
+                } else if hoveredRowID == row.id {
+                    hoveredRowID = nil
                 }
-
-                Text(row.title)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.66))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 9)
-            .padding(.trailing, 6)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? Color.white.opacity(0.1) : Color.white.opacity(0.05))
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            if hovering {
-                selectedRowID = row.id
-            }
-        }
+        )
+        .equatable()
     }
 
     private func commandRows(for query: String) -> [CommandPaletteRootRow] {
@@ -301,8 +294,7 @@ struct CommandPaletteView: View {
     }
 
     private func preventSleepRows(for query: String) -> [ScoredCommandPaletteRow] {
-        let stateSubtitle = preventSleepManager.statusText
-        let aliases = ["prevent sleep", "awake", "caffeine", "caffeinate", "sleep", "insomnia"]
+        let aliases = ["prevent sleep", "awake", "caffeine", "caffeinate", "sleep", "insomnia", "enable", "disable", "amphetamine"]
         let isRelevant = query.isEmpty || matches(query, aliases: aliases)
         guard isRelevant else { return [] }
 
@@ -311,8 +303,8 @@ struct CommandPaletteView: View {
                 score: scoredCommandBase(query: query, aliases: aliases, baseScore: 9600, usageKey: "prevent-sleep.toggle", emptyScore: 8600),
                 row: CommandPaletteRootRow(
                     id: "action.prevent-sleep.toggle",
-                    title: preventSleepManager.isActive ? "Disable Prevent Sleep" : "Enable Prevent Sleep",
-                    subtitle: stateSubtitle,
+                    title: "Prevent Sleep",
+                    subtitle: preventSleepManager.isActive ? "On" : "Off",
                     icon: preventSleepManager.isActive ? "poweroutlet.type.b.fill" : "poweroutlet.type.g.fill",
                     appItem: nil,
                     action: .togglePreventSleep,
@@ -385,11 +377,16 @@ struct CommandPaletteView: View {
     private func syncSelection(force: Bool = false) {
         guard !rootRows.isEmpty else {
             selectedRowID = nil
+            hoveredRowID = nil
             return
         }
 
         if force || selectedRowID == nil || !rootRows.contains(where: { $0.id == selectedRowID }) {
             selectedRowID = rootRows.first?.id
+        }
+
+        if let hoveredRowID, !rootRows.contains(where: { $0.id == hoveredRowID }) {
+            self.hoveredRowID = nil
         }
     }
 
@@ -398,10 +395,23 @@ struct CommandPaletteView: View {
 
         let currentIndex = rootRows.firstIndex(where: { $0.id == selectedRowID }) ?? 0
         let nextIndex = min(max(currentIndex + offset, 0), rootRows.count - 1)
-        let nextRowID = rootRows[nextIndex].id
-        selectedRowID = nextRowID
-        pendingScrollAnchor = offset > 0 ? .bottom : .top
-        pendingScrollRowID = nextRowID
+        guard nextIndex != currentIndex else { return }
+        temporarilySuppressMouseHover()
+        selectedRowID = rootRows[nextIndex].id
+    }
+
+    private func temporarilySuppressMouseHover() {
+        hoverSuppressionTask?.cancel()
+        suppressMouseHover = true
+
+        hoverSuppressionTask = Task {
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                suppressMouseHover = false
+            }
+        }
     }
 
     private func confirmSelection() {
@@ -417,15 +427,11 @@ struct CommandPaletteView: View {
         }
 
         if animated {
-            withAnimation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.22)) {
+            withAnimation(.easeOut(duration: 0.12)) {
                 action()
             }
         } else {
             action()
-        }
-
-        if pendingScrollRowID == selectedRowID {
-            pendingScrollRowID = nil
         }
     }
 
@@ -517,7 +523,7 @@ private struct NotchKeyboardFocusBridge: NSViewRepresentable {
     }
 }
 
-private struct CommandPaletteRootRow: Identifiable {
+private struct CommandPaletteRootRow: Identifiable, Equatable {
     let id: String
     let title: String
     let subtitle: String?
@@ -536,6 +542,16 @@ private struct CommandPaletteRootRow: Identifiable {
         self.appItem = appItem
         self.action = action
         self.usageKey = usageKey
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
+            && lhs.title == rhs.title
+            && lhs.subtitle == rhs.subtitle
+            && lhs.imageAssetName == rhs.imageAssetName
+            && lhs.icon == rhs.icon
+            && lhs.appItem?.id == rhs.appItem?.id
+            && lhs.usageKey == rhs.usageKey
     }
 }
 
@@ -568,6 +584,122 @@ private struct CommandPaletteKeyboardHandler: NSViewRepresentable {
 }
 
 private final class CommandPaletteKeyMonitorHostView: NSView {}
+
+private struct CommandPaletteRowView: View, Equatable {
+    let row: CommandPaletteRootRow
+    let isSelected: Bool
+    let isHovered: Bool
+    let action: () -> Void
+    let onHover: (Bool) -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.row == rhs.row
+            && lhs.isSelected == rhs.isSelected
+            && lhs.isHovered == rhs.isHovered
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                iconView
+
+                Text(row.title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.9) : Color.white.opacity(0.72))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let trailingText {
+                    Text(trailingText)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(isSelected ? Color.white.opacity(0.54) : Color.secondary.opacity(0.58))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: 44, alignment: .trailing)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+            .padding(.leading, 6)
+            .padding(.trailing, 6)
+            .background(backgroundShape.fill(backgroundFill))
+            .overlay {
+                backgroundShape
+                    .strokeBorder(borderColor, lineWidth: 0.6)
+            }
+            .contentShape(backgroundShape)
+        }
+        .buttonStyle(CommandPalettePressStyle())
+        .animation(.easeOut(duration: 0.1), value: isHovered)
+        .onHover(perform: onHover)
+    }
+
+    private var trailingText: String? {
+        guard row.appItem == nil else { return nil }
+
+        if row.id == "action.prevent-sleep.toggle" {
+            return row.subtitle
+        }
+
+        if let subtitle = row.subtitle, subtitle.count <= 14 {
+            return subtitle
+        }
+
+        return nil
+    }
+
+    private var backgroundShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 9, style: .continuous)
+    }
+
+    private var backgroundFill: Color {
+        if isSelected {
+            return Color.white.opacity(0.082)
+        }
+
+        if isHovered {
+            return Color.white.opacity(0.055)
+        }
+
+        return Color.white.opacity(0.036)
+    }
+
+    private var borderColor: Color {
+        if isSelected {
+            return Color.white.opacity(0.095)
+        }
+
+        if isHovered {
+            return Color.white.opacity(0.06)
+        }
+
+        return Color.white.opacity(0.03)
+    }
+
+    @ViewBuilder
+    private var iconView: some View {
+        if let appItem = row.appItem {
+            Image(nsImage: appItem.icon)
+                .resizable()
+                .frame(width: 16, height: 16)
+        } else if let imageAssetName = row.imageAssetName {
+            Image(imageAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 14, height: 14)
+        } else if let icon = row.icon {
+            ZStack {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isSelected ? Color.white.opacity(0.09) : Color.white.opacity(0.045))
+
+                Image(systemName: icon)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.78) : Color.secondary.opacity(0.62))
+            }
+            .frame(width: 18, height: 18)
+        }
+    }
+}
 
 private extension CommandPaletteKeyboardHandler {
     final class Coordinator {
@@ -613,6 +745,14 @@ private extension CommandPaletteKeyboardHandler {
                 self.monitor = nil
             }
         }
+    }
+}
+
+private struct CommandPalettePressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.996 : 1)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }
 
