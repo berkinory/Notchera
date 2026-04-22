@@ -291,6 +291,7 @@ class NotcheraViewCoordinator: ObservableObject {
     private var hudReplacementCancellable: AnyCancellable?
     private var shelfStateCancellable: AnyCancellable?
     private var suppressRememberedViewUpdate = false
+    private var lastExternalHUDRequestAt: Date = .distantPast
 
     private var rememberedView: NotchViews? {
         guard openLastTabByDefault,
@@ -442,6 +443,17 @@ class NotcheraViewCoordinator: ObservableObject {
         else {
             return
         }
+
+        let now = Date()
+        guard now.timeIntervalSince(lastExternalHUDRequestAt) >= 0.05 else {
+            return
+        }
+
+        guard !(hud.show && hud.type == .custom && hud.custom == normalizedRequest) else {
+            return
+        }
+
+        lastExternalHUDRequestAt = now
 
         toggleHUD(
             status: true,
