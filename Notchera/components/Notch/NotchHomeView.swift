@@ -666,7 +666,44 @@ struct MusicSpectrumIndicatorView: View {
 
 struct LockScreenMediaView: View {
     @ObservedObject private var musicManager = MusicManager.shared
+    @Default(.lockScreenPlayerStyle) private var lockScreenPlayerStyle
     let albumArtNamespace: Namespace.ID
+
+    private var backgroundFill: AnyShapeStyle {
+        switch lockScreenPlayerStyle {
+        case .default:
+            AnyShapeStyle(.ultraThinMaterial)
+        case .frosted:
+            AnyShapeStyle(Color.white.opacity(0.12))
+        }
+    }
+
+    private var strokeOpacity: Double {
+        switch lockScreenPlayerStyle {
+        case .default:
+            0.075
+        case .frosted:
+            0.065
+        }
+    }
+
+    private var shadowOpacity: Double {
+        switch lockScreenPlayerStyle {
+        case .default:
+            0.18
+        case .frosted:
+            0.16
+        }
+    }
+
+    private var highlightOpacity: Double {
+        switch lockScreenPlayerStyle {
+        case .default:
+            0.06
+        case .frosted:
+            0.04
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -706,27 +743,58 @@ struct LockScreenMediaView: View {
         .frame(width: 328, alignment: .top)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(.white.opacity(0.082))
+                .fill(backgroundFill)
                 .overlay {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(.white.opacity(0.075), lineWidth: 0.8)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    .white.opacity(highlightOpacity),
+                                    .clear,
+                                    .white.opacity(highlightOpacity * 0.35),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(.white.opacity(strokeOpacity), lineWidth: 0.8)
                 }
         )
-        .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
+        .compositingGroup()
+        .shadow(color: .black.opacity(shadowOpacity), radius: 22, y: 10)
     }
 }
 
 struct LockScreenMediaOverlayView: View {
     @Namespace private var albumArtNamespace
+    @State private var isVisible = false
 
     var body: some View {
         ZStack {
             Color.clear
 
             LockScreenMediaView(albumArtNamespace: albumArtNamespace)
+                .opacity(isVisible ? 1 : 0)
+                .offset(y: isVisible ? 0 : 6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .preferredColorScheme(.dark)
+        .onAppear {
+            isVisible = false
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(120))
+                withAnimation(.easeOut(duration: 0.16)) {
+                    isVisible = true
+                }
+            }
+        }
+        .onDisappear {
+            isVisible = false
+        }
     }
 }
 

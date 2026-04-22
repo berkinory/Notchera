@@ -8,6 +8,7 @@ import SwiftUIIntrospect
 struct AdvancedSettingsView: View {
     @Default(.extendHoverArea) var extendHoverArea
     @Default(.showOnLockScreen) var showOnLockScreen
+    @Default(.lockScreenPlayerStyle) var lockScreenPlayerStyle
     @Default(.hideFromScreenRecording) var hideFromScreenRecording
     @Default(.hideNotchInFullscreen) var hideNotchInFullscreen
 
@@ -69,6 +70,13 @@ struct AdvancedSettingsView: View {
                 }
                 Defaults.Toggle(key: .showOnLockScreen) {
                     Text("Show notch on lock screen")
+                }
+                if showOnLockScreen {
+                    Picker("Lock screen player style", selection: $lockScreenPlayerStyle) {
+                        ForEach(LockScreenPlayerStyle.allCases) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
                 }
                 Defaults.Toggle(key: .hideFromScreenRecording) {
                     Text("Hide from screen recording")

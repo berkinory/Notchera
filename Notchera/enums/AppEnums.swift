@@ -46,6 +46,15 @@ enum WindowHeightMode: String, Defaults.Serializable {
     case matchRealNotchSize = "Match real notch height"
 }
 
+enum LockScreenPlayerStyle: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case `default` = "Default"
+    case frosted = "Frosted"
+
+    var id: String {
+        rawValue
+    }
+}
+
 enum ClipboardHistoryRetention: String, CaseIterable, Identifiable, Defaults.Serializable {
     case oneHour = "1 hour"
     case oneDay = "1 day"

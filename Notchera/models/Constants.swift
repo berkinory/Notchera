@@ -53,6 +53,7 @@ extension Defaults.Keys {
         default: WindowHeightMode.matchMenuBar
     )
     static let showOnLockScreen = Key<Bool>("showOnLockScreen", default: false)
+    static let lockScreenPlayerStyle = Key<LockScreenPlayerStyle>("lockScreenPlayerStyle", default: .frosted)
     static let hideFromScreenRecording = Key<Bool>("hideFromScreenRecording", default: false)
     static let hideNotchInFullscreen = Key<Bool>("hideNotchInFullscreen", default: true)
 
