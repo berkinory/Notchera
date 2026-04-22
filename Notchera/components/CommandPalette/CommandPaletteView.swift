@@ -41,6 +41,10 @@ struct CommandPaletteView: View {
         rootRows.map(\.id)
     }
 
+    private var keyboardInputActive: Bool {
+        coordinator.currentView == .commandPalette && coordinator.notchKeyboardDismissActive
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             input
@@ -110,17 +114,37 @@ struct CommandPaletteView: View {
                 .foregroundStyle(Color.secondary.opacity(0.72))
                 .frame(width: 12)
 
-            TextField(
-                "Search apps and commands",
-                text: Binding(
-                    get: { coordinator.commandPaletteQuery },
-                    set: { coordinator.commandPaletteQuery = $0 }
-                )
-            )
-            .textFieldStyle(.plain)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.white)
-            .allowsHitTesting(false)
+            TimelineView(.periodic(from: .now, by: 0.42)) { context in
+                let showsCaret = keyboardInputActive
+                    && Int(context.date.timeIntervalSinceReferenceDate / 0.42).isMultiple(of: 2)
+
+                HStack(spacing: 0) {
+                    if coordinator.commandPaletteQuery.isEmpty {
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(Color.white.opacity(0.95))
+                            .frame(width: 1.25, height: 14)
+                            .padding(.trailing, 1)
+                            .opacity(showsCaret ? 1 : 0)
+
+                        Text("Search apps and commands")
+                            .foregroundStyle(Color.white.opacity(0.3))
+                    } else {
+                        Text(verbatim: coordinator.commandPaletteQuery)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(Color.white.opacity(0.95))
+                            .frame(width: 1.25, height: 14)
+                            .padding(.leading, -0.5)
+                            .opacity(showsCaret ? 1 : 0)
+                    }
+                }
+                .font(.system(size: 12, weight: .medium))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .allowsHitTesting(false)
+            }
         }
         .padding(.leading, 10)
         .padding(.trailing, 6)

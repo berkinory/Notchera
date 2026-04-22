@@ -487,6 +487,10 @@ struct ClipboardTabView: View {
         coordinator.currentView == .clipboard
     }
 
+    private var keyboardInputActive: Bool {
+        keyboardNavigationEnabled && coordinator.notchKeyboardDismissActive
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -495,17 +499,37 @@ struct ClipboardTabView: View {
                     .foregroundStyle(Color.secondary.opacity(0.72))
                     .frame(width: 12)
 
-                TextField(
-                    "Search clipboard",
-                    text: Binding(
-                        get: { coordinator.clipboardSearchQuery },
-                        set: { coordinator.clipboardSearchQuery = $0 }
-                    )
-                )
-                .textFieldStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white)
-                .allowsHitTesting(false)
+                TimelineView(.periodic(from: .now, by: 0.42)) { context in
+                    let showsCaret = keyboardInputActive
+                        && Int(context.date.timeIntervalSinceReferenceDate / 0.42).isMultiple(of: 2)
+
+                    HStack(spacing: 0) {
+                        if coordinator.clipboardSearchQuery.isEmpty {
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(Color.white.opacity(0.95))
+                                .frame(width: 1.25, height: 14)
+                                .padding(.trailing, 1)
+                                .opacity(showsCaret ? 1 : 0)
+
+                            Text("Search clipboard")
+                                .foregroundStyle(Color.white.opacity(0.3))
+                        } else {
+                            Text(verbatim: coordinator.clipboardSearchQuery)
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(Color.white.opacity(0.95))
+                                .frame(width: 1.25, height: 14)
+                                .padding(.leading, -0.5)
+                                .opacity(showsCaret ? 1 : 0)
+                        }
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .allowsHitTesting(false)
+                }
             }
             .padding(.leading, 10)
             .padding(.trailing, 6)
