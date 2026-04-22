@@ -56,6 +56,7 @@ struct ExternalHUDItem: Codable, Equatable {
         case text
         case value
         case slider
+        case loading
     }
 
     var type: ItemType
@@ -92,6 +93,8 @@ struct ExternalHUDItem: Codable, Equatable {
             }
 
             return ExternalHUDItem(type: type, text: nil, symbol: nil, value: max(0, min(value, 1)), color: normalizedColor)
+        case .loading:
+            return ExternalHUDItem(type: type, text: nil, symbol: nil, value: nil, color: normalizedColor)
         }
     }
 
@@ -105,6 +108,8 @@ struct ExternalHUDItem: Codable, Equatable {
             "value:\(color?.rawValue ?? "")"
         case .slider:
             "slider:\(color?.rawValue ?? "")"
+        case .loading:
+            "loading:\(color?.rawValue ?? "")"
         }
     }
 }

@@ -464,6 +464,12 @@ struct WingHUDView: View {
                 color: item.color?.swiftUIColor ?? .white
             )
             .frame(width: 48)
+        case .loading:
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(item.color?.swiftUIColor ?? .white)
+                .scaleEffect(0.55)
+                .frame(width: 18, height: 18)
         }
     }
 

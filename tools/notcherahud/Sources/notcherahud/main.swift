@@ -30,6 +30,7 @@ enum HUDItemType: String, Codable {
     case text
     case value
     case slider
+    case loading
 }
 
 struct HUDItem: Codable {
@@ -51,8 +52,8 @@ enum CLIError: LocalizedError {
     case unknownFlag(String)
     case missingValue(String)
     case invalidNumber(flag: String, value: String)
-    case invalidColor(side: Side, value: String)
-    case noItemToColor(Side)
+    case invalidColor(String)
+    case colorRequiresItem
     case emptyRequest
     case tooManyItems(side: Side, max: Int)
 
@@ -64,10 +65,10 @@ enum CLIError: LocalizedError {
             "missing value for \(flag)"
         case let .invalidNumber(flag, value):
             "invalid numeric value for \(flag): \(value)"
-        case let .invalidColor(side, value):
-            "invalid \(side.rawValue) color: \(value). expected a token \(HUDColor.tokenValues.joined(separator: ", ")) or a hex like #7C3AED or #7C3AEDFF"
-        case let .noItemToColor(side):
-            "\(side.rawValue) color was provided before any \(side.rawValue) item"
+        case let .invalidColor(value):
+            "invalid color: \(value). expected a token \(HUDColor.tokenValues.joined(separator: ", ")) or a hex like #7C3AED or #7C3AEDFF"
+        case .colorRequiresItem:
+            "--color was provided before any item"
         case .emptyRequest:
             "at least one left or right item is required"
         case let .tooManyItems(side, max):
@@ -95,9 +96,15 @@ struct NotcheraHUDCLI {
             exit(0)
         }
 
+        struct ItemReference {
+            let side: Side
+            let index: Int
+        }
+
         var durationMilliseconds = 1500
         var left: [HUDItem] = []
         var right: [HUDItem] = []
+        var lastItem: ItemReference?
         var index = 0
 
         while index < arguments.count {
@@ -114,53 +121,66 @@ struct NotcheraHUDCLI {
             case "--left-icon":
                 let symbol = try readValue(after: flag, from: arguments, index: &index)
                 left.append(HUDItem(type: .icon, text: nil, symbol: symbol, value: nil, color: nil))
+                lastItem = ItemReference(side: .left, index: left.index(before: left.endIndex))
             case "--left-text":
                 let text = try readValue(after: flag, from: arguments, index: &index)
                 left.append(HUDItem(type: .text, text: text, symbol: nil, value: nil, color: nil))
+                lastItem = ItemReference(side: .left, index: left.index(before: left.endIndex))
             case "--left-value":
                 let raw = try readValue(after: flag, from: arguments, index: &index)
                 guard let parsed = Double(raw) else {
                     throw CLIError.invalidNumber(flag: flag, value: raw)
                 }
                 left.append(HUDItem(type: .value, text: nil, symbol: nil, value: parsed, color: nil))
+                lastItem = ItemReference(side: .left, index: left.index(before: left.endIndex))
             case "--left-slider":
                 let raw = try readValue(after: flag, from: arguments, index: &index)
                 guard let parsed = Double(raw) else {
                     throw CLIError.invalidNumber(flag: flag, value: raw)
                 }
                 left.append(HUDItem(type: .slider, text: nil, symbol: nil, value: max(0, min(parsed, 1)), color: nil))
+                lastItem = ItemReference(side: .left, index: left.index(before: left.endIndex))
+            case "--left-loading":
+                left.append(HUDItem(type: .loading, text: nil, symbol: nil, value: nil, color: nil))
+                lastItem = ItemReference(side: .left, index: left.index(before: left.endIndex))
             case "--right-icon":
                 let symbol = try readValue(after: flag, from: arguments, index: &index)
                 right.append(HUDItem(type: .icon, text: nil, symbol: symbol, value: nil, color: nil))
+                lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
             case "--right-text":
                 let text = try readValue(after: flag, from: arguments, index: &index)
                 right.append(HUDItem(type: .text, text: text, symbol: nil, value: nil, color: nil))
+                lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
             case "--right-value":
                 let raw = try readValue(after: flag, from: arguments, index: &index)
                 guard let parsed = Double(raw) else {
                     throw CLIError.invalidNumber(flag: flag, value: raw)
                 }
                 right.append(HUDItem(type: .value, text: nil, symbol: nil, value: parsed, color: nil))
+                lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
             case "--right-slider":
                 let raw = try readValue(after: flag, from: arguments, index: &index)
                 guard let parsed = Double(raw) else {
                     throw CLIError.invalidNumber(flag: flag, value: raw)
                 }
                 right.append(HUDItem(type: .slider, text: nil, symbol: nil, value: max(0, min(parsed, 1)), color: nil))
-            case "--left-color":
+                lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
+            case "--right-loading":
+                right.append(HUDItem(type: .loading, text: nil, symbol: nil, value: nil, color: nil))
+                lastItem = ItemReference(side: .right, index: right.index(before: right.endIndex))
+            case "--color":
                 let raw = try readValue(after: flag, from: arguments, index: &index)
-                let color = try parseColor(raw, side: .left)
-                guard !left.isEmpty else {
-                    throw CLIError.noItemToColor(.left)
+                let color = try parseColor(raw)
+                guard let lastItem else {
+                    throw CLIError.colorRequiresItem
                 }
-                left[left.index(before: left.endIndex)].color = color
-            case "--right-color":
-                let raw = try readValue(after: flag, from: arguments, index: &index)
-                let color = try parseColor(raw, side: .right)
-                guard !right.isEmpty else {
-                    throw CLIError.noItemToColor(.right)
+
+                switch lastItem.side {
+                case .left:
+                    left[lastItem.index].color = color
+                case .right:
+                    right[lastItem.index].color = color
                 }
-                right[right.index(before: right.endIndex)].color = color
             default:
                 throw CLIError.unknownFlag(flag)
             }
@@ -191,7 +211,7 @@ struct NotcheraHUDCLI {
         return value
     }
 
-    private static func parseColor(_ raw: String, side: Side) throws -> HUDColor {
+    private static func parseColor(_ raw: String) throws -> HUDColor {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let lowercased = trimmed.lowercased()
 
@@ -203,7 +223,7 @@ struct NotcheraHUDCLI {
             return HUDColor(rawValue: trimmed)
         }
 
-        throw CLIError.invalidColor(side: side, value: raw)
+        throw CLIError.invalidColor(raw)
     }
 
     private static func isHexColor(_ raw: String) -> Bool {
@@ -236,23 +256,25 @@ usage:
 
 flags:
   --duration <milliseconds>
+  --color <primary|secondary|green|yellow|red|blue|#RRGGBB|#RRGGBBAA>
 
   --left-icon <sf-symbol>
   --left-text <text>
   --left-value <number>
   --left-slider <0...1>
-  --left-color <primary|secondary|green|yellow|red|blue|#RRGGBB|#RRGGBBAA>
+  --left-loading
 
   --right-icon <sf-symbol>
   --right-text <text>
   --right-value <number>
   --right-slider <0...1>
-  --right-color <primary|secondary|green|yellow|red|blue|#RRGGBB|#RRGGBBAA>
+  --right-loading
 
 notes:
   - left max 2 item
   - right max 3 item
-  - color applies to the most recently added item on that side
+  - flag order defines render order
+  - --color applies to the most recently added item
   - each item can have its own color
   - slider is clamped to 0...1
   - duration is clamped to 500...2500 ms
@@ -262,20 +284,18 @@ examples:
   notcherahud \
     --duration 1800 \
     --left-icon bolt.fill \
-    --left-color yellow \
+    --color yellow \
     --left-text "build" \
-    --left-color "#F8FAFC" \
+    --color "#F8FAFC" \
     --right-slider 0.72 \
-    --right-color "#3B82F6" \
+    --color "#3B82F6" \
     --right-value 72 \
-    --right-color secondary
+    --color secondary
 
   notcherahud \
-    --left-icon checkmark.circle.fill \
-    --left-color green \
-    --left-text "deployed" \
-    --left-color "#E2E8F0" \
-    --right-text "prod" \
-    --right-color "#94A3B8"
+    --left-text "syncing" \
+    --color "#E2E8F0" \
+    --right-loading \
+    --color blue
 """
 }
