@@ -643,23 +643,6 @@ private final class CodexCallbackServer: @unchecked Sendable {
             backdrop-filter: blur(18px);
             text-align: center;
         }
-        .badge {
-            width: 56px;
-            height: 56px;
-            margin: 0 auto 18px;
-            border-radius: 18px;
-            display: grid;
-            place-items: center;
-            font-size: 24px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08));
-            border: 1px solid rgba(255,255,255,0.12);
-        }
-        h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.03em;
-        }
         p {
             margin: 10px 0 0;
             font-size: 15px;
@@ -675,8 +658,6 @@ private final class CodexCallbackServer: @unchecked Sendable {
         </head>
         <body>
         <div class=\"card\">
-            <div class=\"badge\">✓</div>
-            <h1>notchera</h1>
             <p>successful. your codex account is now connected.</p>
             <p class=\"secondary\">you can return to the app now.</p>
         </div>
