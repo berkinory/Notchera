@@ -28,6 +28,15 @@ enum MediaControllerType: String, CaseIterable, Identifiable, Defaults.Serializa
     }
 }
 
+enum ClipboardSelectionAction: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case copy = "Copy"
+    case paste = "Paste"
+
+    var id: String {
+        rawValue
+    }
+}
+
 extension Defaults.Keys {
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
@@ -88,6 +97,7 @@ extension Defaults.Keys {
     static let shelfTapToOpen = Key<Bool>("shelfTapToOpen", default: true)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: true)
     static let enableClipboardHistory = Key<Bool>("enableClipboardHistory", default: true)
+    static let clipboardSelectionAction = Key<ClipboardSelectionAction>("clipboardSelectionAction", default: .paste)
     static let clipboardHistoryRetention = Key<ClipboardHistoryRetention>("clipboardHistoryRetention", default: .oneWeek)
     static let clipboardHistoryMaxStoredItems = Key<Int>("clipboardHistoryMaxStoredItems", default: 50)
     static let preventSleepEnabled = Key<Bool>("preventSleepEnabled", default: false)

@@ -567,8 +567,10 @@ struct Shelf: View {
 
 struct ClipboardSettings: View {
     @Default(.enableClipboardHistory) var enableClipboardHistory
+    @Default(.clipboardSelectionAction) var clipboardSelectionAction
     @Default(.clipboardHistoryRetention) var clipboardHistoryRetention
     @Default(.clipboardHistoryMaxStoredItems) var clipboardHistoryMaxStoredItems
+    @State private var accessibilityAuthorized = false
 
     var body: some View {
         Form {
@@ -577,6 +579,29 @@ struct ClipboardSettings: View {
                     Text("Enable clipboard history")
                 }
             }
+
+            Section {
+                Picker("On item select", selection: $clipboardSelectionAction) {
+                    ForEach(ClipboardSelectionAction.allCases) { action in
+                        Text(action.rawValue).tag(action)
+                    }
+                }
+
+                if clipboardSelectionAction == .paste, !accessibilityAuthorized {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Paste on select sends Command-V to the focused app. Accessibility access is required.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Button("Request Accessibility") {
+                            XPCHelperClient.shared.requestAccessibilityAuthorization()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .disabled(!enableClipboardHistory)
 
             Section {
                 Picker("Keep clipboard history for", selection: $clipboardHistoryRetention) {
@@ -616,6 +641,20 @@ struct ClipboardSettings: View {
             .disabled(!enableClipboardHistory)
         }
         .navigationTitle("Clipboard")
+        .task {
+            accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
+        }
+        .onAppear {
+            XPCHelperClient.shared.startMonitoringAccessibilityAuthorization()
+        }
+        .onDisappear {
+            XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .accessibilityAuthorizationChanged)) { notification in
+            if let granted = notification.userInfo?["granted"] as? Bool {
+                accessibilityAuthorized = granted
+            }
+        }
     }
 }
 

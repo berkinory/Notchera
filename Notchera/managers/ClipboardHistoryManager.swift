@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Defaults
 import Foundation
 
@@ -120,6 +121,13 @@ final class ClipboardHistoryManager: ObservableObject {
         bumpHotPollingWindow()
     }
 
+    func activateSelection(for item: ClipboardHistoryItem) {
+        copy(item)
+
+        guard Defaults[.clipboardSelectionAction] == .paste else { return }
+        postPasteShortcut()
+    }
+
     func clear() {
         items = []
         scheduleSave()
@@ -181,6 +189,24 @@ final class ClipboardHistoryManager: ObservableObject {
         items.insert(item, at: 0)
         items = Array(items.prefix(maxStoredItems))
         scheduleSave()
+    }
+
+    private func postPasteShortcut() {
+        guard AXIsProcessTrusted(),
+              let eventSource = CGEventSource(stateID: .hidSystemState),
+              let keyDown = CGEvent(keyboardEventSource: eventSource, virtualKey: 9, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: eventSource, virtualKey: 9, keyDown: false)
+        else {
+            return
+        }
+
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
+
+        DispatchQueue.main.async {
+            keyDown.post(tap: .cghidEventTap)
+            keyUp.post(tap: .cghidEventTap)
+        }
     }
 
     private func readCurrentPasteboardItem() -> ClipboardHistoryItem? {

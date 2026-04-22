@@ -637,7 +637,7 @@ struct ClipboardTabView: View {
         let isCopied = copiedItemID == item.id
 
         return Button {
-            clipboardHistoryManager.copy(item)
+            clipboardHistoryManager.activateSelection(for: item)
             showCopiedState(for: item.id)
             endKeyboardNavigation()
         } label: {
@@ -792,7 +792,7 @@ struct ClipboardTabView: View {
             return
         }
 
-        clipboardHistoryManager.copy(item)
+        clipboardHistoryManager.activateSelection(for: item)
         showCopiedState(for: item.id)
         endKeyboardNavigation(shouldCloseNotch: true)
     }

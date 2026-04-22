@@ -1029,7 +1029,7 @@ struct ClipboardResultsView: View {
         let isCopied = copiedItemID == item.id
 
         return Button {
-            clipboardHistoryManager.copy(item)
+            clipboardHistoryManager.activateSelection(for: item)
             showCopiedState(for: item.id)
             endKeyboardNavigation()
         } label: {
@@ -1180,17 +1180,9 @@ struct ClipboardResultsView: View {
             return
         }
 
-        clipboardHistoryManager.copy(item)
+        clipboardHistoryManager.activateSelection(for: item)
         showCopiedState(for: item.id)
-
-        Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                endKeyboardNavigation(shouldCloseNotch: true)
-            }
-        }
+        endKeyboardNavigation(shouldCloseNotch: true)
     }
 
     private func endKeyboardNavigation(shouldCloseNotch: Bool = false) {
