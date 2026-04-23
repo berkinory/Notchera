@@ -6,7 +6,7 @@ SOURCE_PACKAGES := $(DERIVED_DATA)/SourcePackages
 APP_PATH := $(DERIVED_DATA)/Build/Products/Debug/Notchera.app
 XCODEBUILD_BASE := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DESTINATION)' -derivedDataPath $(DERIVED_DATA) -clonedSourcePackagesDirPath $(SOURCE_PACKAGES) -disableAutomaticPackageResolution
 
-.PHONY: open build run debug debug-run profile-build profile-run hud-cli format lint check
+.PHONY: open build run debug debug-run profile-build profile-run hud-cli format lint check release-dmg
 
 open:
 	open $(PROJECT)
@@ -40,3 +40,6 @@ lint:
 	swiftlint lint --config .swiftlint.yml
 
 check: format lint build
+
+release-dmg:
+	python3 ./create_dmg.py

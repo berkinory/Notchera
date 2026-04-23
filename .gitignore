@@ -12,7 +12,7 @@
 *.xcuserdata
 *.xcodeproj/xcshareddata/WorkspaceSettings.xcsettings
 .derived-data
-.derived-data-claude
+.derived-data-*
 # CocoaPods
 Pods/
 podfile.lock
@@ -49,6 +49,7 @@ _Users_*repositories*.lock
 *.DS_Store
 *.vscode/
 *.idea/
+.env
 
 # User-specific files
 *.xcuserdatad/
