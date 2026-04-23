@@ -49,11 +49,11 @@ struct MusicPlayerView: View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(alignment: .bottom, spacing: 10) {
                 AlbumArtView(albumArtNamespace: albumArtNamespace)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 64, height: 64)
 
                 MusicControlsView(albumArtNamespace: albumArtNamespace)
             }
-            .padding(.top, 2)
+            .padding(.top, 4)
             .padding(.horizontal, 5)
 
             MusicSliderRowView()
@@ -267,14 +267,15 @@ struct MusicControlsView: View {
     @Default(.enableLyrics) private var enableLyrics
     let albumArtNamespace: Namespace.ID
 
-    private let controlHeight: CGFloat = 52
+    private let controlHeight: CGFloat = 64
     private let lyricRowHeight: CGFloat = 11
+    private let lyricDisplayDelay: Double = 0.4
 
     var body: some View {
         GeometryReader { geo in
             TimelineView(.animation(minimumInterval: showsSyncedLyrics && musicManager.playbackRate > 0 ? 0.25 : nil)) { timeline in
                 songInfo(width: geo.size.width, currentDate: timeline.date)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .frame(height: controlHeight)
@@ -285,26 +286,37 @@ struct MusicControlsView: View {
         enableLyrics && !musicManager.isFetchingLyrics && !musicManager.syncedLyrics.isEmpty
     }
 
+    private var metadataTopInset: CGFloat {
+        18
+    }
+
+    private var lyricTopInset: CGFloat {
+        2
+    }
+
     private func songInfo(width: CGFloat, currentDate: Date? = nil) -> some View {
-        HStack(alignment: .musicTitleRow, spacing: 6) {
+        HStack(alignment: .top, spacing: 6) {
             metadataView(width: width, currentDate: currentDate)
 
             Spacer(minLength: 0)
 
-            MusicSpectrumIndicatorView(
-                albumArtNamespace: albumArtNamespace,
-                isPlaying: musicManager.isPlaying,
-                avgColor: musicManager.avgColor,
-                barWidth: 54,
-                spectrumSize: CGSize(width: 16, height: 12),
-                containerSize: CGSize(width: 24, height: 22),
-                cornerRadius: 8
-            )
-            .alignmentGuide(.musicTitleRow) { dimensions in
-                dimensions[VerticalAlignment.center]
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+
+                MusicSpectrumIndicatorView(
+                    albumArtNamespace: albumArtNamespace,
+                    isPlaying: musicManager.isPlaying,
+                    avgColor: musicManager.avgColor,
+                    barWidth: 65,
+                    spectrumSize: CGSize(width: 19, height: 14),
+                    containerSize: CGSize(width: 29, height: 26),
+                    cornerRadius: 8
+                )
+                .offset(y: -12)
             }
+            .padding(.top, metadataTopInset)
         }
-        .frame(height: controlHeight, alignment: .bottom)
+        .frame(height: controlHeight, alignment: .top)
     }
 
     private func metadataView(width: CGFloat, currentDate: Date?) -> some View {
@@ -314,6 +326,7 @@ struct MusicControlsView: View {
             if showsSyncedLyrics, let currentDate {
                 syncedLyricLineView(width: metadataWidth, currentDate: currentDate)
                     .transition(lyricLineTransition)
+                    .padding(.top, lyricTopInset)
             }
 
             VStack(alignment: .leading, spacing: 0) {
@@ -321,8 +334,9 @@ struct MusicControlsView: View {
                 titleView(width: metadataWidth)
                 artistView(width: metadataWidth)
             }
+            .padding(.top, metadataTopInset)
         }
-        .frame(width: metadataWidth, height: controlHeight, alignment: .bottomLeading)
+        .frame(width: metadataWidth, height: controlHeight, alignment: .topLeading)
         .clipped()
         .animation(.smooth(duration: 0.22), value: showsSyncedLyrics)
     }
@@ -335,7 +349,7 @@ struct MusicControlsView: View {
         ZStack(alignment: .leading) {
             MarqueeText(
                 $musicManager.songTitle,
-                font: .headline,
+                font: .system(size: 13.5, weight: .semibold),
                 nsFont: .headline,
                 textColor: .white,
                 frameWidth: width
@@ -356,7 +370,7 @@ struct MusicControlsView: View {
         ZStack(alignment: .leading) {
             MarqueeText(
                 $musicManager.artistName,
-                font: .headline,
+                font: .system(size: 12.5, weight: .medium),
                 nsFont: .headline,
                 textColor: matchAlbumArtColor
                     ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
@@ -415,18 +429,24 @@ struct MusicControlsView: View {
     }
 
     private func currentPlaybackElapsed(at currentDate: Date) -> Double {
-        guard musicManager.isPlaying else { return musicManager.elapsedTime }
-        let delta = currentDate.timeIntervalSince(musicManager.timestampDate)
-        let progressed = musicManager.elapsedTime + (delta * musicManager.playbackRate)
-        return min(max(progressed, 0), musicManager.songDuration)
+        let baseElapsed: Double
+
+        if musicManager.isPlaying {
+            let delta = currentDate.timeIntervalSince(musicManager.timestampDate)
+            baseElapsed = musicManager.elapsedTime + (delta * musicManager.playbackRate)
+        } else {
+            baseElapsed = musicManager.elapsedTime
+        }
+
+        return min(max(baseElapsed - lyricDisplayDelay, 0), musicManager.songDuration)
     }
 
     private func lyricLineFont(for text: String) -> Font {
         if text.unicodeScalars.contains(where: { $0.value >= 0x0600 && $0.value <= 0x06FF }) {
-            return .custom("Vazirmatn-Regular", size: 10.25)
+            return .custom("Vazirmatn-Regular", size: 11.50)
         }
 
-        return .system(size: 10.25, weight: .medium)
+        return .system(size: 11.50, weight: .medium)
     }
 }
 

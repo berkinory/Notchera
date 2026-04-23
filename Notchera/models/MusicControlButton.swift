@@ -17,10 +17,10 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
     static let defaultLayout: [MusicControlButton] = [
         .none,
         .none,
-        .none,
         .previous,
         .playPause,
         .next,
+        .none,
         .none,
     ]
 

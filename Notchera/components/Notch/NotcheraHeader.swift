@@ -29,7 +29,7 @@ struct NotcheraHeader: View {
         HStack(spacing: 0) {
             if showHeaderControls, shouldShowTabs {
                 TabSelectionView(items: leftTabs)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .zIndex(2)
 
                 Rectangle()
@@ -40,7 +40,7 @@ struct NotcheraHeader: View {
                     }
 
                 TabSelectionView(items: rightTabs)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                     .zIndex(2)
             } else if vm.notchState == .open {
                 EmptyView()
