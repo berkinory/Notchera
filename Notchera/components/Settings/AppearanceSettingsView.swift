@@ -11,7 +11,7 @@ struct AppearanceSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Always show tabs", isOn: $coordinator.alwaysShowTabs)
+                Toggle("Hide tab buttons", isOn: $coordinator.hideTabButtons)
             } header: {
                 Text("General")
             }

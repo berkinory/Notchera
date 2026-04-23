@@ -10,7 +10,7 @@ struct NotcheraHeader: View {
     }
 
     private var shouldShowTabs: Bool {
-        true
+        !coordinator.hideTabButtons
     }
 
     private var leftTabs: [TabModel] {

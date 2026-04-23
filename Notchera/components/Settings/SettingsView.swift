@@ -360,7 +360,7 @@ private struct SettingsGeneralView: View {
                 )) {
                     Text("Show menu bar icon")
                 }
-                Toggle("Always show tabs", isOn: $coordinator.alwaysShowTabs)
+                Toggle("Hide tab buttons", isOn: $coordinator.hideTabButtons)
             }
 
             Section {

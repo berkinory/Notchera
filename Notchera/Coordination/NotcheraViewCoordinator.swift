@@ -38,24 +38,9 @@ class NotcheraViewCoordinator: ObservableObject {
     @AppStorage("showWhatsNew") var showWhatsNew: Bool = true
     @AppStorage("musicLiveActivityEnabled") var musicLiveActivityEnabled: Bool = true
 
-    @AppStorage("alwaysShowTabs") var alwaysShowTabs: Bool = true {
-        didSet {
-            if !alwaysShowTabs {
-                openLastTabByDefault = false
-                if currentView != .shelf {
-                    currentView = .home
-                }
-            }
-        }
-    }
+    @AppStorage("hideTabButtons") var hideTabButtons: Bool = false
 
-    @AppStorage("openLastTabByDefault") var openLastTabByDefault: Bool = false {
-        didSet {
-            if openLastTabByDefault {
-                alwaysShowTabs = true
-            }
-        }
-    }
+    @AppStorage("openLastTabByDefault") var openLastTabByDefault: Bool = false
 
     @Default(.hudReplacement) var hudReplacement: Bool
 
