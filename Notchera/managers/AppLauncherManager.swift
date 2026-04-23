@@ -140,14 +140,14 @@ final class AppLauncherManager: ObservableObject {
 
         if name == query {
             baseScore = 10000 - item.displayName.count
-        } else if item.acronym == query {
-            baseScore = 9000 - item.displayName.count
         } else if item.normalizedWords.contains(where: { $0 == query }) {
             baseScore = 8200 - item.displayName.count
-        } else if item.normalizedWords.contains(where: { $0.hasPrefix(query) }) {
-            baseScore = 7600 - item.displayName.count
         } else if name.hasPrefix(query) {
-            baseScore = 7000 - item.displayName.count
+            baseScore = 7800 - item.displayName.count
+        } else if item.acronym == query {
+            baseScore = 7400 - item.displayName.count
+        } else if item.normalizedWords.contains(where: { $0.hasPrefix(query) }) {
+            baseScore = 7200 - item.displayName.count
         } else if let range = name.range(of: query) {
             let distanceFromStart = name.distance(from: name.startIndex, to: range.lowerBound)
             let boundaryBonus = distanceFromStart == 0 || name[name.index(before: range.lowerBound)] == " " ? 500 : 0

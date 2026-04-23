@@ -162,7 +162,7 @@ struct ClipboardTabView: View {
             if keyboardInputActive {
                 temporarilySuppressMouseHover()
             }
-            syncHoveredItem()
+            syncHoveredItem(force: true)
         }
         .onChange(of: itemIDs) { _, _ in
             syncHoveredItem()
@@ -344,9 +344,14 @@ struct ClipboardTabView: View {
         }
     }
 
-    private func syncHoveredItem() {
+    private func syncHoveredItem(force: Bool = false) {
         guard !filteredItems.isEmpty else {
             hoveredItemID = nil
+            return
+        }
+
+        if force {
+            hoveredItemID = filteredItems.first?.id
             return
         }
 

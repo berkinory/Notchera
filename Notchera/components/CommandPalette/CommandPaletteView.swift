@@ -84,7 +84,7 @@ struct CommandPaletteView: View {
             syncSelection(force: true)
         }
         .onChange(of: coordinator.commandPaletteQuery) { _, _ in
-            syncSelection()
+            syncSelection(force: true)
         }
         .onChange(of: rootRowIDs) { _, _ in
             syncSelection()
