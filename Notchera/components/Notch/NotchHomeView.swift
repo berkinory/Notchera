@@ -828,7 +828,7 @@ struct LockScreenMediaView: View {
                 HStack(alignment: .center, spacing: 12) {
                     FlippingAlbumArtCard(
                         albumArtNamespace: albumArtNamespace,
-                        cornerRadius: 16,
+                        cornerRadius: 14,
                         hoverTilt: .zero,
                         isHovering: false
                     )

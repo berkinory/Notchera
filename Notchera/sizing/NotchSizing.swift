@@ -15,7 +15,7 @@ let windowSize: CGSize = .init(
 )
 
 enum MusicPlayerImageSizes {
-    static let cornerRadiusInset: (opened: CGFloat, closed: CGFloat) = (opened: 12, closed: 4)
+    static let cornerRadiusInset: (opened: CGFloat, closed: CGFloat) = (opened: 10, closed: 3)
     static let size = (opened: CGSize(width: 90, height: 90), closed: CGSize(width: 20, height: 20))
 }
 
