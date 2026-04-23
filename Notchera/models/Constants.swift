@@ -79,6 +79,7 @@ extension Defaults.Keys {
     static let showVolumeIndicator = Key<Bool>("showVolumeIndicator", default: true)
     static let showBrightnessIndicator = Key<Bool>("showBrightnessIndicator", default: true)
     static let showBacklightIndicator = Key<Bool>("showBacklightIndicator", default: true)
+    static let showSystemValueInHUD = Key<Bool>("showSystemValueInHUD", default: true)
     static let showCapsLockIndicator = Key<Bool>("showCapsLockIndicator", default: true)
     static let showInputSourceIndicator = Key<Bool>("showInputSourceIndicator", default: true)
     static let showFocusIndicator = Key<Bool>("showFocusIndicator", default: true)

@@ -67,6 +67,7 @@ struct WingHUDView: View {
     @Binding var duration: TimeInterval
     @Binding var custom: ExternalHUDRequest?
     @Default(.animateBluetoothAudioIndicator) var animateBluetoothAudioIndicator
+    @Default(.showSystemValueInHUD) var showSystemValueInHUD
     let showsPercentage: Bool
     let isOpen: Bool
     let batteryStatusText: String?
@@ -225,25 +226,27 @@ struct WingHUDView: View {
                 .frame(width: statusWidth, alignment: .trailing)
                 .padding(.trailing, 6)
         } else {
-            HStack(spacing: 3) {
+            HStack(spacing: showSystemValueInHUD ? 3 : 0) {
                 DraggableProgressBar(value: $value, onChange: setSystemValue)
 
-                ZStack {
-                    Text(displayValue)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.gray)
-                        .lineLimit(1)
-                        .monospacedDigit()
-                        .id(displayValue)
-                        .transition(.asymmetric(
-                            insertion: .offset(y: 2).combined(with: .opacity),
-                            removal: .offset(y: -2).combined(with: .opacity)
-                        ))
+                if showSystemValueInHUD {
+                    ZStack {
+                        Text(displayValue)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.gray)
+                            .lineLimit(1)
+                            .monospacedDigit()
+                            .id(displayValue)
+                            .transition(.asymmetric(
+                                insertion: .offset(y: 2).combined(with: .opacity),
+                                removal: .offset(y: -2).combined(with: .opacity)
+                            ))
+                    }
+                    .frame(width: 24, height: 14, alignment: .trailing)
+                    .clipped()
+                    .animation(.easeOut(duration: 0.12), value: displayValue)
                 }
-                .frame(width: 24, height: 14, alignment: .trailing)
-                .clipped()
-                .animation(.easeOut(duration: 0.12), value: displayValue)
             }
             .padding(.leading, 6)
             .padding(.trailing, 6)

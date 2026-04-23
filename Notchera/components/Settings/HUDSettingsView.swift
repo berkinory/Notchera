@@ -12,6 +12,7 @@ struct HUDSettingsView: View {
     @Default(.showVolumeIndicator) var showVolumeIndicator
     @Default(.showBrightnessIndicator) var showBrightnessIndicator
     @Default(.showBacklightIndicator) var showBacklightIndicator
+    @Default(.showSystemValueInHUD) var showSystemValueInHUD
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
     @Default(.showInputSourceIndicator) var showInputSourceIndicator
     @Default(.showFocusIndicator) var showFocusIndicator
@@ -85,6 +86,10 @@ struct HUDSettingsView: View {
 
                 Defaults.Toggle(key: .showBacklightIndicator) {
                     Text("Show keyboard backlight indicator")
+                }
+
+                Defaults.Toggle(key: .showSystemValueInHUD) {
+                    Text("Show value in HUD")
                 }
 
                 Defaults.Toggle(key: .showCapsLockIndicator) {
