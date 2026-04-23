@@ -8,7 +8,7 @@ struct TabButton: View {
 
     @State private var isHovering = false
 
-    private let buttonSize: CGFloat = 24
+    private let buttonSize: CGFloat = 20
 
     private var cornerRadius: CGFloat {
         buttonSize * 0.28
@@ -29,11 +29,11 @@ struct TabButton: View {
                 .resizable()
                 .renderingMode(.original)
                 .scaledToFit()
-                .frame(width: 11, height: 11)
+                .frame(width: 10, height: 10)
                 .opacity(selected ? 1 : 0.72)
         } else {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(iconColor)
         }
     }

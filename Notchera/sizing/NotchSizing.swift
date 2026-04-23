@@ -6,7 +6,7 @@ let downloadSneakSize: CGSize = .init(width: 65, height: 1)
 let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
-let openNotchSize: CGSize = .init(width: 415, height: 180)
+let openNotchSize: CGSize = .init(width: 370, height: 180)
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 34, bottom: 34), closed: (top: 8, bottom: 18))
 let expandedShellHorizontalPadding: CGFloat = 31
 let windowSize: CGSize = .init(
