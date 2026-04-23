@@ -41,5 +41,5 @@ lint:
 
 check: format lint build
 
-release-dmg:
+release:
 	python3 ./create_dmg.py
