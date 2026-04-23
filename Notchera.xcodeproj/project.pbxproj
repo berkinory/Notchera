@@ -147,9 +147,7 @@
 		D1AF4DA2B585287BE627E4ED /* TrackpadTabSwitchRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEAD41B4A5301B7AC4078040 /* TrackpadTabSwitchRegion.swift */; };
 		D72542B990387C981D189A9D /* AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3341B09B119051A37DE142 /* AboutSettingsView.swift */; };
 		D86D4F9185CADDEC44256961 /* HUDModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B074609935AD6334B69172A /* HUDModels.swift */; };
-		DA0E4DFEA66660B3A9EF56EB /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B006413296AC1F224E671884 /* GeneralSettingsView.swift */; };
 		E3A149F0894ED8B80E8F4F12 /* CGRect+Hashable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85A0473F947EC35195C560E5 /* CGRect+Hashable.swift */; };
-		E49E4C3CA3BF8E649D3D7D01 /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BA458DA458FF113DCDB7F2 /* AdvancedSettingsView.swift */; };
 		E7AD48BE8CC5E9C9377A6CAB /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FD41D091C419AC0585B162 /* ShortcutsSettingsView.swift */; };
 		E8B74CA989C901F22F55530B /* SelectionRowPressStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A44C3CBA1F50916F206BE1 /* SelectionRowPressStyle.swift */; };
 		F1D54F868AEEE736FD10E3F8 /* NotchEscapeKeyHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8B4B588099F2576ABB4FFC /* NotchEscapeKeyHandler.swift */; };
@@ -306,7 +304,6 @@
 		9A987A032C73CA66005CA465 /* ShelfView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
 		9AB0C6BB2C73C9CB00F7CD30 /* NotchHomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NotchHomeView.swift; sourceTree = "<group>"; };
 		A9E84CDEBD730F9A1A62D6EF /* TabModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TabModel.swift; path = Notchera/components/Tabs/TabModel.swift; sourceTree = SOURCE_ROOT; };
-		B006413296AC1F224E671884 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GeneralSettingsView.swift; path = Notchera/components/Settings/GeneralSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		B10348D82C74E56000475897 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
 		B141C2402CA5F53E00AC8CC8 /* SparkleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleView.swift; sourceTree = "<group>"; };
 		B17266DE2C64DFA00031BA0D /* BundleInfos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleInfos.swift; sourceTree = "<group>"; };
@@ -328,7 +325,6 @@
 		B47A48FDA5FC807772F2A665 /* CalendarTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CalendarTabView.swift; path = Notchera/components/Tabs/CalendarTabView.swift; sourceTree = SOURCE_ROOT; };
 		BEAD41B4A5301B7AC4078040 /* TrackpadTabSwitchRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TrackpadTabSwitchRegion.swift; path = Notchera/App/TrackpadTabSwitchRegion.swift; sourceTree = SOURCE_ROOT; };
 		C0A1A2B32F10000000A1B2C3 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
-		C7BA458DA458FF113DCDB7F2 /* AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AdvancedSettingsView.swift; path = Notchera/components/Settings/AdvancedSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		CB944DDB82C2570DCFE2496F /* FocusModeSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FocusModeSupport.swift; path = Notchera/Coordination/FocusModeSupport.swift; sourceTree = SOURCE_ROOT; };
 		D92046B39BCA8E9D1D538509 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppearanceSettingsView.swift; path = Notchera/components/Settings/AppearanceSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		D9BF49EBB48340E13073B369 /* ClipboardTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClipboardTabView.swift; path = Notchera/components/Tabs/ClipboardTabView.swift; sourceTree = SOURCE_ROOT; };
@@ -791,14 +787,12 @@
 				11C5E3112DFE85970065821E /* SettingsWindowController.swift */,
 				B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */,
 				B1B112902C6A572100093D8F /* EditPanelView.swift */,
-				B006413296AC1F224E671884 /* GeneralSettingsView.swift */,
 				25BF43BC92FBCACF288807CD /* HUDSettingsView.swift */,
 				0EAA42ECA64B1714D032FF54 /* MediaSettingsView.swift */,
 				5D3341B09B119051A37DE142 /* AboutSettingsView.swift */,
 				81C149DBB43CD05B7990F342 /* ShelfSettingsView.swift */,
 				107D415EACF208DE9E9DA2C8 /* ClipboardSettingsView.swift */,
 				D92046B39BCA8E9D1D538509 /* AppearanceSettingsView.swift */,
-				C7BA458DA458FF113DCDB7F2 /* AdvancedSettingsView.swift */,
 				09FD41D091C419AC0585B162 /* ShortcutsSettingsView.swift */,
 				90034ACB918F6ACEFA18A818 /* SettingsBadges.swift */,
 				24754605A9A07CB6E9A795BE /* AIUsageSettingsView.swift */,
@@ -1106,14 +1100,12 @@
 				D86D4F9185CADDEC44256961 /* HUDModels.swift in Sources */,
 				5A114A91B14E347B49C765B4 /* FocusModeSupport.swift in Sources */,
 				B2E74D0B90146A376CA9F502 /* AudioEnvironmentSupport.swift in Sources */,
-				DA0E4DFEA66660B3A9EF56EB /* GeneralSettingsView.swift in Sources */,
 				8D104D19B27999B614604424 /* HUDSettingsView.swift in Sources */,
 				ACD048CC99C9CC77E2198C59 /* MediaSettingsView.swift in Sources */,
 				D72542B990387C981D189A9D /* AboutSettingsView.swift in Sources */,
 				AC1C4AE1B06AA9AB0D21D167 /* ShelfSettingsView.swift in Sources */,
 				34F9456483082B3AA0929811 /* ClipboardSettingsView.swift in Sources */,
 				261E434EB7A7F6C9F78885F7 /* AppearanceSettingsView.swift in Sources */,
-				E49E4C3CA3BF8E649D3D7D01 /* AdvancedSettingsView.swift in Sources */,
 				E7AD48BE8CC5E9C9377A6CAB /* ShortcutsSettingsView.swift in Sources */,
 				B1A34E5F91D2A57F832F3A02 /* SettingsBadges.swift in Sources */,
 				B05E47A6A1C4B2AAC6385AA3 /* AIUsageSettingsView.swift in Sources */,

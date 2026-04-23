@@ -346,6 +346,8 @@ private struct SettingsGeneralView: View {
     @Default(.showOnAllDisplays) private var showOnAllDisplays
     @Default(.automaticallySwitchDisplay) private var automaticallySwitchDisplay
     @Default(.openNotchOnHover) private var openNotchOnHover
+    @Default(.showOnLockScreen) private var showOnLockScreen
+    @Default(.lockScreenPlayerStyle) private var lockScreenPlayerStyle
     @Default(.extendHoverArea) private var extendHoverArea
     @Default(.hideNotchInFullscreen) private var hideNotchInFullscreen
     @Default(.hideFromScreenRecording) private var hideFromScreenRecording
@@ -444,12 +446,23 @@ private struct SettingsGeneralView: View {
                 Defaults.Toggle(key: .hideNotchInFullscreen) {
                     Text("Hide in fullscreen")
                 }
+                Defaults.Toggle(key: .showOnLockScreen) {
+                    Text("Show notch on lock screen")
+                }
+                if showOnLockScreen {
+                    Picker("Lock screen player style", selection: $lockScreenPlayerStyle) {
+                        ForEach(LockScreenPlayerStyle.allCases) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
+                }
                 Defaults.Toggle(key: .hideFromScreenRecording) {
                     Text("Hide from screen recording")
                 }
                 Defaults.Toggle(key: .trackpadTabSwitch) {
                     Text("Enable gestures")
                 }
+                Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
             } header: {
                 SettingsSectionHeader(title: "Behavior")
             }
