@@ -47,7 +47,7 @@ enum MusicPlayerImageSizes {
         if let topLeftNotchpadding: CGFloat = screen.auxiliaryTopLeftArea?.width,
            let topRightNotchpadding: CGFloat = screen.auxiliaryTopRightArea?.width
         {
-            notchWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding + 4
+            notchWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
         }
 
         if screen.safeAreaInsets.top > 0 {

@@ -7,14 +7,13 @@ struct MusicCompactActivityView: View {
     let hoverBoostActive: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 6) {
             compactAlbumArt
 
             Rectangle()
                 .fill(.black)
                 .frame(
-                    width: vm.closedNotchSize.width
-                        + -cornerRadiusInsets.closed.top
+                    width: max(0, vm.closedNotchSize.width - 22)
                 )
 
             MusicSpectrumIndicatorView(
