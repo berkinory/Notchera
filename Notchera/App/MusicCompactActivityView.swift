@@ -4,6 +4,7 @@ struct MusicCompactActivityView: View {
     @EnvironmentObject var vm: NotcheraViewModel
     @ObservedObject var musicManager = MusicManager.shared
     let albumArtNamespace: Namespace.ID
+    let hoverBoostActive: Bool
 
     var body: some View {
         HStack {
@@ -57,7 +58,8 @@ struct MusicCompactActivityView: View {
             .opacity(musicManager.isPlaying ? 0 : 0.45)
             .blur(radius: 5)
         }
-        .scaleEffect(musicManager.isPlaying ? 1 : 0.92)
+        .scaleEffect(musicManager.isPlaying ? (hoverBoostActive ? 1.07 : 1) : (hoverBoostActive ? 0.97 : 0.92))
+        .animation(.spring(response: 0.22, dampingFraction: 0.72, blendDuration: 0), value: hoverBoostActive)
         .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.compactIsFlipping)
         .frame(
             width: max(0, vm.effectiveClosedNotchHeight - 10),

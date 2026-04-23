@@ -16,13 +16,17 @@ struct ContentView: View {
     @State private var hoverOpenTask: Task<Void, Never>?
     @State private var closeTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
+    @State private var hoverPreviewActive: Bool = false
+    @State private var preOpenTask: Task<Void, Never>?
     @State private var anyDropDebounceTask: Task<Void, Never>?
     @State private var suppressAutoCloseUntil: Date = .distantPast
     @State private var postOpenHoverValidationTask: Task<Void, Never>?
 
     @Namespace var albumArtNamespace
 
-    private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+    private let hoverAnimation = Animation.spring(response: 0.22, dampingFraction: 0.72, blendDuration: 0)
+    private let notchOpenAnimation = Animation.spring(response: 0.35, dampingFraction: 0.76, blendDuration: 0)
+    private let notchCloseAnimation = Animation.spring(response: 0.34, dampingFraction: 0.88, blendDuration: 0)
     private let liveActivityAnimation = Animation.interactiveSpring(response: 0.42, dampingFraction: 0.82, blendDuration: 0)
 
     private var isLockScreenInteractionDisabled: Bool {
@@ -79,15 +83,7 @@ struct ContentView: View {
     }
 
     private var closedNotchHoverEffectActive: Bool {
-        guard vm.notchState == .closed,
-              isHovering,
-              !coordinator.hud.show else { return false }
-
-        if !Defaults[.openNotchOnHover] {
-            return true
-        }
-
-        return Defaults[.minimumHoverDuration] > 0.01
+        vm.notchState == .closed && hoverPreviewActive && !coordinator.hud.show
     }
 
     private var availableTabs: [TabModel] {
@@ -131,19 +127,19 @@ struct ContentView: View {
                                 .allowsHitTesting(vm.notchState == .closed && !isLockScreenInteractionDisabled)
                                 .onTapGesture {
                                     guard !isLockScreenInteractionDisabled else { return }
-                                    doOpen()
+                                    beginTapOpen()
                                 }
                         }
                     }
-                    .scaleEffect(closedNotchHoverEffectActive ? 1.020 : 1, anchor: .top)
+                    .scaleEffect(closedNotchHoverEffectActive ? 1.032 : 1, anchor: .top)
                     .shadow(
                         color: closedNotchHoverEffectActive
-                            ? .black.opacity(0.72)
+                            ? .black.opacity(0.78)
                             : (usesExpandedShell || isHovering)
                             ? .black.opacity(0.4)
                             : .clear,
-                        radius: closedNotchHoverEffectActive ? 16 : 1,
-                        y: closedNotchHoverEffectActive ? 4 : 0
+                        radius: closedNotchHoverEffectActive ? 22 : 1,
+                        y: closedNotchHoverEffectActive ? 6 : 0
                     )
                     .padding(
                         .bottom,
@@ -153,11 +149,13 @@ struct ContentView: View {
                 mainLayout
                     .frame(height: shellHeight)
                     .conditionalModifier(true) { view in
-                        let shellAnimation = Animation.interactiveSpring(response: 0.34, dampingFraction: 0.86, blendDuration: 0)
+                        let shellAnimation = vm.notchState == .open
+                            ? notchOpenAnimation
+                            : notchCloseAnimation
 
                         return view
                             .animation(shellAnimation, value: vm.notchState)
-                            .animation(.easeOut(duration: 0.18), value: closedNotchHoverEffectActive)
+                            .animation(hoverAnimation, value: closedNotchHoverEffectActive)
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in
@@ -166,7 +164,7 @@ struct ContentView: View {
                     }
                     .onTapGesture {
                         guard !isLockScreenInteractionDisabled, vm.notchState == .closed else { return }
-                        doOpen()
+                        beginTapOpen()
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
                         if vm.notchState == .open, !isHovering, !vm.isBatteryPopoverActive {
@@ -232,7 +230,7 @@ struct ContentView: View {
                 coordinator.showShelf()
 
                 if vm.notchState == .closed {
-                    doOpen(forceView: .shelf)
+                    beginTapOpen(forceView: .shelf)
                 }
                 return
             }
@@ -312,7 +310,7 @@ struct ContentView: View {
                                   coordinator.musicLiveActivityEnabled,
                                   !vm.hideOnClosed
                         {
-                            CompactActivityHost()
+                            CompactActivityHost(hoverBoostActive: closedNotchHoverEffectActive)
                                 .frame(alignment: .center)
                         } else {
                             Rectangle()
@@ -377,7 +375,7 @@ struct ContentView: View {
                     .asymmetric(
                         insertion: .scale(scale: 0.94, anchor: .top)
                             .combined(with: .opacity)
-                            .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.9, blendDuration: 0).delay(0.03)),
+                            .animation(.spring(response: 0.22, dampingFraction: 0.82, blendDuration: 0).delay(0.02)),
                         removal: .scale(scale: 0.98, anchor: .top)
                             .combined(with: .opacity)
                             .animation(.easeOut(duration: 0.08))
@@ -391,9 +389,12 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    func CompactActivityHost() -> some View {
+    func CompactActivityHost(hoverBoostActive: Bool) -> some View {
         if musicManager.isPlaying || !musicManager.isPlayerIdle {
-            MusicCompactActivityView(albumArtNamespace: albumArtNamespace)
+            MusicCompactActivityView(
+                albumArtNamespace: albumArtNamespace,
+                hoverBoostActive: hoverBoostActive
+            )
         }
     }
 
@@ -411,13 +412,35 @@ struct ContentView: View {
         }
     }
 
+    private func beginTapOpen(forceView: NotchViews? = nil) {
+        guard vm.notchState == .closed else { return }
+
+        hoverOpenTask?.cancel()
+        closeTask?.cancel()
+        preOpenTask?.cancel()
+
+        withAnimation(hoverAnimation) {
+            hoverPreviewActive = true
+        }
+
+        preOpenTask = Task {
+            try? await Task.sleep(for: .milliseconds(72))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                doOpen(forceView: forceView)
+            }
+        }
+    }
+
     private func doOpen(forceView: NotchViews? = nil) {
         suppressAutoCloseUntil = Date().addingTimeInterval(0.2)
         hoverOpenTask?.cancel()
         closeTask?.cancel()
+        preOpenTask?.cancel()
         postOpenHoverValidationTask?.cancel()
 
-        withAnimation(animationSpring) {
+        withAnimation(notchOpenAnimation) {
             vm.open(forceView: forceView)
         }
 
@@ -434,8 +457,9 @@ struct ContentView: View {
                     return
                 }
 
-                withAnimation(animationSpring) {
+                withAnimation(hoverAnimation) {
                     isHovering = false
+                    hoverPreviewActive = false
                 }
 
                 if !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose {
@@ -508,13 +532,15 @@ struct ContentView: View {
     private func handleKeyboardEscape() {
         hoverOpenTask?.cancel()
         closeTask?.cancel()
+        preOpenTask?.cancel()
         postOpenHoverValidationTask?.cancel()
         anyDropDebounceTask?.cancel()
 
         NotificationCenter.default.post(name: .endClipboardKeyboardNavigation, object: nil)
 
-        withAnimation(animationSpring) {
+        withAnimation(notchCloseAnimation) {
             isHovering = false
+            hoverPreviewActive = false
             vm.close()
         }
     }
@@ -524,9 +550,15 @@ struct ContentView: View {
 
         if hovering {
             closeTask?.cancel()
+            preOpenTask?.cancel()
 
-            withAnimation(animationSpring) {
+            let shouldShowHoverPreview = vm.notchState == .closed
+                && !coordinator.hud.show
+                && (!Defaults[.openNotchOnHover] || Defaults[.minimumHoverDuration] > 0.01)
+
+            withAnimation(hoverAnimation) {
                 isHovering = true
+                hoverPreviewActive = shouldShowHoverPreview
             }
 
             guard vm.notchState == .closed,
@@ -548,9 +580,11 @@ struct ContentView: View {
             }
         } else {
             hoverOpenTask?.cancel()
+            preOpenTask?.cancel()
 
-            withAnimation(animationSpring) {
+            withAnimation(hoverAnimation) {
                 isHovering = false
+                hoverPreviewActive = false
             }
 
             scheduleClose(after: .milliseconds(40))
