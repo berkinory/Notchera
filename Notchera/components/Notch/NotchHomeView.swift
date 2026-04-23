@@ -632,7 +632,7 @@ struct MusicToolbarRowView: View {
         case .shuffle:
             HoverButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? activeControlColor : inactiveControlColor,
+                iconColor: musicManager.isShuffled ? .white : Color.white.opacity(0.3),
                 backgroundColor: .clear,
                 scale: .medium,
                 tapEffect: .rotateCounterClockwise
@@ -642,7 +642,7 @@ struct MusicToolbarRowView: View {
         case .lyrics:
             HoverButton(
                 icon: "quote.bubble",
-                iconColor: enableLyrics ? activeControlColor : inactiveControlColor,
+                iconColor: enableLyrics ? .white : Color.white.opacity(0.3),
                 backgroundColor: .clear,
                 scale: .medium,
                 tapEffect: .bounce
