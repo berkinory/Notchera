@@ -55,10 +55,10 @@ struct MusicCompactActivityView: View {
                 style: .continuous
             )
             .fill(.black)
-            .opacity(musicManager.isPlaying ? 0 : 0.45)
+            .opacity(0)
             .blur(radius: 5)
         }
-        .scaleEffect(musicManager.isPlaying ? (hoverBoostActive ? 1.07 : 1) : (hoverBoostActive ? 0.97 : 0.92))
+        .scaleEffect(hoverBoostActive ? 1.07 : 1)
         .animation(.spring(response: 0.22, dampingFraction: 0.72, blendDuration: 0), value: hoverBoostActive)
         .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.compactIsFlipping)
         .frame(
