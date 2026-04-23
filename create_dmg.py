@@ -19,7 +19,7 @@ APP_PATH = DERIVED_DATA / "Build" / "Products" / "Release" / "Notchera.app"
 DMG_OUTPUT = ROOT / "Notchera.dmg"
 VOLUME_NAME = "Notchera"
 NOTARY_PROFILE = "notary-profile"
-BACKGROUND_TIFF = ROOT / "Configuration" / "dmg" / ".background" / "background.tiff"
+BACKGROUND_PNG = ROOT / "Configuration" / "dmg" / ".background" / "background.png"
 REQUIREMENTS = ROOT / "Configuration" / "dmg" / "requirements.txt"
 APP_ENTITLEMENTS = ROOT / "Notchera" / "Notchera.entitlements"
 HELPER_ENTITLEMENTS = ROOT / "NotcheraXPCHelper" / "NotcheraXPCHelper.entitlements"
@@ -261,29 +261,34 @@ def find_app_icon(app_path: Path) -> Path | None:
 def create_dmg(app_path: Path) -> None:
     dmgbuild = find_dmgbuild()
     badge_icon = find_app_icon(app_path)
-    settings = f'''
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        settings = f'''
 import os
 volume_name = {VOLUME_NAME!r}
 format = 'UDZO'
 compression_level = 9
 files = [{str(app_path)!r}]
 symlinks = {{'Applications': '/Applications'}}
-background = {str(BACKGROUND_TIFF)!r}
+background = {str(BACKGROUND_PNG)!r}
+hide = ['.background.png']
 window_rect = ((0, 0), (660, 400))
+default_view = 'icon-view'
+include_icon_view_settings = True
 icon_size = 128
 icon_locations = {{
     {app_path.name!r}: (150, 180),
     'Applications': (510, 180),
 }}
-show_statusbar = False
-show_tabview = False
+show_status_bar = False
+show_tab_view = False
 show_toolbar = False
 '''
-    if badge_icon:
-        settings += f"badge_icon = {str(badge_icon)!r}\n"
+        if badge_icon:
+            settings += f"badge_icon = {str(badge_icon)!r}\n"
 
-    with tempfile.TemporaryDirectory() as tmp:
-        settings_path = Path(tmp) / "dmgbuild_settings.py"
+        settings_path = tmp_dir / "dmgbuild_settings.py"
         settings_path.write_text(settings)
         if DMG_OUTPUT.exists():
             DMG_OUTPUT.unlink()
@@ -304,7 +309,7 @@ def main() -> None:
     app_password = require_env("APPLE_APP_PASSWORD")
 
     ensure_file(PROJECT)
-    ensure_file(BACKGROUND_TIFF)
+    ensure_file(BACKGROUND_PNG)
     ensure_file(REQUIREMENTS)
     ensure_file(APP_ENTITLEMENTS)
     ensure_file(HELPER_ENTITLEMENTS)
