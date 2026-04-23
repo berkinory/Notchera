@@ -11,7 +11,7 @@ struct CommandPaletteRootRow: Identifiable, Equatable {
     let action: CommandPaletteAction?
     let usageKey: String?
 
-    init(id: String, title: String, subtitle: String?, imageAssetName: String? = nil, icon: String?, appItem: AppLauncherItem? = nil, action: CommandPaletteAction? = nil, usageKey: String? = nil) {
+    init(id: String, title: String, subtitle: String? = nil, imageAssetName: String? = nil, icon: String?, appItem: AppLauncherItem? = nil, action: CommandPaletteAction? = nil, usageKey: String? = nil) {
         self.id = id
         self.title = title
         self.subtitle = subtitle

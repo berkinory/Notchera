@@ -1,5 +1,6 @@
 import AppKit
 import Defaults
+import Darwin
 import IOKit.pwr_mgt
 import SwiftUI
 
@@ -8,6 +9,36 @@ enum CommandPaletteAction {
     case googleSearch(String)
     case togglePreventSleep
     case enablePreventSleep(duration: TimeInterval)
+    case lockScreen
+    case sleepMac
+}
+
+@MainActor
+final class CommandPaletteSystemActions {
+    static func lockScreen() async {
+        typealias LockScreenFunction = @convention(c) () -> Void
+
+        guard let handle = dlopen("/System/Library/PrivateFrameworks/login.framework/Versions/Current/login", RTLD_NOW),
+              let symbol = dlsym(handle, "SACLockScreenImmediate")
+        else {
+            return
+        }
+
+        let lock = unsafeBitCast(symbol, to: LockScreenFunction.self)
+        lock()
+        dlclose(handle)
+    }
+
+    static func sleepMac() async {
+        runProcess("/usr/bin/pmset", arguments: ["sleepnow"])
+    }
+
+    private static func runProcess(_ launchPath: String, arguments: [String]) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: launchPath)
+        process.arguments = arguments
+        try? process.run()
+    }
 }
 
 @MainActor

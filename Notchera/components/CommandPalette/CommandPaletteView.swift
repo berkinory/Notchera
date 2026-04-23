@@ -276,7 +276,7 @@ struct CommandPaletteView: View {
             )
         }
 
-        rows.append(contentsOf: preventSleepRows(for: query))
+        rows.append(contentsOf: systemCommandRows(for: query))
 
         if query.isEmpty {
             return rows.map(\.row)
@@ -293,25 +293,63 @@ struct CommandPaletteView: View {
             .map(\.row)
     }
 
-    private func preventSleepRows(for query: String) -> [ScoredCommandPaletteRow] {
-        let aliases = ["prevent sleep", "awake", "caffeine", "caffeinate", "sleep", "insomnia", "enable", "disable", "amphetamine"]
-        let isRelevant = query.isEmpty || matches(query, aliases: aliases)
-        guard isRelevant else { return [] }
+    private func systemCommandRows(for query: String) -> [ScoredCommandPaletteRow] {
+        var rows: [ScoredCommandPaletteRow] = []
 
-        return [
-            .init(
-                score: scoredCommandBase(query: query, aliases: aliases, baseScore: 9600, usageKey: "prevent-sleep.toggle", emptyScore: 8600),
-                row: CommandPaletteRootRow(
-                    id: "action.prevent-sleep.toggle",
-                    title: "Prevent Sleep",
-                    subtitle: preventSleepManager.isActive ? "On" : "Off",
-                    icon: preventSleepManager.isActive ? "poweroutlet.type.b.fill" : "poweroutlet.type.g.fill",
-                    appItem: nil,
-                    action: .togglePreventSleep,
-                    usageKey: "prevent-sleep.toggle"
+        let preventSleepAliases = ["prevent sleep", "awake", "caffeine", "caffeinate", "insomnia", "enable", "disable", "amphetamine"]
+        if query.isEmpty || matches(query, aliases: preventSleepAliases) {
+            rows.append(
+                .init(
+                    score: scoredCommandBase(query: query, aliases: preventSleepAliases, baseScore: 9600, usageKey: "prevent-sleep.toggle", emptyScore: 8600),
+                    row: CommandPaletteRootRow(
+                        id: "action.prevent-sleep.toggle",
+                        title: "Prevent Sleep",
+                        subtitle: preventSleepManager.isActive ? "On" : "Off",
+                        icon: preventSleepManager.isActive ? "poweroutlet.type.b.fill" : "poweroutlet.type.g.fill",
+                        appItem: nil,
+                        action: .togglePreventSleep,
+                        usageKey: "prevent-sleep.toggle"
+                    )
                 )
-            ),
-        ]
+            )
+        }
+
+        let lockAliases = ["lock", "lock screen", "screen lock", "secure screen"]
+        if query.isEmpty || matches(query, aliases: lockAliases) {
+            rows.append(
+                .init(
+                    score: scoredCommandBase(query: query, aliases: lockAliases, baseScore: 9200, usageKey: "system.lock-screen", emptyScore: 8200),
+                    row: CommandPaletteRootRow(
+                        id: "action.system.lock-screen",
+                        title: "Lock",
+                        icon: "lock.fill",
+                        appItem: nil,
+                        action: .lockScreen,
+                        usageKey: "system.lock-screen"
+                    )
+                )
+            )
+        }
+
+        let sleepAliases = ["sleep", "sleep mac", "sleep computer", "put mac to sleep"]
+        if query.isEmpty || matches(query, aliases: sleepAliases) {
+            rows.append(
+                .init(
+                    score: scoredCommandBase(query: query, aliases: sleepAliases, baseScore: 9000, usageKey: "system.sleep-mac", emptyScore: 8000),
+                    row: CommandPaletteRootRow(
+                        id: "action.system.sleep-mac",
+                        title: "Sleep",
+                        subtitle: "Put Mac to sleep",
+                        icon: "moon.zzz.fill",
+                        appItem: nil,
+                        action: .sleepMac,
+                        usageKey: "system.sleep-mac"
+                    )
+                )
+            )
+        }
+
+        return rows
     }
 
     private func matches(_ query: String, aliases: [String]) -> Bool {
@@ -498,6 +536,12 @@ struct CommandPaletteView: View {
             if shouldClosePalette {
                 closePalette()
             }
+        case .lockScreen:
+            await CommandPaletteSystemActions.lockScreen()
+            closePalette()
+        case .sleepMac:
+            await CommandPaletteSystemActions.sleepMac()
+            closePalette()
         }
     }
 
