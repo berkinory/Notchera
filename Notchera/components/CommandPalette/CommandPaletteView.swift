@@ -434,6 +434,8 @@ struct CommandPaletteView: View {
     }
 
     private func activate(_ row: CommandPaletteRootRow) {
+        let shouldCloseAfterActivation = !isMouseTriggeredActivation
+
         if let appItem = row.appItem {
             NSWorkspace.shared.openApplication(at: appItem.url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
                 if error == nil {
@@ -443,7 +445,9 @@ struct CommandPaletteView: View {
                 }
             }
 
-            closePalette()
+            if shouldCloseAfterActivation {
+                closePalette()
+            }
             return
         }
 
@@ -454,18 +458,20 @@ struct CommandPaletteView: View {
         }
 
         Task { @MainActor in
-            await perform(action)
+            await perform(action, shouldClosePalette: shouldCloseAfterActivation)
         }
     }
 
     @MainActor
-    private func perform(_ action: CommandPaletteAction) async {
+    private func perform(_ action: CommandPaletteAction, shouldClosePalette: Bool) async {
         switch action {
         case let .copyToClipboard(value):
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(value, forType: .string)
-            closePalette()
+            if shouldClosePalette {
+                closePalette()
+            }
         case let .googleSearch(query):
             var components = URLComponents()
             components.scheme = "https"
@@ -479,14 +485,25 @@ struct CommandPaletteView: View {
                 NSWorkspace.shared.open(url)
             }
 
-            closePalette()
+            if shouldClosePalette {
+                closePalette()
+            }
         case .togglePreventSleep:
             preventSleepManager.toggle()
-            closePalette()
+            if shouldClosePalette {
+                closePalette()
+            }
         case let .enablePreventSleep(duration):
             preventSleepManager.enable(for: duration)
-            closePalette()
+            if shouldClosePalette {
+                closePalette()
+            }
         }
+    }
+
+    private var isMouseTriggeredActivation: Bool {
+        guard let event = NSApp.currentEvent else { return false }
+        return event.type == .leftMouseUp || event.type == .leftMouseDown || event.type == .rightMouseUp || event.type == .rightMouseDown
     }
 
     private func closePalette() {
