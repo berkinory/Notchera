@@ -16,6 +16,7 @@
 # CocoaPods
 Pods/
 podfile.lock
+Notchera.dmg
 
 # Carthage
 Carthage/Build/
