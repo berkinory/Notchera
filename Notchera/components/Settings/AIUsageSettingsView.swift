@@ -99,7 +99,7 @@ struct AIUsageDashboardView: View {
     var body: some View {
         Group {
             if store.accounts.isEmpty {
-                VStack(spacing: 11) {
+                VStack(spacing: 8) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(Color.white.opacity(0.05))
@@ -110,34 +110,29 @@ struct AIUsageDashboardView: View {
                     }
                     .frame(width: 34, height: 34)
 
-                    VStack(spacing: 3) {
-                        Text("No accounts yet")
+                    VStack(spacing: 11) {
+                        Text("No AI Accounts Yet")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.secondary)
 
-                        Text("Add Codex or Claude accounts in Settings.")
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundStyle(Color.secondary.opacity(0.76))
-                            .multilineTextAlignment(.center)
+                        Button {
+                            SettingsWindowController.shared.showWindow()
+                        } label: {
+                            Label("Open Settings", systemImage: "gearshape")
+                                .font(.system(size: 10, weight: .semibold))
+                                .padding(.horizontal, 8)
+                                .frame(height: 26)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(Color.white.opacity(0.07))
+                                )
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.7)
+                                }
+                        }
+                        .buttonStyle(.plain)
                     }
-
-                    Button {
-                        SettingsWindowController.shared.showWindow()
-                    } label: {
-                        Label("Open Settings", systemImage: "gearshape")
-                            .font(.system(size: 10, weight: .semibold))
-                            .padding(.horizontal, 8)
-                            .frame(height: 26)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(Color.white.opacity(0.07))
-                            )
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.7)
-                            }
-                    }
-                    .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .padding(.horizontal, 10)
