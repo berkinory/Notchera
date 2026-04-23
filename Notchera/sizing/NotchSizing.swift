@@ -7,8 +7,12 @@ let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
 let openNotchSize: CGSize = .init(width: 415, height: 180)
-let windowSize: CGSize = .init(width: openNotchSize.width, height: openNotchSize.height + shadowPadding)
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 19, bottom: 24), closed: (top: 6, bottom: 14))
+let expandedShellHorizontalPadding: CGFloat = cornerRadiusInsets.opened.top + 12
+let windowSize: CGSize = .init(
+    width: openNotchSize.width + (expandedShellHorizontalPadding * 2),
+    height: openNotchSize.height + shadowPadding
+)
 
 enum MusicPlayerImageSizes {
     static let cornerRadiusInset: (opened: CGFloat, closed: CGFloat) = (opened: 8.5, closed: 2.5)
@@ -55,7 +59,29 @@ enum MusicPlayerImageSizes {
                 ? screen.frame.maxY - screen.visibleFrame.maxY
                 : 32
         }
+
+        notchWidth = snapToDevicePixels(notchWidth, on: screen)
+        notchHeight = snapToDevicePixels(notchHeight, on: screen)
     }
 
     return .init(width: notchWidth, height: notchHeight)
+}
+
+@MainActor func snapToDevicePixels(_ value: CGFloat, on screen: NSScreen) -> CGFloat {
+    let scale = max(screen.backingScaleFactor, 1)
+    return (value * scale).rounded() / scale
+}
+
+@MainActor func notchWindowSize(on screen: NSScreen) -> CGSize {
+    let maxWidth = max(320, screen.frame.width - 40)
+    let width = snapToDevicePixels(min(windowSize.width, maxWidth), on: screen)
+    let height = snapToDevicePixels(windowSize.height, on: screen)
+    return .init(width: width, height: height)
+}
+
+@MainActor func notchWindowFrame(on screen: NSScreen) -> CGRect {
+    let size = notchWindowSize(on: screen)
+    let x = snapToDevicePixels(screen.frame.midX - (size.width / 2), on: screen)
+    let y = snapToDevicePixels(screen.frame.maxY - size.height, on: screen)
+    return CGRect(x: x, y: y, width: size.width, height: size.height)
 }

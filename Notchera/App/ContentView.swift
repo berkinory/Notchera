@@ -52,6 +52,14 @@ struct ContentView: View {
         usesExpandedShell ? vm.notchSize.height : nil
     }
 
+    private var currentWindowSize: CGSize {
+        guard let screen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) ?? NSScreen.main else {
+            return windowSize
+        }
+
+        return notchWindowSize(on: screen)
+    }
+
     private var computedChinWidth: CGFloat {
         var chinWidth: CGFloat = vm.closedNotchSize.width
 
@@ -196,7 +204,7 @@ struct ContentView: View {
             }
         }
         .padding(.bottom, 8)
-        .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
+        .frame(maxWidth: currentWindowSize.width, maxHeight: currentWindowSize.height, alignment: .top)
         .animation(liveActivityAnimation, value: musicManager.isPlaying || !musicManager.isPlayerIdle)
         .background(dragDetector)
         .forceArrowCursor()
@@ -446,8 +454,8 @@ struct ContentView: View {
             y: min(mouse.y, screenFrame.maxY - 1)
         )
 
-        let width = openNotchSize.width + 36
-        let height = openNotchSize.height + 32
+        let width = currentWindowSize.width
+        let height = currentWindowSize.height + 12
         let region = CGRect(
             x: screenFrame.midX - (width / 2),
             y: screenFrame.maxY - height,
@@ -472,10 +480,10 @@ struct ContentView: View {
         )
 
         let region = CGRect(
-            x: screenFrame.midX - (vm.notchSize.width / 2),
-            y: screenFrame.maxY - vm.notchSize.height,
-            width: vm.notchSize.width,
-            height: vm.notchSize.height
+            x: screenFrame.midX - (currentWindowSize.width / 2),
+            y: screenFrame.maxY - currentWindowSize.height,
+            width: currentWindowSize.width,
+            height: currentWindowSize.height
         )
 
         return region.contains(normalizedPoint)

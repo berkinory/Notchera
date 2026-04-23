@@ -75,11 +75,19 @@ struct WingHUDView: View {
     let batteryIsInLowPowerMode: Bool
 
     private var notchHeight: CGFloat {
-        max(24, vm.effectiveClosedNotchHeight)
+        guard let screen = vm.screenUUID.flatMap(NSScreen.screen(withUUID:)) else {
+            return max(24, vm.effectiveClosedNotchHeight)
+        }
+
+        return snapToDevicePixels(max(24, vm.effectiveClosedNotchHeight), on: screen)
     }
 
     private var centerWidth: CGFloat {
-        max(0, vm.closedNotchSize.width - 20)
+        guard let screen = vm.screenUUID.flatMap(NSScreen.screen(withUUID:)) else {
+            return max(0, vm.closedNotchSize.width - 20)
+        }
+
+        return snapToDevicePixels(max(0, vm.closedNotchSize.width - 20), on: screen)
     }
 
     private var usesFlexibleCenterWidth: Bool {

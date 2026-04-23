@@ -555,8 +555,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
 
         let screenFrame = screen.frame
-        let notchHeight = max(72, openNotchSize.height / 2)
-        let notchWidth = max(220, openNotchSize.width / 2)
+        let windowSize = notchWindowSize(on: screen)
+        let notchHeight = max(72, windowSize.height / 2)
+        let notchWidth = max(220, windowSize.width / 2)
 
         let notchRegion = CGRect(
             x: screenFrame.midX - notchWidth / 2,
@@ -587,8 +588,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func createNotcheraWindow(for _: NSScreen, with viewModel: NotcheraViewModel) -> NSWindow {
-        let rect = NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
+    private func createNotcheraWindow(for screen: NSScreen, with viewModel: NotcheraViewModel) -> NSWindow {
+        let rect = notchWindowFrame(on: screen)
         let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow]
 
         let window = NotcheraSkyLightWindow(contentRect: rect, styleMask: styleMask, backing: .buffered, defer: false)
@@ -626,13 +627,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.alphaValue = 0
         }
 
-        let screenFrame = screen.frame
-        window.setFrameOrigin(
-            NSPoint(
-                x: screenFrame.origin.x + (screenFrame.width / 2) - window.frame.width / 2,
-                y: screenFrame.origin.y + screenFrame.height - window.frame.height
-            )
-        )
+        window.setFrame(notchWindowFrame(on: screen), display: true)
     }
 
     private func createLockScreenMediaWindow(for screen: NSScreen) -> NSWindow {
