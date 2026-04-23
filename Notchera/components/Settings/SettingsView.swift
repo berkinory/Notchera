@@ -1,34 +1,36 @@
+import Defaults
+import KeyboardShortcuts
+import LaunchAtLogin
 import Sparkle
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var selectedTab = "General"
+    @State private var selectedTab = "general"
     let updaterController: SPUStandardUpdaterController?
 
     private let sections: [SettingsSidebarSection] = [
         SettingsSidebarSection(
-            title: "core",
+            title: "",
             items: [
-                SettingsSidebarItem(id: "General", title: "General", icon: "gear"),
-                SettingsSidebarItem(id: "Appearance", title: "Appearance", icon: "eye"),
-                SettingsSidebarItem(id: "Advanced", title: "Advanced", icon: "gearshape.2")
+                SettingsSidebarItem(id: "general", title: "General", icon: "gear")
             ]
         ),
         SettingsSidebarSection(
-            title: "modules",
+            title: "Notch",
             items: [
-                SettingsSidebarItem(id: "Media", title: "Media", icon: "play.laptopcomputer"),
-                SettingsSidebarItem(id: "HUD", title: "HUDs", icon: "dial.medium.fill"),
-                SettingsSidebarItem(id: "Shelf", title: "Shelf", icon: "books.vertical"),
-                SettingsSidebarItem(id: "Clipboard", title: "Clipboard", icon: "doc.on.clipboard"),
-                SettingsSidebarItem(id: "Shortcuts", title: "Shortcuts", icon: "keyboard"),
-                SettingsSidebarItem(id: "AI Usage", title: "AI Usage", icon: "brain")
+                SettingsSidebarItem(id: "media", title: "Media", icon: "play.laptopcomputer"),
+                SettingsSidebarItem(id: "notifications", title: "Notifications", icon: "dial.medium.fill"),
+                SettingsSidebarItem(id: "shelf", title: "File Shelf", icon: "books.vertical"),
+                SettingsSidebarItem(id: "launcher", title: "Command Launcher", icon: "command"),
+                SettingsSidebarItem(id: "clipboard", title: "Clipboard History", icon: "doc.on.clipboard"),
+                SettingsSidebarItem(id: "aiUsage", title: "AI Usage", icon: "brain"),
+                SettingsSidebarItem(id: "shortcuts", title: "Shortcuts", icon: "keyboard")
             ]
         ),
         SettingsSidebarSection(
-            title: "app",
+            title: "Application",
             items: [
-                SettingsSidebarItem(id: "About", title: "About", icon: "info.circle")
+                SettingsSidebarItem(id: "about", title: "About", icon: "info.circle")
             ]
         )
     ]
@@ -66,10 +68,12 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 16) {
             ForEach(sections) { section in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(section.displayTitle)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.secondary.opacity(0.68))
-                        .padding(.horizontal, 8)
+                    if !section.displayTitle.isEmpty {
+                        Text(section.displayTitle)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color.secondary.opacity(0.68))
+                            .padding(.horizontal, 8)
+                    }
 
                     VStack(spacing: 6) {
                         ForEach(section.items) { item in
@@ -107,7 +111,8 @@ struct SettingsView: View {
                     .background(iconChipBackground(color: selectedItem.iconColor))
 
                 Text(selectedItem.title)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.secondary.opacity(0.88))
 
                 Spacer()
             }
@@ -127,25 +132,23 @@ struct SettingsView: View {
     @ViewBuilder
     private var detailContent: some View {
         switch selectedTab {
-        case "General":
-            GeneralSettingsView()
-        case "Appearance":
-            AppearanceSettingsView()
-        case "Media":
-            MediaSettingsView()
-        case "HUD":
+        case "general":
+            SettingsGeneralView()
+        case "media":
+            SettingsMediaView()
+        case "notifications":
             HUDSettingsView()
-        case "Shelf":
+        case "shelf":
             ShelfSettingsView()
-        case "Clipboard":
+        case "launcher":
+            SettingsCommandLauncherView()
+        case "clipboard":
             ClipboardSettingsView()
-        case "Shortcuts":
-            ShortcutsSettingsView()
-        case "Advanced":
-            AdvancedSettingsView()
-        case "AI Usage":
+        case "aiUsage":
             AIUsageSettingsView()
-        case "About":
+        case "shortcuts":
+            ShortcutsSettingsView()
+        case "about":
             if let controller = updaterController {
                 AboutSettingsView(updaterController: controller)
             } else {
@@ -158,7 +161,7 @@ struct SettingsView: View {
                 )
             }
         default:
-            GeneralSettingsView()
+            SettingsGeneralView()
         }
     }
 
@@ -181,20 +184,9 @@ private struct SettingsSidebarSection: Identifiable {
     let title: String
     let items: [SettingsSidebarItem]
 
-    var id: String { title }
+    var id: String { title + items.map(\.id).joined() }
 
-    var displayTitle: String {
-        switch title {
-        case "core":
-            "Core"
-        case "modules":
-            "Modules"
-        case "app":
-            "App"
-        default:
-            title.capitalized
-        }
-    }
+    var displayTitle: String { title }
 }
 
 private struct SettingsSidebarItem: Identifiable {
@@ -204,25 +196,23 @@ private struct SettingsSidebarItem: Identifiable {
 
     var iconColor: Color {
         switch id {
-        case "General":
+        case "general":
             Color(red: 0.62, green: 0.76, blue: 1)
-        case "Appearance":
-            Color(red: 1, green: 0.72, blue: 0.88)
-        case "Advanced":
-            Color(red: 1, green: 0.72, blue: 0.56)
-        case "Media":
+        case "media":
             Color(red: 0.58, green: 0.86, blue: 0.72)
-        case "HUD":
+        case "notifications":
             Color(red: 1, green: 0.66, blue: 0.5)
-        case "Shelf":
+        case "shelf":
             Color(red: 0.84, green: 0.76, blue: 1)
-        case "Clipboard":
-            Color(red: 0.56, green: 0.84, blue: 1)
-        case "Shortcuts":
+        case "launcher":
             Color(red: 0.98, green: 0.82, blue: 0.54)
-        case "AI Usage":
+        case "clipboard":
+            Color(red: 0.56, green: 0.84, blue: 1)
+        case "aiUsage":
             Color(red: 0.74, green: 0.68, blue: 1)
-        case "About":
+        case "shortcuts":
+            Color(red: 1, green: 0.78, blue: 0.58)
+        case "about":
             Color(red: 0.7, green: 0.82, blue: 0.96)
         default:
             Color.white.opacity(0.9)
@@ -340,5 +330,216 @@ private struct QuitAppSidebarButton: View {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .strokeBorder(Color.red.opacity(isHovering ? 0.24 : 0.18), lineWidth: 0.8)
             }
+    }
+}
+
+private struct SettingsGeneralView: View {
+    @State private var screens: [(uuid: String, name: String)] = NSScreen.screens.compactMap { screen in
+        guard let uuid = screen.displayUUID else { return nil }
+        return (uuid, screen.localizedName)
+    }
+
+    @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
+    @Default(.minimumHoverDuration) private var minimumHoverDuration
+    @Default(.nonNotchHeightMode) private var nonNotchHeightMode
+    @Default(.notchHeightMode) private var notchHeightMode
+    @Default(.showOnAllDisplays) private var showOnAllDisplays
+    @Default(.automaticallySwitchDisplay) private var automaticallySwitchDisplay
+    @Default(.openNotchOnHover) private var openNotchOnHover
+    @Default(.extendHoverArea) private var extendHoverArea
+    @Default(.hideNotchInFullscreen) private var hideNotchInFullscreen
+    @Default(.hideFromScreenRecording) private var hideFromScreenRecording
+
+    var body: some View {
+        Form {
+            Section {
+                LaunchAtLogin.Toggle("Launch at login")
+                Toggle(isOn: Binding(
+                    get: { Defaults[.menubarIcon] },
+                    set: { Defaults[.menubarIcon] = $0 }
+                )) {
+                    Text("Show menu bar icon")
+                }
+                Toggle("Always show tabs", isOn: $coordinator.alwaysShowTabs)
+            }
+
+            Section {
+                Defaults.Toggle(key: .showOnAllDisplays) {
+                    Text("Show on all displays")
+                }
+                .onChange(of: showOnAllDisplays) {
+                    NotificationCenter.default.post(name: Notification.Name.showOnAllDisplaysChanged, object: nil)
+                }
+
+                Picker("Preferred display", selection: $coordinator.preferredScreenUUID) {
+                    ForEach(screens, id: \.uuid) { screen in
+                        Text(screen.name).tag(screen.uuid as String?)
+                    }
+                }
+                .onChange(of: NSScreen.screens) {
+                    screens = NSScreen.screens.compactMap { screen in
+                        guard let uuid = screen.displayUUID else { return nil }
+                        return (uuid, screen.localizedName)
+                    }
+                }
+                .disabled(showOnAllDisplays)
+
+                Defaults.Toggle(key: .automaticallySwitchDisplay) {
+                    Text("Automatically switch displays")
+                }
+                .onChange(of: automaticallySwitchDisplay) {
+                    NotificationCenter.default.post(name: Notification.Name.automaticallySwitchDisplayChanged, object: nil)
+                }
+                .disabled(showOnAllDisplays)
+            } header: {
+                SettingsSectionHeader(title: "Display settings")
+            }
+
+            Section {
+                Picker("Notch height on notch displays", selection: $notchHeightMode) {
+                    Text("Match real notch height")
+                        .tag(WindowHeightMode.matchRealNotchSize)
+                    Text("Match menu bar height")
+                        .tag(WindowHeightMode.matchMenuBar)
+                }
+                .onChange(of: notchHeightMode) {
+                    NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
+                }
+
+                Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
+                    Text("Match menubar height")
+                        .tag(WindowHeightMode.matchMenuBar)
+                    Text("Match real notch height")
+                        .tag(WindowHeightMode.matchRealNotchSize)
+                }
+                .onChange(of: nonNotchHeightMode) {
+                    NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
+                }
+            } header: {
+                SettingsSectionHeader(title: "Notch sizing")
+            }
+
+            Section {
+                Defaults.Toggle(key: .openNotchOnHover) {
+                    Text("Open notch on hover")
+                }
+
+                if openNotchOnHover {
+                    Slider(value: $minimumHoverDuration, in: 0 ... 1, step: 0.1) {
+                        HStack {
+                            Text("Hover delay")
+                            Spacer()
+                            Text("\(minimumHoverDuration, specifier: "%.1f")s")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: minimumHoverDuration) {
+                        NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
+                    }
+                }
+
+                Defaults.Toggle(key: .extendHoverArea) {
+                    Text("Extend hover area")
+                }
+                Defaults.Toggle(key: .hideNotchInFullscreen) {
+                    Text("Hide in fullscreen")
+                }
+                Defaults.Toggle(key: .hideFromScreenRecording) {
+                    Text("Hide from screen recording")
+                }
+                Defaults.Toggle(key: .trackpadTabSwitch) {
+                    Text("Enable gestures")
+                }
+            } header: {
+                SettingsSectionHeader(title: "Behavior")
+            }
+        }
+        .scrollContentBackground(.hidden)
+    }
+}
+
+private struct SettingsMediaView: View {
+    @Default(.waitInterval) private var waitInterval
+    @Default(.mediaController) private var mediaController
+    @Default(.enableLyrics) private var enableLyrics
+    @Default(.matchAlbumArtColor) private var matchAlbumArtColor
+    @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
+
+    var body: some View {
+        Form {
+            Section {
+                Picker("Music source", selection: $mediaController) {
+                    ForEach(availableMediaControllers) { controller in
+                        Text(controller.rawValue).tag(controller)
+                    }
+                }
+                .onChange(of: mediaController) { _, _ in
+                    NotificationCenter.default.post(name: Notification.Name.mediaControllerChanged, object: nil)
+                }
+
+                Defaults.Toggle(key: .matchAlbumArtColor) {
+                    Text("Match album art color")
+                }
+            }
+
+            Section {
+                Toggle("Show music live activity", isOn: $coordinator.musicLiveActivityEnabled.animation())
+
+                Stepper(value: $waitInterval, in: 0 ... 10, step: 1) {
+                    HStack {
+                        Text("Media timeout")
+                        Spacer()
+                        Text("\(Defaults[.waitInterval], specifier: "%.0f") seconds")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section {
+                MusicSlotConfigurationView()
+
+                Toggle(isOn: $enableLyrics) {
+                    HStack {
+                        Text("Enable lyrics")
+                        customBadge(text: "Beta")
+                    }
+                }
+                .onChange(of: enableLyrics) { _, isEnabled in
+                    MusicManager.shared.setLyricsEnabled(isEnabled)
+                }
+            } header: {
+                SettingsSectionHeader(title: "Media controls")
+            } footer: {
+                Text("Customize which controls appear in the music player.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .scrollContentBackground(.hidden)
+    }
+
+    private var availableMediaControllers: [MediaControllerType] {
+        if MusicManager.shared.isNowPlayingDeprecated {
+            MediaControllerType.allCases.filter { $0 != .nowPlaying }
+        } else {
+            MediaControllerType.allCases
+        }
+    }
+}
+
+private struct SettingsCommandLauncherView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Command Launcher")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Text("Coming soon.")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.secondary.opacity(0.76))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
     }
 }

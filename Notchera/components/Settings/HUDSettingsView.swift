@@ -70,7 +70,7 @@ struct HUDSettingsView: View {
                     Text("Enable glowing effect")
                 }
             } header: {
-                Text("General")
+                SettingsSectionHeader(title: "General")
             }
             .disabled(!hudReplacement)
 
@@ -115,7 +115,7 @@ struct HUDSettingsView: View {
                     Text("Show screen recording toast")
                 }
             } header: {
-                Text("Indicators")
+                SettingsSectionHeader(title: "Indicators")
             } footer: {
                 Text("Replace system HUD acts as the master switch. When it is off, no indicator runs.")
                     .font(.subheadline)

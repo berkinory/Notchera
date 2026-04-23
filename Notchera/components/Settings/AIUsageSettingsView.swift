@@ -77,7 +77,7 @@ struct AIUsageSettingsView: View {
                     }
                 }
             } header: {
-                Text("Accounts")
+                SettingsSectionHeader(title: "Accounts")
             }
         }
         .scrollContentBackground(.hidden)

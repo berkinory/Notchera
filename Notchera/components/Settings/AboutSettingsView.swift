@@ -29,7 +29,7 @@ struct AboutSettingsView: View {
                         }
                     }
                 } header: {
-                    Text("Version info")
+                    SettingsSectionHeader(title: "Version")
                 }
 
                 UpdaterSettingsView(updater: updaterController.updater)
