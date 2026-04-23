@@ -7,15 +7,15 @@ let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
 let openNotchSize: CGSize = .init(width: 415, height: 180)
-let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 19, bottom: 24), closed: (top: 6, bottom: 14))
-let expandedShellHorizontalPadding: CGFloat = cornerRadiusInsets.opened.top + 12
+let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 34, bottom: 34), closed: (top: 8, bottom: 18))
+let expandedShellHorizontalPadding: CGFloat = 31
 let windowSize: CGSize = .init(
     width: openNotchSize.width + (expandedShellHorizontalPadding * 2),
     height: openNotchSize.height + shadowPadding
 )
 
 enum MusicPlayerImageSizes {
-    static let cornerRadiusInset: (opened: CGFloat, closed: CGFloat) = (opened: 8.5, closed: 2.5)
+    static let cornerRadiusInset: (opened: CGFloat, closed: CGFloat) = (opened: 12, closed: 4)
     static let size = (opened: CGSize(width: 90, height: 90), closed: CGSize(width: 20, height: 20))
 }
 
