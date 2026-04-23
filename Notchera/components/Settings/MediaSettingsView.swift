@@ -87,7 +87,7 @@ struct MediaSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("Media")
+        .scrollContentBackground(.hidden)
     }
 
     private var availableMediaControllers: [MediaControllerType] {

@@ -14,6 +14,6 @@ struct ShortcutsSettingsView: View {
                 KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
             }
         }
-        .navigationTitle("Shortcuts")
+        .scrollContentBackground(.hidden)
     }
 }

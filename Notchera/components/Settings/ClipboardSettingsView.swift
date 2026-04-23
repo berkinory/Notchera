@@ -80,7 +80,7 @@ struct ClipboardSettingsView: View {
             }
             .disabled(!enableClipboardHistory)
         }
-        .navigationTitle("Clipboard")
+        .scrollContentBackground(.hidden)
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
         }

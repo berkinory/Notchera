@@ -24,6 +24,6 @@ struct AppearanceSettingsView: View {
                 Text("Media")
             }
         }
-        .navigationTitle("Appearance")
+        .scrollContentBackground(.hidden)
     }
 }

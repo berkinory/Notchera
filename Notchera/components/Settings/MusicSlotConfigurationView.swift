@@ -14,6 +14,7 @@ struct MusicSlotConfigurationView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             slotConfigurationSection
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack {
                 Spacer()
@@ -33,62 +34,65 @@ struct MusicSlotConfigurationView: View {
     }
 
     private var previewSection: some View {
-        HStack(alignment: .top, spacing: 12) {
-            HStack(spacing: 6) {
-                ForEach(0 ..< fixedSlotCount, id: \.self) { index in
-                    let slot = slotValue(at: index)
-                    Group {
-                        if slot != .none {
-                            slotPreview(for: slot)
-                                .frame(maxWidth: 44)
-                                .onDrag {
-                                    DispatchQueue.main.async { draggedSlot = slot }
-                                    return NSItemProvider(object: NSString(string: "slot:\(index)"))
-                                }
-                                .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                                    let handled = handleDrop(providers, toIndex: index)
-                                    DispatchQueue.main.async { draggedSlot = nil }
-                                    return handled
-                                }
-                        } else {
-                            slotPreview(for: slot)
-                                .frame(maxWidth: 44)
-                                .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                                    let handled = handleDrop(providers, toIndex: index)
-                                    DispatchQueue.main.async { draggedSlot = nil }
-                                    return handled
-                                }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 12) {
+                HStack(spacing: 6) {
+                    ForEach(0 ..< fixedSlotCount, id: \.self) { index in
+                        let slot = slotValue(at: index)
+                        Group {
+                            if slot != .none {
+                                slotPreview(for: slot)
+                                    .frame(maxWidth: 44)
+                                    .onDrag {
+                                        DispatchQueue.main.async { draggedSlot = slot }
+                                        return NSItemProvider(object: NSString(string: "slot:\(index)"))
+                                    }
+                                    .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
+                                        let handled = handleDrop(providers, toIndex: index)
+                                        DispatchQueue.main.async { draggedSlot = nil }
+                                        return handled
+                                    }
+                            } else {
+                                slotPreview(for: slot)
+                                    .frame(maxWidth: 44)
+                                    .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
+                                        let handled = handleDrop(providers, toIndex: index)
+                                        DispatchQueue.main.async { draggedSlot = nil }
+                                        return handled
+                                    }
+                            }
                         }
                     }
                 }
-            }
-            .padding(12)
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(8)
+                .padding(12)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
 
-            VStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(NSColor.controlBackgroundColor))
-                        .frame(width: 56, height: 56)
+                VStack(spacing: 8) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(NSColor.controlBackgroundColor))
+                            .frame(width: 56, height: 56)
 
-                    Image(systemName: "trash")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color.primary)
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(Color.primary)
+                    }
+                    .cornerRadius(10)
+                    .contentShape(RoundedRectangle(cornerRadius: 10))
+                    .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
+                        handleDropOnTrash(providers)
+                    }
+
+                    Text("Clear slot")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .frame(width: 72)
                 }
-                .cornerRadius(10)
-                .contentShape(RoundedRectangle(cornerRadius: 10))
-                .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                    handleDropOnTrash(providers)
-                }
-
-                Text("Clear slot")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(width: 72)
             }
+            .padding(.trailing, 1)
         }
     }
 

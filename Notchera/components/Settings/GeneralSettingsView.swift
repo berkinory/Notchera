@@ -100,13 +100,7 @@ struct GeneralSettingsView: View {
 
             NotchBehaviour()
         }
-        .toolbar {
-            Button("Quit app") {
-                NSApp.terminate(self)
-            }
-            .controlSize(.extraLarge)
-        }
-        .navigationTitle("General")
+        .scrollContentBackground(.hidden)
     }
 
     func NotchBehaviour() -> some View {

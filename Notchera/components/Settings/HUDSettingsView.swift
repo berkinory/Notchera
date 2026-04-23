@@ -124,7 +124,7 @@ struct HUDSettingsView: View {
             }
             .disabled(!hudReplacement)
         }
-        .navigationTitle("HUDs")
+        .scrollContentBackground(.hidden)
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
         }

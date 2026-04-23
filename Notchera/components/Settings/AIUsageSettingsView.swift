@@ -24,6 +24,29 @@ struct AIUsageSettingsView: View {
             }
 
             Section {
+                Button {
+                    showingAddSheet = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(width: 16, height: 16)
+                            .foregroundStyle(Color.white.opacity(0.9))
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(width: 24, height: 24)
+                            )
+
+                        Text("Add account")
+                            .font(.system(size: 13, weight: .medium))
+
+                        Spacer()
+                    }
+                    .padding(.vertical, 2)
+                }
+                .buttonStyle(.plain)
+
                 if store.accounts.isEmpty {
                     Text("No accounts added")
                         .foregroundStyle(.secondary)
@@ -57,14 +80,7 @@ struct AIUsageSettingsView: View {
                 Text("Accounts")
             }
         }
-        .navigationTitle("AI Usage")
-        .toolbar {
-            Button {
-                showingAddSheet = true
-            } label: {
-                Label("Add Account", systemImage: "plus")
-            }
-        }
+        .scrollContentBackground(.hidden)
         .sheet(isPresented: $showingAddSheet) {
             AddAIUsageAccountSheet()
         }

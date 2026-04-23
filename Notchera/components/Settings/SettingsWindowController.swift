@@ -9,7 +9,7 @@ class SettingsWindowController: NSWindowController {
 
     private init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -34,10 +34,12 @@ class SettingsWindowController: NSWindowController {
         guard let window else { return }
 
         window.title = "Notchera Settings"
-        window.titlebarAppearsTransparent = false
-        window.titleVisibility = .visible
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.toolbar = nil
         window.toolbarStyle = .unified
         window.isMovableByWindowBackground = true
+        window.backgroundColor = NSColor.windowBackgroundColor
 
         window.collectionBehavior = [.managed, .participatesInCycle, .fullScreenAuxiliary]
 
@@ -50,8 +52,31 @@ class SettingsWindowController: NSWindowController {
         let settingsView = SettingsView(updaterController: updaterController)
         let hostingView = NSHostingView(rootView: settingsView)
         window.contentView = hostingView
+        updateTrafficLightLayout()
 
         window.delegate = self
+    }
+
+    private func updateTrafficLightLayout() {
+        guard let window else { return }
+
+        let buttons = [
+            window.standardWindowButton(.closeButton),
+            window.standardWindowButton(.miniaturizeButton),
+            window.standardWindowButton(.zoomButton)
+        ].compactMap { $0 }
+
+        guard let closeButton = buttons.first else { return }
+
+        let origin = NSPoint(x: 16, y: closeButton.frame.origin.y)
+        let spacing: CGFloat = 6
+
+        for (index, button) in buttons.enumerated() {
+            var frame = button.frame
+            frame.origin.x = origin.x + CGFloat(index) * (frame.width + spacing)
+            frame.origin.y = origin.y
+            button.setFrameOrigin(frame.origin)
+        }
     }
 
     func showWindow() {
@@ -72,6 +97,7 @@ class SettingsWindowController: NSWindowController {
 
         DispatchQueue.main.async { [weak self] in
             self?.window?.makeKeyAndOrderFront(nil)
+            self?.updateTrafficLightLayout()
         }
     }
 
@@ -98,6 +124,11 @@ extension SettingsWindowController: NSWindowDelegate {
 
     func windowDidBecomeKey(_: Notification) {
         NSApp.setActivationPolicy(.regular)
+        updateTrafficLightLayout()
+    }
+
+    func windowDidResize(_: Notification) {
+        updateTrafficLightLayout()
     }
 
     func windowDidResignKey(_: Notification) {}

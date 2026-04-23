@@ -85,6 +85,6 @@ struct AdvancedSettingsView: View {
                 Text("Window Behavior")
             }
         }
-        .navigationTitle("Advanced")
+        .scrollContentBackground(.hidden)
     }
 }

@@ -26,6 +26,6 @@ struct ShelfSettingsView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .navigationTitle("Shelf")
+        .scrollContentBackground(.hidden)
     }
 }
