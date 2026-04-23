@@ -70,6 +70,8 @@ struct FlippingAlbumArtCard: View {
     @ObservedObject private var musicManager = MusicManager.shared
     let albumArtNamespace: Namespace.ID
     let cornerRadius: CGFloat
+    let hoverTilt: CGSize
+    let isHovering: Bool
 
     private let artworkRevealProgressThreshold = 0.68
 
@@ -140,6 +142,18 @@ struct FlippingAlbumArtCard: View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
+    private var glowColor: Color {
+        Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.68)
+    }
+
+    private var glowOpacity: Double {
+        musicManager.isPlaying ? 0.30 : 0.18
+    }
+
+    private var glowRadius: CGFloat {
+        12
+    }
+
     var body: some View {
         ZStack {
             Image(nsImage: displayedAlbumArt)
@@ -188,6 +202,23 @@ struct FlippingAlbumArtCard: View {
             anchor: .center,
             perspective: 0.12
         )
+        .rotation3DEffect(
+            .degrees(hoverTilt.height),
+            axis: (x: 1, y: 0, z: 0),
+            anchor: .center,
+            perspective: 0.75
+        )
+        .rotation3DEffect(
+            .degrees(hoverTilt.width),
+            axis: (x: 0, y: 1, z: 0),
+            anchor: .center,
+            perspective: 0.75
+        )
+        .shadow(
+            color: glowColor.opacity(glowOpacity),
+            radius: glowRadius,
+            y: 0
+        )
         .shadow(
             color: .black.opacity(0.1 + (edgeOnProgress * 0.08)),
             radius: 10 + (edgeOnProgress * 4),
@@ -222,6 +253,11 @@ struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
     let albumArtNamespace: Namespace.ID
 
+    @State private var isHovering = false
+    @State private var hoverTilt: CGSize = .zero
+
+    private let maxTiltDegrees: CGFloat = 5
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             albumArtButton
@@ -229,17 +265,32 @@ struct AlbumArtView: View {
     }
 
     private var albumArtButton: some View {
-        ZStack {
-            Button {
-                musicManager.openMusicApp()
-            } label: {
-                albumArtImage
-            }
-            .buttonStyle(PlainButtonStyle())
-            .scaleEffect(musicManager.isPlaying ? 1 : 0.92)
+        GeometryReader { geo in
+            ZStack {
+                Button {
+                    musicManager.openMusicApp()
+                } label: {
+                    albumArtImage
+                }
+                .buttonStyle(PlainButtonStyle())
+                .scaleEffect(musicManager.isPlaying ? (isHovering ? 1.018 : 1) : 0.92)
 
-            albumArtDarkOverlay
+                albumArtDarkOverlay
+            }
+            .contentShape(Rectangle())
+            .onContinuousHover { phase in
+                switch phase {
+                case let .active(location):
+                    updateHoverTilt(location: location, size: geo.size)
+                case .ended:
+                    withAnimation(.smooth(duration: 0.22)) {
+                        isHovering = false
+                        hoverTilt = .zero
+                    }
+                }
+            }
         }
+        .aspectRatio(1, contentMode: .fit)
     }
 
     private var albumArtDarkOverlay: some View {
@@ -256,8 +307,26 @@ struct AlbumArtView: View {
     private var albumArtImage: some View {
         FlippingAlbumArtCard(
             albumArtNamespace: albumArtNamespace,
-            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened
+            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
+            hoverTilt: hoverTilt,
+            isHovering: isHovering
         )
+    }
+
+    private func updateHoverTilt(location: CGPoint, size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+
+        let normalizedX = ((location.x / size.width) - 0.5) * 2
+        let normalizedY = ((location.y / size.height) - 0.5) * 2
+        let nextTilt = CGSize(
+            width: normalizedX * maxTiltDegrees,
+            height: -normalizedY * maxTiltDegrees
+        )
+
+        withAnimation(.smooth(duration: 0.14)) {
+            isHovering = true
+            hoverTilt = nextTilt
+        }
     }
 }
 
@@ -759,7 +828,9 @@ struct LockScreenMediaView: View {
                 HStack(alignment: .center, spacing: 12) {
                     FlippingAlbumArtCard(
                         albumArtNamespace: albumArtNamespace,
-                        cornerRadius: 16
+                        cornerRadius: 16,
+                        hoverTilt: .zero,
+                        isHovering: false
                     )
                     .frame(width: 64, height: 64)
                     .scaleEffect(musicManager.isPlaying ? 1 : 0.94)
