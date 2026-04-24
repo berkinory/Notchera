@@ -136,7 +136,7 @@ struct SettingsView: View {
         case "general":
             SettingsGeneralView()
         case "media":
-            SettingsMediaView()
+            MediaSettingsView()
         case "notifications":
             HUDSettingsView()
         case "shelf":

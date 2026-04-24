@@ -16,6 +16,7 @@ extension Notification.Name {
 }
 
 enum MediaControllerType: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case automatic = "Automatic"
     case nowPlaying = "Now Playing"
     case appleMusic = "Apple Music"
     case spotify = "Spotify"
@@ -105,11 +106,7 @@ extension Defaults.Keys {
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
 
     static var defaultMediaController: MediaControllerType {
-        if MusicManager.shared.isNowPlayingDeprecated {
-            .appleMusic
-        } else {
-            .nowPlaying
-        }
+        .automatic
     }
 
     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)

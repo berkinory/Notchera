@@ -1,9 +1,5 @@
 import Defaults
-import KeyboardShortcuts
-import LaunchAtLogin
-import Sparkle
 import SwiftUI
-import SwiftUIIntrospect
 
 struct MediaSettingsView: View {
     @Default(.waitInterval) var waitInterval
@@ -14,39 +10,24 @@ struct MediaSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Music Source", selection: $mediaController) {
-                    ForEach(availableMediaControllers) { controller in
-                        Text(controller.rawValue).tag(controller)
-                    }
-                }
-                .onChange(of: mediaController) { _, _ in
-                    NotificationCenter.default.post(
-                        name: Notification.Name.mediaControllerChanged,
-                        object: nil
-                    )
-                }
-            } header: {
-                Text("Media Source")
-            } footer: {
-                if MusicManager.shared.isNowPlayingDeprecated {
-                    HStack {
-                        Text("YouTube Music requires this third-party app to be installed: ")
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                        Link(
-                            "https://github.com/pear-devs/pear-desktop",
-                            destination: URL(string: "https://github.com/pear-devs/pear-desktop")!
+                HStack(spacing: 8) {
+                    ForEach(selectableMediaControllers) { controller in
+                        MediaSourceOptionCard(
+                            controller: controller,
+                            isSelected: mediaController == controller,
+                            action: {
+                                mediaController = controller
+                                NotificationCenter.default.post(
+                                    name: Notification.Name.mediaControllerChanged,
+                                    object: nil
+                                )
+                            }
                         )
-                        .font(.caption)
-                        .foregroundColor(.blue)
                     }
-                } else {
-                    Text(
-                        "'Now Playing' was the only option on previous versions and works with all media apps."
-                    )
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
                 }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Source")
             }
 
             Section {
@@ -54,18 +35,20 @@ struct MediaSettingsView: View {
                     "Show music live activity",
                     isOn: $coordinator.musicLiveActivityEnabled.animation()
                 )
-                HStack {
-                    Stepper(value: $waitInterval, in: 0 ... 10, step: 1) {
-                        HStack {
-                            Text("Media inactivity timeout")
-                            Spacer()
-                            Text("\(Defaults[.waitInterval], specifier: "%.0f") seconds")
-                                .foregroundStyle(.secondary)
+
+                if coordinator.musicLiveActivityEnabled {
+                    SettingsSliderRow(
+                        title: "Media inactivity timeout",
+                        value: $waitInterval,
+                        range: 0 ... 10,
+                        step: 1,
+                        formatValue: { value in
+                            String(format: "%.0fs", value)
                         }
-                    }
+                    )
                 }
             } header: {
-                Text("Media playback live activity")
+                Text("Live Activity")
             }
 
             Section {
@@ -90,11 +73,72 @@ struct MediaSettingsView: View {
         .scrollContentBackground(.hidden)
     }
 
-    private var availableMediaControllers: [MediaControllerType] {
-        if MusicManager.shared.isNowPlayingDeprecated {
-            MediaControllerType.allCases.filter { $0 != .nowPlaying }
-        } else {
-            MediaControllerType.allCases
+    private var selectableMediaControllers: [MediaControllerType] {
+        [.automatic, .spotify, .appleMusic, .youtubeMusic]
+    }
+}
+
+private struct MediaSourceOptionCard: View {
+    let controller: MediaControllerType
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        SettingsOptionCard(title: title, isSelected: isSelected, action: action) {
+            icon
+        }
+    }
+
+    private var title: String {
+        switch controller {
+        case .automatic:
+            "Automatic"
+        case .spotify:
+            "Spotify"
+        case .appleMusic:
+            "Apple Music"
+        case .youtubeMusic:
+            "YT Music"
+        case .nowPlaying:
+            "Now Playing"
+        }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch controller {
+        case .automatic:
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white)
+        case .spotify:
+            Image("spotify")
+                .resizable()
+                .renderingMode(.original)
+                .interpolation(.high)
+                .antialiased(true)
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+        case .appleMusic:
+            Image("apple-music")
+                .resizable()
+                .renderingMode(.original)
+                .interpolation(.high)
+                .antialiased(true)
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+        case .youtubeMusic:
+            Image("youtube-music")
+                .resizable()
+                .renderingMode(.original)
+                .interpolation(.high)
+                .antialiased(true)
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+        case .nowPlaying:
+            Image(systemName: "play.circle.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.secondary)
         }
     }
 }

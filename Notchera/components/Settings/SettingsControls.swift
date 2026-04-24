@@ -75,6 +75,11 @@ struct SettingsSliderRow: View {
     var formatValue: (Double) -> String = { String(format: "%.1fs", $0) }
 
     @State private var isDragging = false
+    @State private var dragValue: Double?
+
+    private var displayedValue: Double {
+        min(max(dragValue ?? value, range.lowerBound), range.upperBound)
+    }
 
     private var clampedValue: Double {
         min(max(value, range.lowerBound), range.upperBound)
@@ -83,7 +88,7 @@ struct SettingsSliderRow: View {
     private var progress: Double {
         let span = range.upperBound - range.lowerBound
         guard span > 0 else { return 0 }
-        return (clampedValue - range.lowerBound) / span
+        return (displayedValue - range.lowerBound) / span
     }
 
     private var stepCount: Int {
@@ -113,8 +118,8 @@ struct SettingsSliderRow: View {
                         isDragging = true
                         updateValue(for: gesture.location.x, availableWidth: availableWidth, knobWidth: knobWidth)
                     }
-                    .onEnded { _ in
-                        isDragging = false
+                    .onEnded { gesture in
+                        finishDragging(at: gesture.location.x, availableWidth: availableWidth, knobWidth: knobWidth)
                     }
 
                 ZStack(alignment: .leading) {
@@ -154,13 +159,21 @@ struct SettingsSliderRow: View {
             .frame(height: 30)
         }
         .padding(.vertical, 4)
-        .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.88, blendDuration: 0.08), value: value)
+        .animation(isDragging ? .linear(duration: 0.04) : .interactiveSpring(response: 0.18, dampingFraction: 0.88, blendDuration: 0.08), value: displayedValue)
     }
 
     private func updateValue(for locationX: CGFloat, availableWidth: CGFloat, knobWidth: CGFloat) {
         let normalized = min(max(locationX - knobWidth / 2, 0), availableWidth) / availableWidth
         let rawValue = range.lowerBound + Double(normalized) * (range.upperBound - range.lowerBound)
-        let steppedValue = (rawValue / step).rounded() * step
+        dragValue = min(max(rawValue, range.lowerBound), range.upperBound)
+
+        let steppedValue = ((dragValue ?? rawValue) / step).rounded() * step
         value = min(max(steppedValue, range.lowerBound), range.upperBound)
+    }
+
+    private func finishDragging(at locationX: CGFloat, availableWidth: CGFloat, knobWidth: CGFloat) {
+        updateValue(for: locationX, availableWidth: availableWidth, knobWidth: knobWidth)
+        dragValue = nil
+        isDragging = false
     }
 }

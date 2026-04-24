@@ -27,6 +27,8 @@ Carthage/Build/
 
 # Derived data
 DerivedData/
+_private_*
+_tmp_*
 
 # Build output
 build/

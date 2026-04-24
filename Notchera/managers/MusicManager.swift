@@ -125,6 +125,8 @@ class MusicManager: ObservableObject {
         let newController: (any MediaControllerProtocol)?
 
         switch type {
+        case .automatic:
+            return nil
         case .nowPlaying:
             if !isNowPlayingDeprecated {
                 newController = NowPlayingController()
@@ -157,15 +159,58 @@ class MusicManager: ObservableObject {
         let preferredType = Defaults[.mediaController]
         print("Preferred Media Controller: \(preferredType)")
 
-        let controllerType = (isNowPlayingDeprecated && preferredType == .nowPlaying)
-            ? .appleMusic
-            : preferredType
+        let controllerType = resolvedControllerType(for: preferredType)
 
         if let controller = createController(for: controllerType) {
             setActiveController(controller)
         } else if controllerType != .appleMusic, let fallbackController = createController(for: .appleMusic) {
             setActiveController(fallbackController)
         }
+    }
+
+    private func resolvedControllerType(for preferredType: MediaControllerType) -> MediaControllerType {
+        switch preferredType {
+        case .automatic:
+            return resolveAutomaticControllerType()
+        case .nowPlaying:
+            return isNowPlayingDeprecated ? .appleMusic : .nowPlaying
+        case .appleMusic, .spotify, .youtubeMusic:
+            return preferredType
+        }
+    }
+
+    private func resolveAutomaticControllerType() -> MediaControllerType {
+        let frontmostBundleIdentifier = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+
+        if frontmostBundleIdentifier == "com.spotify.client" {
+            return .spotify
+        }
+
+        if frontmostBundleIdentifier == "com.apple.Music" {
+            return .appleMusic
+        }
+
+        if frontmostBundleIdentifier == YouTubeMusicConfiguration.default.bundleIdentifier {
+            return .youtubeMusic
+        }
+
+        let runningBundleIdentifiers = Set(
+            NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier)
+        )
+
+        if runningBundleIdentifiers.contains("com.spotify.client") {
+            return .spotify
+        }
+
+        if runningBundleIdentifiers.contains("com.apple.Music") {
+            return .appleMusic
+        }
+
+        if runningBundleIdentifiers.contains(YouTubeMusicConfiguration.default.bundleIdentifier) {
+            return .youtubeMusic
+        }
+
+        return isNowPlayingDeprecated ? .appleMusic : .nowPlaying
     }
 
     private func setActiveController(_ controller: any MediaControllerProtocol) {

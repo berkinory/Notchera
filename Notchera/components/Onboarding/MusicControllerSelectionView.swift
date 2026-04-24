@@ -7,11 +7,7 @@ struct MusicControllerSelectionView: View {
     @Default(.mediaController) var mediaController
 
     private var availableMediaControllers: [MediaControllerType] {
-        if MusicManager.shared.isNowPlayingDeprecated {
-            MediaControllerType.allCases.filter { $0 != .nowPlaying }
-        } else {
-            MediaControllerType.allCases
-        }
+        [.automatic, .spotify, .appleMusic, .youtubeMusic]
     }
 
     @State private var selectedMediaController: MediaControllerType = Defaults[.mediaController]
@@ -110,6 +106,8 @@ struct ControllerOptionView: View {
 extension MediaControllerType {
     var description: String {
         switch self {
+        case .automatic:
+            "Automatically detects the active supported player and switches for you."
         case .nowPlaying:
             "Works with most media apps, including browsers, to detect what's playing. Note: This may be removed in a future macOS version."
         case .spotify:
