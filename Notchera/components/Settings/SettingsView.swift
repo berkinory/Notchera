@@ -121,7 +121,8 @@ struct SettingsView: View {
             .padding(.top, 12)
             .padding(.bottom, 8)
 
-            detailContent
+            SettingsView.buildDetailContent(selectedTab: selectedTab, updaterController: updaterController)
+                .id(selectedTab)
                 .scrollContentBackground(.hidden)
                 .background(sharedBackground)
                 .tint(settingsAccentColor)
@@ -131,7 +132,7 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var detailContent: some View {
+    fileprivate static func buildDetailContent(selectedTab: String, updaterController: SPUStandardUpdaterController?) -> some View {
         switch selectedTab {
         case "general":
             SettingsGeneralView()

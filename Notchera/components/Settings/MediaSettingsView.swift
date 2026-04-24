@@ -27,7 +27,7 @@ struct MediaSettingsView: View {
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Source")
+                SettingsSectionHeader(title: "Source")
             }
 
             Section {
@@ -48,7 +48,7 @@ struct MediaSettingsView: View {
                     )
                 }
             } header: {
-                Text("Live Activity")
+                SettingsSectionHeader(title: "Live Activity")
             }
 
             Section {
@@ -58,7 +58,7 @@ struct MediaSettingsView: View {
                         MusicManager.shared.setLyricsEnabled(isEnabled)
                     }
             } header: {
-                Text("Media controls")
+                SettingsSectionHeader(title: "Media controls")
             }
         }
         .scrollContentBackground(.hidden)

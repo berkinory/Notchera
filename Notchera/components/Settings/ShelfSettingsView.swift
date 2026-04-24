@@ -16,8 +16,6 @@ struct ShelfSettingsView: View {
                     Text("Remove from shelf after dragging")
                 }
 
-            } header: {
-                SettingsSectionHeader(title: "General")
             }
         }
         .scrollContentBackground(.hidden)
