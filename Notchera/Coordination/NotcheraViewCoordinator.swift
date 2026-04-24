@@ -62,6 +62,7 @@ class NotcheraViewCoordinator: ObservableObject {
     private var externalHUDObserver: NSObjectProtocol?
     private var hudReplacementCancellable: AnyCancellable?
     private var shelfStateCancellable: AnyCancellable?
+    private var calendarVisibilityCancellable: AnyCancellable?
     private var suppressRememberedViewUpdate = false
     private var lastExternalHUDRequestAt: Date = .distantPast
 
@@ -69,6 +70,10 @@ class NotcheraViewCoordinator: ObservableObject {
         guard openLastTabByDefault,
               let rememberedView = NotchViews(rawValue: lastViewRaw)
         else {
+            return nil
+        }
+
+        if rememberedView == .calendar, !Defaults[.enableCalendar] {
             return nil
         }
 
@@ -142,6 +147,15 @@ class NotcheraViewCoordinator: ObservableObject {
                 currentView = .home
             }
 
+        calendarVisibilityCancellable = Defaults.publisher(.enableCalendar)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] isEnabled in
+                guard let self, !isEnabled, currentView == .calendar else { return }
+                currentView = .home
+            }
+
         accessibilityObserver = NotificationCenter.default.addObserver(
             forName: Notification.Name.accessibilityAuthorizationChanged,
             object: nil,
@@ -186,7 +200,9 @@ class NotcheraViewCoordinator: ObservableObject {
             if Defaults[.hudReplacement] {
                 let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
                 if !authorized {
-                    Defaults[.hudReplacement] = false
+                    if !firstLaunch {
+                        Defaults[.hudReplacement] = false
+                    }
                 } else {
                     await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
                 }

@@ -41,9 +41,9 @@ extension Defaults.Keys {
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
     static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: false)
 
-    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.2)
+    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.1)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
-    static let trackpadTabSwitch = Key<Bool>("trackpadTabSwitch", default: true)
+    static let trackpadTabSwitch = Key<Bool>("trackpadTabSwitch", default: false)
     static let extendHoverArea = Key<Bool>("extendHoverArea", default: false)
     static let notchHeightMode = Key<WindowHeightMode>(
         "notchHeightMode",
@@ -76,14 +76,14 @@ extension Defaults.Keys {
         default: MusicControlButton.defaultLayout.count
     )
 
-    static let hudReplacement = Key<Bool>("hudReplacement", default: false)
+    static let hudReplacement = Key<Bool>("hudReplacement", default: true)
     static let enableGradient = Key<Bool>("enableGradient", default: false)
     static let systemEventIndicatorShadow = Key<Bool>("systemEventIndicatorShadow", default: false)
     static let showVolumeIndicator = Key<Bool>("showVolumeIndicator", default: true)
     static let showBrightnessIndicator = Key<Bool>("showBrightnessIndicator", default: true)
     static let showBacklightIndicator = Key<Bool>("showBacklightIndicator", default: true)
     static let showSystemValueInHUD = Key<Bool>("showSystemValueInHUD", default: true)
-    static let showCapsLockIndicator = Key<Bool>("showCapsLockIndicator", default: true)
+    static let showCapsLockIndicator = Key<Bool>("showCapsLockIndicator", default: false)
     static let showInputSourceIndicator = Key<Bool>("showInputSourceIndicator", default: true)
     static let showFocusIndicator = Key<Bool>("showFocusIndicator", default: true)
     static let showBluetoothAudioIndicator = Key<Bool>("showBluetoothAudioIndicator", default: true)
@@ -91,6 +91,8 @@ extension Defaults.Keys {
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
     static let enableScreenRecordingDetection = Key<Bool>("enableScreenRecordingDetection", default: true)
 
+    static let enableCalendar = Key<Bool>("enableCalendar", default: true)
+    static let showCalendarEvents = Key<Bool>("showCalendarEvents", default: true)
     static let notchShelf = Key<Bool>("notchShelf", default: true)
     static let shelfTapToOpen = Key<Bool>("shelfTapToOpen", default: true)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: true)

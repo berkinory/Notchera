@@ -4,6 +4,7 @@ import SwiftUI
 
 struct CalendarTabView: View {
     @ObservedObject private var calendarManager = CalendarManager.shared
+    @Default(.showCalendarEvents) private var showCalendarEvents
 
     private let calendar = Calendar.current
     private let today = Date()
@@ -44,11 +45,13 @@ struct CalendarTabView: View {
     }
 
     private var selectedEvents: [CalendarManager.CalendarEvent] {
-        calendarManager.events(for: normalizedSelectedDate)
+        guard showCalendarEvents else { return [] }
+        return calendarManager.events(for: normalizedSelectedDate)
     }
 
     private var eventDates: Set<Date> {
-        Set(calendarManager.eventsByDay.keys)
+        guard showCalendarEvents else { return [] }
+        return Set(calendarManager.eventsByDay.keys)
     }
 
     private var weeklyAnchorDate: Date {
@@ -88,7 +91,7 @@ struct CalendarTabView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            if isShowingSelectedDay {
+            if isShowingSelectedDay, showCalendarEvents {
                 eventsSection
             } else {
                 weekStrip
@@ -99,18 +102,23 @@ struct CalendarTabView: View {
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear {
-            calendarManager.refreshAuthorizationState()
-            calendarManager.loadEvents(around: today)
+            refreshEvents()
         }
         .onChange(of: calendarManager.authorizationState) { _, _ in
-            calendarManager.loadEvents(around: today)
+            refreshEvents()
+        }
+        .onChange(of: showCalendarEvents) { _, isEnabled in
+            if !isEnabled {
+                isShowingSelectedDay = false
+            }
+            refreshEvents()
         }
     }
 
     private var header: some View {
         ZStack {
             HStack {
-                if isShowingSelectedDay {
+                if isShowingSelectedDay, showCalendarEvents {
                     Button {
                         withAnimation(.smooth) {
                             isShowingSelectedDay = false
@@ -140,7 +148,7 @@ struct CalendarTabView: View {
                 Spacer(minLength: 0)
             }
 
-            if isShowingSelectedDay {
+            if isShowingSelectedDay, showCalendarEvents {
                 Text(visibleMonthTitle)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Color.secondary.opacity(0.78))
@@ -279,6 +287,7 @@ struct CalendarTabView: View {
             : Color.white.opacity(0.1)
 
         return Button {
+            guard showCalendarEvents else { return }
             showSelectedDay(normalizedDate)
         } label: {
             VStack(spacing: 5) {
@@ -390,6 +399,16 @@ struct CalendarTabView: View {
         }
 
         return event.startDate.formatted(date: .omitted, time: .shortened)
+    }
+
+    private func refreshEvents() {
+        calendarManager.refreshAuthorizationState()
+
+        guard showCalendarEvents else {
+            return
+        }
+
+        calendarManager.loadEvents(around: today)
     }
 
     private func moveWeek(by value: Int) {

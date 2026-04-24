@@ -46,16 +46,6 @@ struct AboutSettingsView: View {
                     }
                 }
             }
-            VStack(spacing: 0) {
-                Divider()
-                Text("Made with 🫶🏻 by the notchera team")
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 5)
-                    .padding(.bottom, 7)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 10)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
         }
         .scrollContentBackground(.hidden)
     }

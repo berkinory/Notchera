@@ -20,9 +20,10 @@ struct SettingsView: View {
             items: [
                 SettingsSidebarItem(id: "media", title: "Media", icon: "music.note"),
                 SettingsSidebarItem(id: "notifications", title: "Notifications", icon: "app.badge"),
+                SettingsSidebarItem(id: "calendar", title: "Calendar", icon: "calendar"),
                 SettingsSidebarItem(id: "shelf", title: "File Shelf", icon: "folder.fill"),
-                SettingsSidebarItem(id: "launcher", title: "Launcher", icon: "command"),
                 SettingsSidebarItem(id: "clipboard", title: "Clipboard History", icon: "doc.on.clipboard"),
+                SettingsSidebarItem(id: "launcher", title: "Launcher", icon: "command"),
                 SettingsSidebarItem(id: "aiUsage", title: "AI Usage", icon: "chart.bar.fill"),
                 SettingsSidebarItem(id: "shortcuts", title: "Shortcuts", icon: "keyboard")
             ]
@@ -141,6 +142,8 @@ struct SettingsView: View {
             MediaSettingsView()
         case "notifications":
             HUDSettingsView()
+        case "calendar":
+            CalendarSettingsView()
         case "shelf":
             ShelfSettingsView()
         case "launcher":
@@ -209,6 +212,8 @@ private struct SettingsSidebarItem: Identifiable {
             Color(red: 0.58, green: 0.86, blue: 0.72)
         case "notifications":
             Color(red: 1, green: 0.66, blue: 0.5)
+        case "calendar":
+            Color(red: 0.58, green: 0.86, blue: 0.72)
         case "shelf":
             Color(red: 0.84, green: 0.76, blue: 1)
         case "launcher":
@@ -416,7 +421,6 @@ private struct SettingsGeneralView: View {
     @Default(.extendHoverArea) private var extendHoverArea
     @Default(.hideNotchInFullscreen) private var hideNotchInFullscreen
     @Default(.hideFromScreenRecording) private var hideFromScreenRecording
-    @State private var calendarAuthorizationState = CalendarManager.shared.authorizationState
 
     private var selectedNotchHeightMode: Binding<WindowHeightMode> {
         Binding(
@@ -483,59 +487,8 @@ private struct SettingsGeneralView: View {
         return .main
     }
 
-    private func refreshCalendarAuthorizationState() {
-        CalendarManager.shared.refreshAuthorizationState()
-        calendarAuthorizationState = CalendarManager.shared.authorizationState
-    }
-
-    private func requestCalendarAccess() {
-        switch calendarAuthorizationState {
-        case .authorized:
-            return
-        case .notDetermined:
-            Task {
-                await CalendarManager.shared.requestAccess()
-                refreshCalendarAuthorizationState()
-            }
-        case .denied, .restricted:
-            openCalendarSettings()
-        }
-    }
-
-    private func openCalendarSettings() {
-        let urls = [
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars",
-            "x-apple.systempreferences:com.apple.preferences.users?Privacy_Calendars",
-        ]
-
-        for rawURL in urls {
-            guard let url = URL(string: rawURL) else { continue }
-            if NSWorkspace.shared.open(url) {
-                return
-            }
-        }
-    }
-
     var body: some View {
         Form {
-            if calendarAuthorizationState != .authorized {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Calendar access is required to show upcoming events.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 12) {
-                            Button("Request Calendar Access") {
-                                requestCalendarAccess()
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    }
-                    .padding(.top, 6)
-                }
-            }
-
             Section {
                 LaunchAtLogin.Toggle("Launch at login")
                 Toggle(isOn: Binding(
@@ -663,11 +616,99 @@ private struct SettingsGeneralView: View {
             }
         }
         .scrollContentBackground(.hidden)
+    }
+}
+
+private struct CalendarSettingsView: View {
+    @Default(.enableCalendar) private var enableCalendar
+    @Default(.showCalendarEvents) private var showCalendarEvents
+    @State private var authorizationState = CalendarManager.shared.authorizationState
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Enable Calendar", isOn: $enableCalendar)
+
+                if enableCalendar {
+                    Toggle("Show events", isOn: $showCalendarEvents)
+                }
+            }
+
+            if enableCalendar, showCalendarEvents, authorizationState != .authorized {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Calendar access is required to show upcoming events.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        HStack(spacing: 12) {
+                            Button(buttonTitle) {
+                                handleAuthorizationAction()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                    .padding(.top, 6)
+                } header: {
+                    SettingsSectionHeader(title: "Permissions")
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
         .task {
-            refreshCalendarAuthorizationState()
+            refreshAuthorizationState()
+        }
+        .onChange(of: enableCalendar) { _, isEnabled in
+            if !isEnabled, NotcheraViewCoordinator.shared.currentView == .calendar {
+                NotcheraViewCoordinator.shared.currentView = .home
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            refreshCalendarAuthorizationState()
+            refreshAuthorizationState()
+        }
+    }
+
+    private var buttonTitle: String {
+        switch authorizationState {
+        case .notDetermined:
+            "Request Calendar Access"
+        case .denied, .restricted:
+            "Open Settings"
+        case .authorized:
+            "Granted"
+        }
+    }
+
+    private func refreshAuthorizationState() {
+        CalendarManager.shared.refreshAuthorizationState()
+        authorizationState = CalendarManager.shared.authorizationState
+    }
+
+    private func handleAuthorizationAction() {
+        switch authorizationState {
+        case .authorized:
+            return
+        case .notDetermined:
+            Task {
+                await CalendarManager.shared.requestAccess()
+                refreshAuthorizationState()
+            }
+        case .denied, .restricted:
+            openCalendarSettings()
+        }
+    }
+
+    private func openCalendarSettings() {
+        let urls = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars",
+            "x-apple.systempreferences:com.apple.preferences.users?Privacy_Calendars",
+        ]
+
+        for rawURL in urls {
+            guard let url = URL(string: rawURL) else { continue }
+            if NSWorkspace.shared.open(url) {
+                return
+            }
         }
     }
 }

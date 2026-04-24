@@ -1089,16 +1089,6 @@
         }
       }
     },
-    "Made with 🫶🏻 by the notchera team" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Made with 🫶🏻 by the notchera team"
-          }
-        }
-      }
-    },
     "Mark as complete" : {
       "extractionState" : "stale",
       "localizations" : {
