@@ -633,6 +633,7 @@ class MusicManager: ObservableObject {
 
         flipSourceAlbumArt = sourceAlbumArt
         pendingAlbumArt = newAlbumArt
+        calculateAverageColor(for: newAlbumArt)
         triggerCompactFlipAnimation(to: newAlbumArt)
         isFlipping = true
 
@@ -729,9 +730,7 @@ class MusicManager: ObservableObject {
 
         targetImage.averageColor { [weak self] color in
             DispatchQueue.main.async {
-                withAnimation(.smooth) {
-                    self?.avgColor = color ?? .white
-                }
+                self?.avgColor = color ?? .white
             }
         }
     }

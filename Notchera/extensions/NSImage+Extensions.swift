@@ -16,54 +16,37 @@ extension NSImage {
                 return
             }
 
-            let width = cgImage.width
-            let height = cgImage.height
-            let totalPixels = width * height
+            let inputImage = CIImage(cgImage: cgImage)
+            let filter = CIFilter.areaAverage()
+            filter.inputImage = inputImage
+            filter.extent = inputImage.extent
 
-            guard let context = CGContext(data: nil,
-                                          width: width,
-                                          height: height,
-                                          bitsPerComponent: 8,
-                                          bytesPerRow: width * 4,
-                                          space: CGColorSpaceCreateDeviceRGB(),
-                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-            else {
+            guard let outputImage = filter.outputImage else {
                 DispatchQueue.main.async {
                     completion(nil)
                 }
                 return
             }
 
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+            let context = CIContext(options: [.cacheIntermediates: false])
+            var bitmap = [UInt8](repeating: 0, count: 4)
+            context.render(
+                outputImage,
+                toBitmap: &bitmap,
+                rowBytes: 4,
+                bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                format: .RGBA8,
+                colorSpace: CGColorSpaceCreateDeviceRGB()
+            )
 
-            guard let data = context.data else {
-                DispatchQueue.main.async {
-                    completion(nil)
-                }
-                return
-            }
-
-            let pointer = data.bindMemory(to: UInt32.self, capacity: totalPixels)
-
-            var totalRed: UInt64 = 0
-            var totalGreen: UInt64 = 0
-            var totalBlue: UInt64 = 0
-
-            for i in 0 ..< totalPixels {
-                let color = pointer[i]
-                totalRed += UInt64(color & 0xFF)
-                totalGreen += UInt64((color >> 8) & 0xFF)
-                totalBlue += UInt64((color >> 16) & 0xFF)
-            }
-
-            let averageRed = CGFloat(totalRed) / CGFloat(totalPixels) / 255.0
-            let averageGreen = CGFloat(totalGreen) / CGFloat(totalPixels) / 255.0
-            let averageBlue = CGFloat(totalBlue) / CGFloat(totalPixels) / 255.0
+            let averageRed = CGFloat(bitmap[0]) / 255.0
+            let averageGreen = CGFloat(bitmap[1]) / 255.0
+            let averageBlue = CGFloat(bitmap[2]) / 255.0
 
             let minBrightness: CGFloat = 0.5
             let isNearBlack = averageRed < 0.03 && averageGreen < 0.03 && averageBlue < 0.03
 
-            var finalColor: NSColor
+            let finalColor: NSColor
 
             if isNearBlack {
                 finalColor = NSColor(white: minBrightness, alpha: 1.0)
@@ -79,10 +62,12 @@ extension NSImage {
 
                 if brightness < minBrightness {
                     let saturationScale = brightness / minBrightness
-                    color = NSColor(hue: hue,
-                                    saturation: saturation * saturationScale,
-                                    brightness: minBrightness,
-                                    alpha: alpha)
+                    color = NSColor(
+                        hue: hue,
+                        saturation: saturation * saturationScale,
+                        brightness: minBrightness,
+                        alpha: alpha
+                    )
                 }
 
                 finalColor = color

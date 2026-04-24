@@ -142,16 +142,48 @@ struct FlippingAlbumArtCard: View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
-    private var glowColor: Color {
-        Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.68)
-    }
+    private var glowMetrics: (neutralColor: Color, neutralOpacity: Double, neutralRadius: CGFloat, tintColor: Color, tintOpacity: Double, tintRadius: CGFloat) {
+        guard let rgbColor = musicManager.avgColor.usingColorSpace(.sRGB) else {
+            return (
+                .white,
+                musicManager.isPlaying ? 0.18 : 0.1,
+                16,
+                Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.68),
+                musicManager.isPlaying ? 0.3 : 0.18,
+                13
+            )
+        }
 
-    private var glowOpacity: Double {
-        musicManager.isPlaying ? 0.30 : 0.18
-    }
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        rgbColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
 
-    private var glowRadius: CGFloat {
-        12
+        let adjustedBrightness = min(max(brightness < 0.28 ? 0.62 : brightness * 0.9, 0.58), 0.78)
+        let adjustedSaturation = min(max(saturation * 1.35, 0.52), 0.92)
+        let tintColor = Color(
+            hue: Double(hue),
+            saturation: Double(adjustedSaturation),
+            brightness: Double(adjustedBrightness),
+            opacity: Double(alpha)
+        )
+
+        let neutralOpacity = musicManager.isPlaying ? 0.2 : 0.12
+        let neutralRadius: CGFloat = musicManager.isPlaying ? 15 : 12
+        let tintOpacity = musicManager.isPlaying
+            ? max(0.38, Double(adjustedSaturation) * 0.52)
+            : max(0.22, Double(adjustedSaturation) * 0.28)
+        let tintRadius: CGFloat = musicManager.isPlaying ? 11 : 9
+
+        return (
+            .white,
+            neutralOpacity,
+            neutralRadius,
+            tintColor,
+            tintOpacity,
+            tintRadius
+        )
     }
 
     var body: some View {
@@ -215,8 +247,13 @@ struct FlippingAlbumArtCard: View {
             perspective: 0.75
         )
         .shadow(
-            color: glowColor.opacity(glowOpacity),
-            radius: glowRadius,
+            color: glowMetrics.neutralColor.opacity(glowMetrics.neutralOpacity),
+            radius: glowMetrics.neutralRadius,
+            y: 0
+        )
+        .shadow(
+            color: glowMetrics.tintColor.opacity(glowMetrics.tintOpacity),
+            radius: glowMetrics.tintRadius,
             y: 0
         )
         .shadow(
