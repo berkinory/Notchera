@@ -65,7 +65,7 @@ struct SettingsView: View {
     }
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             ForEach(sections) { section in
                 VStack(alignment: .leading, spacing: 8) {
                     if !section.displayTitle.isEmpty {
@@ -91,6 +91,7 @@ struct SettingsView: View {
 
             Spacer(minLength: 0)
 
+            SidebarGithubButton()
             QuitAppSidebarButton()
         }
         .padding(.horizontal, 10)
@@ -281,6 +282,63 @@ private struct SettingsSidebarButton: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(item.iconColor.opacity(isSelected ? 0.26 : 0.16), lineWidth: 0.8)
+            }
+    }
+}
+
+private struct SidebarGithubButton: View {
+    @State private var isHovering = false
+
+    var body: some View {
+        Button {
+            if let url = URL(string: "https://github.com/berkinory/Notchera") {
+                NSWorkspace.shared.open(url)
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Image("Github")
+                    .resizable()
+                    .renderingMode(.original)
+                    .scaledToFit()
+                    .frame(width: 13, height: 13)
+                    .padding(3)
+                    .background(iconBackground)
+
+                Text("GitHub")
+                    .font(.system(size: 11.5, weight: .medium))
+
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Color.secondary.opacity(0.88))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(rowBackground)
+        }
+        .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .onHover { hovering in
+            withAnimation(.smooth(duration: 0.16)) {
+                isHovering = hovering
+            }
+        }
+    }
+
+    private var rowBackground: some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(isHovering ? Color.white.opacity(0.035) : Color.white.opacity(0.02))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(isHovering ? Color.white.opacity(0.04) : .clear, lineWidth: 0.8)
+            }
+    }
+
+    private var iconBackground: some View {
+        RoundedRectangle(cornerRadius: 7, style: .continuous)
+            .fill(Color.white.opacity(isHovering ? 0.12 : 0.08))
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Color.white.opacity(isHovering ? 0.18 : 0.12), lineWidth: 0.8)
             }
     }
 }
