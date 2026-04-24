@@ -117,7 +117,6 @@
 		B10348D92C74E56000475897 /* ConditionalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10348D82C74E56000475897 /* ConditionalModifier.swift */; };
 		B1628B922CC260C0003D8DF3 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = B1628B912CC260C0003D8DF3 /* SwiftUIIntrospect */; };
 		B17266DF2C64DFA00031BA0D /* BundleInfos.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17266DE2C64DFA00031BA0D /* BundleInfos.swift */; };
-		B17266E12C6532560031BA0D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B17266E02C6532560031BA0D /* Localizable.xcstrings */; };
 		B172AAC02C95DA0B001623F1 /* InlineHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B172AABF2C95DA0B001623F1 /* InlineHUD.swift */; };
 		B18654392C6F4990000B926A /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = B18654382C6F4990000B926A /* KeyboardShortcuts */; };
 		B186543C2C6F49AE000B926A /* ShortcutConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B186543B2C6F49AE000B926A /* ShortcutConstants.swift */; };
@@ -293,7 +292,6 @@
 		A9E84CDEBD730F9A1A62D6EF /* TabModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TabModel.swift; path = Notchera/components/Tabs/TabModel.swift; sourceTree = SOURCE_ROOT; };
 		B10348D82C74E56000475897 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
 		B17266DE2C64DFA00031BA0D /* BundleInfos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleInfos.swift; sourceTree = "<group>"; };
-		B17266E02C6532560031BA0D /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		B172AABF2C95DA0B001623F1 /* InlineHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineHUD.swift; sourceTree = "<group>"; };
 		B186543B2C6F49AE000B926A /* ShortcutConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutConstants.swift; sourceTree = "<group>"; };
 		B19016232CC15B4D00E3F12E /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -684,14 +682,6 @@
 			path = Shelf;
 			sourceTree = "<group>";
 		};
-		9DE54E7E8D4A95BF5B6E0601 /* Localization */ = {
-			isa = PBXGroup;
-			children = (
-				B17266E02C6532560031BA0D /* Localizable.xcstrings */,
-			);
-			path = Localization;
-			sourceTree = "<group>";
-		};
 		9ED3459FB645CC7D23B060C7 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -822,7 +812,6 @@
 			children = (
 				C638459795476AA7E55FD08A /* Assets */,
 				81DB4B7D96ABD5DB8413EC7D /* Audio */,
-				9DE54E7E8D4A95BF5B6E0601 /* Localization */,
 				226F4EB693400BE3176C4C95 /* Animations */,
 				4C83472EA0F6D63BB6D07EA6 /* Support */,
 			);
@@ -956,7 +945,6 @@
 				14CEF41A2C5CAED400855D72 /* Assets.xcassets in Resources */,
 				112B0EB82E30DD0F00562D6C /* MediaRemoteAdapterTestClient in Resources */,
 				112B0EB92E30DD0F00562D6C /* mediaremote-adapter.pl in Resources */,
-				B17266E12C6532560031BA0D /* Localizable.xcstrings in Resources */,
 				B2A1F0012EFA100100000001 /* BluetoothHUDAnimations in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
