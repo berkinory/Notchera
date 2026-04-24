@@ -13,14 +13,31 @@ struct AIUsageSettingsView: View {
                 Defaults.Toggle(key: .enableAIUsage) {
                     Text("Enable AI usage tab")
                 }
-                Defaults.Toggle(key: .aiUsageShowRemaining) {
-                    Text("Show remaining instead of used")
+
+                if enableAIUsage {
+                    HStack(spacing: 8) {
+                        AIUsageDisplayModeOptionCard(
+                            title: "Used",
+                            isSelected: !aiUsageShowRemaining,
+                            progressText: "%70",
+                            accentColor: .orange,
+                            action: {
+                                aiUsageShowRemaining = false
+                            }
+                        )
+
+                        AIUsageDisplayModeOptionCard(
+                            title: "Remaining",
+                            isSelected: aiUsageShowRemaining,
+                            progressText: "%30",
+                            accentColor: .yellow,
+                            action: {
+                                aiUsageShowRemaining = true
+                            }
+                        )
+                    }
+                    .padding(.vertical, 4)
                 }
-                .disabled(!enableAIUsage)
-            } footer: {
-                Text("Claude uses the currently logged-in Claude Code account. Codex supports multiple saved accounts.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -203,7 +220,35 @@ struct AIUsageProviderIcon: View {
     }
 }
 
-private struct AIUsageAccountRow: View {
+private struct AIUsageDisplayModeOptionCard: View {
+    let title: String
+    let isSelected: Bool
+    let progressText: String
+    let accentColor: Color
+    let action: () -> Void
+
+    var body: some View {
+        SettingsOptionCard(title: title, isSelected: isSelected, action: action) {
+            HStack(spacing: 6) {
+                ZStack(alignment: .leading) {
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 54, height: 6)
+
+                    Capsule(style: .continuous)
+                        .fill(accentColor)
+                        .frame(width: 45, height: 6)
+                }
+
+                Text(progressText)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary.opacity(0.78))
+            }
+        }
+    }
+}
+
+struct AIUsageAccountRow: View {
     let account: AIUsageAccount
     let showRemaining: Bool
     let isSelected: Bool

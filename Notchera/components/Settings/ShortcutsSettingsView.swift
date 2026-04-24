@@ -12,11 +12,11 @@ struct ShortcutsSettingsView: View {
     var body: some View {
         Form {
             Section {
-                KeyboardShortcuts.Recorder("Open Launcher:", name: .commandPalette)
+                KeyboardShortcuts.Recorder("Toggle Notch", name: .toggleNotchOpen)
+                KeyboardShortcuts.Recorder("Launcher", name: .commandPalette)
                     .disabled(!enableCommandLauncher)
-                KeyboardShortcuts.Recorder("Open Clipboard Manager:", name: .clipboardHistoryPanel)
+                KeyboardShortcuts.Recorder("Clipboard History", name: .clipboardHistoryPanel)
                     .disabled(!enableClipboardHistory)
-                KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
             }
         }
         .scrollContentBackground(.hidden)
