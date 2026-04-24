@@ -352,6 +352,7 @@ private struct SettingsGeneralView: View {
     @Default(.automaticallySwitchDisplay) private var automaticallySwitchDisplay
     @Default(.openNotchOnHover) private var openNotchOnHover
     @Default(.showOnLockScreen) private var showOnLockScreen
+    @Default(.showLockScreenMediaPlayer) private var showLockScreenMediaPlayer
     @Default(.lockScreenPlayerStyle) private var lockScreenPlayerStyle
     @Default(.extendHoverArea) private var extendHoverArea
     @Default(.hideNotchInFullscreen) private var hideNotchInFullscreen
@@ -515,16 +516,6 @@ private struct SettingsGeneralView: View {
                 Defaults.Toggle(key: .hideNotchInFullscreen) {
                     Text("Hide in fullscreen")
                 }
-                Defaults.Toggle(key: .showOnLockScreen) {
-                    Text("Show notch on lock screen")
-                }
-                if showOnLockScreen {
-                    Picker("Lock screen player style", selection: $lockScreenPlayerStyle) {
-                        ForEach(LockScreenPlayerStyle.allCases) { style in
-                            Text(style.rawValue).tag(style)
-                        }
-                    }
-                }
                 Defaults.Toggle(key: .hideFromScreenRecording) {
                     Text("Hide from screen recording")
                 }
@@ -535,6 +526,29 @@ private struct SettingsGeneralView: View {
                 Toggle("Hide tab buttons", isOn: $coordinator.hideTabButtons)
             } header: {
                 SettingsSectionHeader(title: "Notch")
+            }
+
+            Section {
+                Defaults.Toggle(key: .showOnLockScreen) {
+                    Text("Show notch on lock screen")
+                }
+
+                if showOnLockScreen {
+                    Defaults.Toggle(key: .showLockScreenMediaPlayer) {
+                        Text("Show media player")
+                    }
+
+                    if showLockScreenMediaPlayer {
+                        Toggle(isOn: Binding(
+                            get: { lockScreenPlayerStyle == .frosted },
+                            set: { lockScreenPlayerStyle = $0 ? .frosted : .default }
+                        )) {
+                            Text("Use Frosted style")
+                        }
+                    }
+                }
+            } header: {
+                SettingsSectionHeader(title: "Lock Screen")
             }
         }
         .scrollContentBackground(.hidden)

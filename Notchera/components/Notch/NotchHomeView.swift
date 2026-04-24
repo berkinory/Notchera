@@ -927,14 +927,17 @@ struct LockScreenMediaView: View {
 struct LockScreenMediaOverlayView: View {
     @Namespace private var albumArtNamespace
     @State private var isVisible = false
+    @Default(.showLockScreenMediaPlayer) private var showLockScreenMediaPlayer
 
     var body: some View {
         ZStack {
             Color.clear
 
-            LockScreenMediaView(albumArtNamespace: albumArtNamespace)
-                .opacity(isVisible ? 1 : 0)
-                .offset(y: isVisible ? 0 : 6)
+            if showLockScreenMediaPlayer {
+                LockScreenMediaView(albumArtNamespace: albumArtNamespace)
+                    .opacity(isVisible ? 1 : 0)
+                    .offset(y: isVisible ? 0 : 6)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .preferredColorScheme(.dark)
