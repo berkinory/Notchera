@@ -19,7 +19,6 @@ APP_PATH = DERIVED_DATA / "Build" / "Products" / "Release" / "Notchera.app"
 DMG_OUTPUT = ROOT / "Notchera.dmg"
 VOLUME_NAME = "Notchera"
 NOTARY_PROFILE = "notary-profile"
-BACKGROUND_PNG = ROOT / "Configuration" / "dmg" / ".background" / "background.png"
 REQUIREMENTS = ROOT / "Configuration" / "dmg" / "requirements.txt"
 APP_ENTITLEMENTS = ROOT / "Notchera" / "Notchera.entitlements"
 HELPER_ENTITLEMENTS = ROOT / "NotcheraXPCHelper" / "NotcheraXPCHelper.entitlements"
@@ -264,36 +263,66 @@ def create_dmg(app_path: Path) -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
-        settings = f'''
-import os
-volume_name = {VOLUME_NAME!r}
-format = 'UDZO'
-compression_level = 9
-files = [{str(app_path)!r}]
-symlinks = {{'Applications': '/Applications'}}
-background = {str(BACKGROUND_PNG)!r}
-hide = ['.background.png']
-window_rect = ((0, 0), (660, 400))
-default_view = 'icon-view'
-include_icon_view_settings = True
-icon_size = 128
-icon_locations = {{
-    {app_path.name!r}: (150, 180),
-    'Applications': (510, 180),
-}}
-show_status_bar = False
-show_tab_view = False
-show_toolbar = False
-'''
+        settings_lines = [
+            f"volume_name = {VOLUME_NAME!r}",
+            f"filename = {str(DMG_OUTPUT)!r}",
+            "format = 'UDZO'",
+            "filesystem = 'HFS+'",
+            "compression_level = 9",
+            f"files = [{str(app_path)!r}]",
+            "symlinks = {'Applications': '/Applications'}",
+            "window_rect = ((0, 0), (660, 400))",
+            "default_view = 'icon-view'",
+            "show_status_bar = False",
+            "show_tab_view = False",
+            "show_toolbar = False",
+            "show_pathbar = False",
+            "show_sidebar = False",
+            "show_icon_preview = False",
+            "include_icon_view_settings = True",
+            "arrange_by = None",
+            "grid_spacing = 96",
+            "label_pos = 'bottom'",
+            "text_size = 14",
+            "icon_size = 128",
+            "icon_locations = {",
+            f"    {app_path.name!r}: (150, 180),",
+            "    'Applications': (510, 180),",
+            "}",
+        ]
         if badge_icon:
-            settings += f"badge_icon = {str(badge_icon)!r}\n"
+            settings_lines.append(f"badge_icon = {str(badge_icon)!r}")
 
         settings_path = tmp_dir / "dmgbuild_settings.py"
-        settings_path.write_text(settings)
+        settings_path.write_text("\n".join(settings_lines) + "\n")
         if DMG_OUTPUT.exists():
             DMG_OUTPUT.unlink()
         run(dmgbuild, "-s", str(settings_path), VOLUME_NAME, str(DMG_OUTPUT))
     ensure_file(DMG_OUTPUT)
+
+
+def smoke_test_dmg() -> None:
+    mount_point = ROOT / ".dmg-smoke-test"
+    if mount_point.exists():
+        shutil.rmtree(mount_point)
+    mount_point.mkdir()
+    mounted = False
+    try:
+        run("hdiutil", "attach", "-nobrowse", "-readonly", "-mountpoint", str(mount_point), str(DMG_OUTPUT))
+        mounted = True
+        ensure_dir(mount_point / app_path_name())
+        ensure_file(mount_point / ".DS_Store")
+        print(f"smoke: mounted={mount_point}")
+        print(f"smoke: app={mount_point / app_path_name()}")
+        print(f"smoke: ds_store={mount_point / '.DS_Store'}")
+    finally:
+        if mounted:
+            run("hdiutil", "detach", str(mount_point))
+        shutil.rmtree(mount_point, ignore_errors=True)
+
+
+def app_path_name() -> str:
+    return APP_PATH.name
 
 
 def notarize() -> None:
@@ -308,8 +337,7 @@ def main() -> None:
     apple_id = require_env("APPLE_ID")
     app_password = require_env("APPLE_APP_PASSWORD")
 
-    ensure_file(PROJECT)
-    ensure_file(BACKGROUND_PNG)
+    ensure_dir(PROJECT)
     ensure_file(REQUIREMENTS)
     ensure_file(APP_ENTITLEMENTS)
     ensure_file(HELPER_ENTITLEMENTS)
@@ -319,6 +347,7 @@ def main() -> None:
     build_release()
     sign_app(identity)
     create_dmg(APP_PATH)
+    smoke_test_dmg()
     notarize()
     print(f"ready: {DMG_OUTPUT}")
 
