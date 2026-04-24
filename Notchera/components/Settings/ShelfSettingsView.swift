@@ -18,10 +18,6 @@ struct ShelfSettingsView: View {
 
             } header: {
                 SettingsSectionHeader(title: "General")
-            } footer: {
-                Text("Shelf only accepts file drops.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
         }
         .scrollContentBackground(.hidden)

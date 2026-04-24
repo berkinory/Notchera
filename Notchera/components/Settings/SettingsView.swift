@@ -21,7 +21,7 @@ struct SettingsView: View {
                 SettingsSidebarItem(id: "media", title: "Media", icon: "music.note"),
                 SettingsSidebarItem(id: "notifications", title: "Notifications", icon: "app.badge"),
                 SettingsSidebarItem(id: "shelf", title: "File Shelf", icon: "folder.fill"),
-                SettingsSidebarItem(id: "launcher", title: "Command Launcher", icon: "command"),
+                SettingsSidebarItem(id: "launcher", title: "Launcher", icon: "command"),
                 SettingsSidebarItem(id: "clipboard", title: "Clipboard History", icon: "doc.on.clipboard"),
                 SettingsSidebarItem(id: "aiUsage", title: "AI Usage", icon: "chart.bar.fill"),
                 SettingsSidebarItem(id: "shortcuts", title: "Shortcuts", icon: "keyboard")
@@ -639,24 +639,23 @@ private struct SettingsCommandLauncherView: View {
         Form {
             Section {
                 Defaults.Toggle(key: .enableCommandLauncher) {
-                    Text("Enable command launcher")
+                    Text("Enable Launcher")
                 }
             }
 
-            Section {
-                Defaults.Toggle(key: .enableCommandLauncherCalculator) {
-                    Text("Enable calculator")
-                }
+            if enableCommandLauncher {
+                Section {
+                    Defaults.Toggle(key: .enableCommandLauncherCalculator) {
+                        Text("Enable calculator")
+                    }
 
-                Defaults.Toggle(key: .enableCommandLauncherCurrencyConversion) {
-                    Text("Enable currency conversion")
+                    if enableCommandLauncherCalculator {
+                        Defaults.Toggle(key: .enableCommandLauncherCurrencyConversion) {
+                            Text("Enable currency conversion")
+                        }
+                    }
                 }
-            } footer: {
-                Text("Currency conversion uses cached exchange rates and falls back to your system currency when no target currency is specified.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-            .disabled(!enableCommandLauncher)
         }
         .scrollContentBackground(.hidden)
     }
