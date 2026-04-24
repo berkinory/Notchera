@@ -253,22 +253,11 @@ struct ContentView: View {
     func NotchLayout() -> some View {
         VStack(alignment: .leading) {
             VStack(alignment: .leading) {
-                if coordinator.helloAnimationRunning {
-                    Spacer()
-                    HelloAnimation(onFinish: {
-                        vm.closeHello()
-                    }).frame(
-                        width: getClosedNotchSize().width,
-                        height: 80
-                    )
-                    .padding(.top, 40)
-                    Spacer()
-                } else {
-                    let closedHUDVisible = coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed
+                let closedHUDVisible = coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed
 
-                    if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
-                       vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
-                    {
+                if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
+                   vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
+                {
                         WingHUDView(
                             type: .constant(.battery),
                             value: .constant(CGFloat(batteryModel.levelBattery / 100)),
@@ -341,7 +330,6 @@ struct ContentView: View {
                     } else {
                         Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                     }
-                }
             }
             .zIndex(2)
             if vm.notchState == .open {

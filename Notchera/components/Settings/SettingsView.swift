@@ -416,6 +416,7 @@ private struct SettingsGeneralView: View {
     @Default(.extendHoverArea) private var extendHoverArea
     @Default(.hideNotchInFullscreen) private var hideNotchInFullscreen
     @Default(.hideFromScreenRecording) private var hideFromScreenRecording
+    @State private var calendarAuthorizationState = CalendarManager.shared.authorizationState
 
     private var selectedNotchHeightMode: Binding<WindowHeightMode> {
         Binding(
@@ -482,8 +483,59 @@ private struct SettingsGeneralView: View {
         return .main
     }
 
+    private func refreshCalendarAuthorizationState() {
+        CalendarManager.shared.refreshAuthorizationState()
+        calendarAuthorizationState = CalendarManager.shared.authorizationState
+    }
+
+    private func requestCalendarAccess() {
+        switch calendarAuthorizationState {
+        case .authorized:
+            return
+        case .notDetermined:
+            Task {
+                await CalendarManager.shared.requestAccess()
+                refreshCalendarAuthorizationState()
+            }
+        case .denied, .restricted:
+            openCalendarSettings()
+        }
+    }
+
+    private func openCalendarSettings() {
+        let urls = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars",
+            "x-apple.systempreferences:com.apple.preferences.users?Privacy_Calendars",
+        ]
+
+        for rawURL in urls {
+            guard let url = URL(string: rawURL) else { continue }
+            if NSWorkspace.shared.open(url) {
+                return
+            }
+        }
+    }
+
     var body: some View {
         Form {
+            if calendarAuthorizationState != .authorized {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Calendar access is required to show upcoming events.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        HStack(spacing: 12) {
+                            Button("Request Calendar Access") {
+                                requestCalendarAccess()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                    .padding(.top, 6)
+                }
+            }
+
             Section {
                 LaunchAtLogin.Toggle("Launch at login")
                 Toggle(isOn: Binding(
@@ -611,6 +663,12 @@ private struct SettingsGeneralView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .task {
+            refreshCalendarAuthorizationState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshCalendarAuthorizationState()
+        }
     }
 }
 

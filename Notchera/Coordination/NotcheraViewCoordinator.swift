@@ -24,7 +24,6 @@ class NotcheraViewCoordinator: ObservableObject {
         }
     }
 
-    @Published var helloAnimationRunning: Bool = false
     @Published var clipboardKeyboardNavigationActive: Bool = false
     @Published var notchKeyboardDismissActive: Bool = false
     @Published var isScreenLocked: Bool = false
@@ -184,8 +183,6 @@ class NotcheraViewCoordinator: ObservableObject {
             }
 
         Task { @MainActor in
-            helloAnimationRunning = firstLaunch
-
             if Defaults[.hudReplacement] {
                 let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
                 if !authorized {

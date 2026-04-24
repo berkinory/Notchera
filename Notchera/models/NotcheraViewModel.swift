@@ -153,12 +153,4 @@ class NotcheraViewModel: NSObject, ObservableObject {
         coordinator.resetViewAfterClose()
     }
 
-    func closeHello() {
-        Task { @MainActor in
-            withAnimation(animationLibrary.animation) {
-                coordinator.helloAnimationRunning = false
-                close()
-            }
-        }
-    }
 }
