@@ -79,6 +79,27 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
         }
     }
 
+    var shortLabel: String {
+        switch self {
+        case .shuffle:
+            "Shuffle"
+        case .lyrics:
+            "Lyrics"
+        case .previous:
+            "Previous"
+        case .playPause:
+            "Play/Pause"
+        case .next:
+            "Next"
+        case .goBackward:
+            "Back 15s"
+        case .goForward:
+            "Forward 15s"
+        case .none:
+            "Empty"
+        }
+    }
+
     var prefersLargeScale: Bool {
         self == .playPause
     }

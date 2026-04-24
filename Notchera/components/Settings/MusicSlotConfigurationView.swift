@@ -7,220 +7,126 @@ struct MusicSlotConfigurationView: View {
     @Default(.musicControlSlotLimit) private var musicControlSlotLimit
     @Default(.matchAlbumArtColor) private var matchAlbumArtColor
     @ObservedObject private var musicManager = MusicManager.shared
-    @State private var draggedSlot: MusicControlButton?
+    @State private var selectedSlotIndex = 3
+    @State private var draggedSlotIndex: Int?
 
     private let fixedSlotCount: Int = 7
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            slotConfigurationSection
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack {
-                Spacer()
-                Button("Reset to Defaults") {
-                    withAnimation {
-                        musicControlSlots = MusicControlButton.defaultLayout
-                        musicControlSlotLimit = fixedSlotCount
-                    }
-                }
-                .buttonStyle(.borderless)
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            slotRow
+            controlPalette
         }
         .onAppear {
             ensureSlotCapacity(fixedSlotCount)
             ensureSlotLimit(fixedSlotCount)
+            normalizeSelectedSlotIndex()
+        }
+        .onChange(of: musicControlSlots) {
+            normalizeSelectedSlotIndex()
         }
     }
 
-    private var previewSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 12) {
-                HStack(spacing: 6) {
-                    ForEach(0 ..< fixedSlotCount, id: \.self) { index in
-                        let slot = slotValue(at: index)
-                        Group {
-                            if slot != .none {
-                                slotPreview(for: slot)
-                                    .frame(maxWidth: 44)
-                                    .onDrag {
-                                        DispatchQueue.main.async { draggedSlot = slot }
-                                        return NSItemProvider(object: NSString(string: "slot:\(index)"))
-                                    }
-                                    .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                                        let handled = handleDrop(providers, toIndex: index)
-                                        DispatchQueue.main.async { draggedSlot = nil }
-                                        return handled
-                                    }
-                            } else {
-                                slotPreview(for: slot)
-                                    .frame(maxWidth: 44)
-                                    .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                                        let handled = handleDrop(providers, toIndex: index)
-                                        DispatchQueue.main.async { draggedSlot = nil }
-                                        return handled
-                                    }
-                            }
-                        }
-                    }
-                }
-                .padding(12)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Controls layout")
+                .font(.headline)
+                .foregroundStyle(Color.secondary.opacity(0.9))
 
-                VStack(spacing: 8) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(NSColor.controlBackgroundColor))
-                            .frame(width: 56, height: 56)
+            Spacer(minLength: 12)
 
-                        Image(systemName: "trash")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(Color.primary)
-                    }
-                    .cornerRadius(10)
-                    .contentShape(RoundedRectangle(cornerRadius: 10))
-                    .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                        handleDropOnTrash(providers)
-                    }
-
-                    Text("Clear slot")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .frame(width: 72)
+            Button("Reset") {
+                withAnimation(.smooth(duration: 0.18)) {
+                    musicControlSlots = MusicControlButton.defaultLayout
+                    musicControlSlotLimit = fixedSlotCount
+                    selectedSlotIndex = 3
                 }
             }
-            .padding(.trailing, 1)
+            .buttonStyle(.borderless)
         }
     }
 
-    private var slotConfigurationSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Layout Preview")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("Drag items in the preview to reorder or drop from the palette")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            previewSection
+    private var slotRow: some View {
+        GeometryReader { geometry in
+            let totalSpacing = CGFloat(fixedSlotCount - 1) * 4
+            let totalHorizontalPadding: CGFloat = 16
+            let availableWidth = geometry.size.width - totalSpacing - totalHorizontalPadding
+            let slotSize = floor(max(min(availableWidth / CGFloat(fixedSlotCount), 44), 38))
 
-            Divider()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Drag a control onto a slot")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                ScrollView(.horizontal) {
-                    HStack(spacing: 12) {
-                        ForEach(MusicControlButton.pickerOptions, id: \.self) { control in
-                            VStack(spacing: 6) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color(NSColor.controlBackgroundColor))
-                                        .frame(width: 44, height: 44)
-
-                                    if control != .none {
-                                        Image(systemName: control.iconName)
-                                            .font(.system(size: control.prefersLargeScale ? 18 : 15, weight: .medium))
-                                            .foregroundStyle(control == .none ? Color.secondary : Color.primary)
-                                            .frame(width: 28, height: 28)
-                                    }
-                                }
-                                .cornerRadius(8)
-                                .contentShape(RoundedRectangle(cornerRadius: 8))
-                                .onDrag {
-                                    NSItemProvider(object: NSString(string: "control:\(control.rawValue)"))
-                                }
-                                .onTapGesture {
-                                    if let idx = musicControlSlots.firstIndex(of: .none) {
-                                        updateSlot(control, at: idx)
-                                    } else {
-                                        withAnimation { updateSlot(control, at: 0) }
-                                    }
-                                }
-
-                                Text(control.label)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 60)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                            }
+            HStack(spacing: 4) {
+                ForEach(0 ..< fixedSlotCount, id: \.self) { index in
+                    MusicControlSlotCard(
+                        slot: slotValue(at: index),
+                        iconColor: previewIconColor(for: slotValue(at: index)),
+                        isHiddenDuringDrag: draggedSlotIndex == index,
+                        size: slotSize,
+                        onSelect: {
+                            selectedSlotIndex = index
+                        },
+                        onDragStart: {
+                            draggedSlotIndex = index
+                        },
+                        onDragEnd: {
+                            draggedSlotIndex = nil
+                        },
+                        onSwap: { fromIndex in
+                            swapSlots(from: fromIndex, to: index)
+                            draggedSlotIndex = nil
+                        },
+                        onAssign: { control in
+                            assignControl(control, to: index)
+                            selectedSlotIndex = index
+                            draggedSlotIndex = nil
                         }
-                    }
-                    .padding(.vertical, 4)
+                    )
                 }
-                .scrollIndicators(.visible)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .background(slotRowBackground)
+        }
+        .frame(height: 54)
+    }
+
+    private var controlPalette: some View {
+        HStack(spacing: 8) {
+            Spacer(minLength: 0)
+
+            HStack(spacing: 4) {
+                ForEach(availableControls, id: \.self) { control in
+                    MusicControlPickerCard(
+                        control: control,
+                        iconColor: previewIconColor(for: control),
+                        action: {
+                            assignControl(control, to: selectedSlotIndex)
+                        }
+                    )
+                }
+            }
+            .padding(5)
+            .background(slotRowBackground)
+            .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
+                handlePaletteDrop(providers)
+            }
+
+            Spacer(minLength: 0)
         }
     }
 
-    private func slotConfigRow(for index: Int) -> some View {
-        let currentSlot = slotValue(at: index)
-
-        return HStack(spacing: 12) {
-            Text("\(index + 1)")
-                .font(.system(size: 14, weight: .medium, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-
-            Group {
-                if currentSlot != .none {
-                    slotPreview(for: currentSlot)
-                        .frame(height: 32)
-                        .onDrag {
-                            DispatchQueue.main.async { draggedSlot = currentSlot }
-                            return NSItemProvider(object: NSString(string: "slot:\(index)"))
-                        }
-                        .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                            let handled = handleDrop(providers, toIndex: index)
-                            DispatchQueue.main.async { draggedSlot = nil }
-                            return handled
-                        }
-                } else {
-                    slotPreview(for: currentSlot)
-                        .frame(height: 32)
-                        .onDrop(of: [UTType.plainText.identifier], isTargeted: nil) { providers in
-                            let handled = handleDrop(providers, toIndex: index)
-                            DispatchQueue.main.async { draggedSlot = nil }
-                            return handled
-                        }
-                }
-            }
-
-            Spacer()
-        }
-        .padding(8)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-        .cornerRadius(6)
+    private var availableControls: [MusicControlButton] {
+        let assignedControls = Set(musicControlSlots.filter { $0 != .none })
+        return MusicControlButton.pickerOptions.filter { !assignedControls.contains($0) }
     }
 
-    private func slotPreview(for slot: MusicControlButton) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor))
-                .frame(width: 44, height: 44)
-
-            if slot != .none {
-                Image(systemName: slot.iconName)
-                    .font(.system(size: slot.prefersLargeScale ? 18 : 15, weight: .medium))
-                    .foregroundStyle(previewIconColor(for: slot))
-                    .frame(width: 28, height: 28)
-            } else {
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                    .foregroundStyle(Color.secondary.opacity(0.3))
-                    .frame(width: 32, height: 32)
+    private var slotRowBackground: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(Color.white.opacity(0.035))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.8)
             }
-        }
-        .cornerRadius(8)
-        .contentShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private var activeControlColor: Color {
@@ -229,20 +135,13 @@ struct MusicSlotConfigurationView: View {
             : .white
     }
 
-    private var inactiveControlColor: Color {
-        .secondary.opacity(0.6)
+    private func previewIconColor(for slot: MusicControlButton) -> Color {
+        .primary
     }
 
-    private func previewIconColor(for slot: MusicControlButton) -> Color {
-        switch slot {
-        case .shuffle:
-            musicManager.isShuffled ? activeControlColor : inactiveControlColor
-        case .lyrics:
-            Defaults[.enableLyrics] ? activeControlColor : inactiveControlColor
-        case .playPause:
-            .primary
-        default:
-            .primary
+    private func normalizeSelectedSlotIndex() {
+        if !(0 ..< fixedSlotCount).contains(selectedSlotIndex) {
+            selectedSlotIndex = 0
         }
     }
 
@@ -257,105 +156,181 @@ struct MusicSlotConfigurationView: View {
         musicControlSlotLimit = target
     }
 
-    private func slotBinding(for index: Int) -> Binding<MusicControlButton> {
-        Binding(
-            get: { slotValue(at: index) },
-            set: { newValue in updateSlot(newValue, at: index) }
-        )
-    }
-
     private func slotValue(at index: Int) -> MusicControlButton {
         guard musicControlSlots.indices.contains(index) else { return .none }
         return musicControlSlots[index]
     }
 
-    private func handleDrop(_ providers: [NSItemProvider], toIndex: Int) -> Bool {
-        for provider in providers {
-            if provider.canLoadObject(ofClass: NSString.self) {
-                provider.loadObject(ofClass: NSString.self) { item, _ in
-                    if let nsstring = item as? NSString {
-                        let raw = nsstring as String
-                        DispatchQueue.main.async {
-                            processDropString(raw, toIndex: toIndex)
-                        }
-                    } else if let str = item as? String {
-                        DispatchQueue.main.async {
-                            processDropString(str, toIndex: toIndex)
-                        }
-                    }
-                }
-                return true
-            }
-        }
-        return false
-    }
-
-    private func handleDropOnTrash(_ providers: [NSItemProvider]) -> Bool {
-        for provider in providers {
-            if provider.canLoadObject(ofClass: NSString.self) {
-                provider.loadObject(ofClass: NSString.self) { item, _ in
-                    if let nsstring = item as? NSString {
-                        let raw = nsstring as String
-                        DispatchQueue.main.async {
-                            if raw.hasPrefix("slot:") {
-                                let from = Int(raw.replacingOccurrences(of: "slot:", with: "")) ?? -1
-                                guard from >= 0, from < fixedSlotCount else { return }
-                                var slots = musicControlSlots
-                                if from < slots.count {
-                                    slots[from] = .none
-                                    musicControlSlots = slots
-                                }
-                            }
-                        }
-                    } else if let str = item as? String {
-                        DispatchQueue.main.async {
-                            if str.hasPrefix("slot:") {
-                                let from = Int(str.replacingOccurrences(of: "slot:", with: "")) ?? -1
-                                guard from >= 0, from < fixedSlotCount else { return }
-                                var slots = musicControlSlots
-                                if from < slots.count {
-                                    slots[from] = .none
-                                    musicControlSlots = slots
-                                }
-                            }
-                        }
-                    }
-                }
-                return true
-            }
-        }
-        return false
-    }
-
-    private func processDropString(_ raw: String, toIndex: Int) {
-        if raw.hasPrefix("slot:") {
-            let from = Int(raw.replacingOccurrences(of: "slot:", with: "")) ?? -1
-            guard from >= 0, from < fixedSlotCount else { return }
-            var slots = musicControlSlots
-            if from < slots.count, toIndex < slots.count {
-                slots.swapAt(from, toIndex)
-                musicControlSlots = slots
-            }
-        } else if raw.hasPrefix("control:") {
-            let val = raw.replacingOccurrences(of: "control:", with: "")
-            if let control = MusicControlButton(rawValue: val) {
-                var slots = musicControlSlots
-                if let existing = slots.firstIndex(of: control), existing != toIndex {
-                    slots[existing] = .none
-                    musicControlSlots = slots
-                }
-
-                updateSlot(control, at: toIndex)
-            }
-        }
-    }
-
-    private func updateSlot(_ value: MusicControlButton, at index: Int) {
+    private func swapSlots(from fromIndex: Int, to toIndex: Int) {
+        guard fromIndex != toIndex else { return }
+        guard musicControlSlots.indices.contains(fromIndex), musicControlSlots.indices.contains(toIndex) else { return }
         var slots = musicControlSlots
+        slots.swapAt(fromIndex, toIndex)
+        musicControlSlots = slots
+    }
+
+    private func assignControl(_ control: MusicControlButton, to index: Int) {
+        var slots = musicControlSlots
+
         if index >= slots.count {
             slots.append(contentsOf: Array(repeating: .none, count: index - slots.count + 1))
         }
-        slots[index] = value
+
+        if let existingIndex = slots.firstIndex(of: control), existingIndex != index {
+            slots[existingIndex] = .none
+        }
+
+        slots[index] = control
         musicControlSlots = slots
+    }
+
+    private func removeSlot(at index: Int) {
+        guard musicControlSlots.indices.contains(index) else { return }
+        var slots = musicControlSlots
+        slots[index] = .none
+        musicControlSlots = slots
+        draggedSlotIndex = nil
+    }
+
+    private func handlePaletteDrop(_ providers: [NSItemProvider]) -> Bool {
+        for provider in providers where provider.canLoadObject(ofClass: NSString.self) {
+            provider.loadObject(ofClass: NSString.self) { item, _ in
+                guard let rawValue = item as? String ?? (item as? NSString as String?) else { return }
+                DispatchQueue.main.async {
+                    guard rawValue.hasPrefix("slotIndex:") else { return }
+                    let indexRawValue = rawValue.replacingOccurrences(of: "slotIndex:", with: "")
+                    guard let fromIndex = Int(indexRawValue), fromIndex >= 0 else { return }
+                    removeSlot(at: fromIndex)
+                }
+            }
+            return true
+        }
+
+        return false
+    }
+}
+
+private struct MusicControlSlotCard: View {
+    let slot: MusicControlButton
+    let iconColor: Color
+    let isHiddenDuringDrag: Bool
+    let size: CGFloat
+    let onSelect: () -> Void
+    let onDragStart: () -> Void
+    let onDragEnd: () -> Void
+    let onSwap: (Int) -> Void
+    let onAssign: (MusicControlButton) -> Void
+    @State private var isDropTargeted = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(isDropTargeted ? 0.055 : 0.035))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(borderColor, lineWidth: isDropTargeted ? 1 : 0.8)
+                    }
+
+                if slot == .none || isHiddenDuringDrag {
+                    RoundedRectangle(cornerRadius: max(size * 0.18, 7), style: .continuous)
+                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        .foregroundStyle(Color.secondary.opacity(0.22))
+                        .frame(width: size * 0.58, height: size * 0.58)
+                } else {
+                    Image(systemName: slot.iconName)
+                        .font(.system(size: slot.prefersLargeScale ? size * 0.39 : size * 0.34, weight: .medium))
+                        .foregroundStyle(iconColor)
+                        .frame(width: size * 0.58, height: size * 0.58)
+                }
+            }
+            .frame(width: size, height: size)
+        }
+        .buttonStyle(.plain)
+        .onDrag {
+            guard slot != .none else {
+                return NSItemProvider(object: NSString(string: "slot:-1"))
+            }
+            onDragStart()
+            return NSItemProvider(object: NSString(string: "slotIndex:\(MusicManagerSlotLookup.index(for: slot) ?? -1)"))
+        }
+        .onDrop(of: [UTType.plainText.identifier], isTargeted: $isDropTargeted) { providers in
+            handleDrop(providers)
+        }
+    }
+
+    private var borderColor: Color {
+        isDropTargeted
+            ? Color(red: 0.62, green: 0.76, blue: 1).opacity(0.95)
+            : Color.white.opacity(0.05)
+    }
+
+    private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        for provider in providers where provider.canLoadObject(ofClass: NSString.self) {
+            provider.loadObject(ofClass: NSString.self) { item, _ in
+                guard let rawValue = item as? String ?? (item as? NSString as String?) else { return }
+                DispatchQueue.main.async {
+                    if rawValue.hasPrefix("control:") {
+                        let controlRawValue = rawValue.replacingOccurrences(of: "control:", with: "")
+                        guard let control = MusicControlButton(rawValue: controlRawValue) else {
+                            onDragEnd()
+                            return
+                        }
+                        onAssign(control)
+                        return
+                    }
+
+                    if rawValue.hasPrefix("slotIndex:") {
+                        let indexRawValue = rawValue.replacingOccurrences(of: "slotIndex:", with: "")
+                        guard let fromIndex = Int(indexRawValue), fromIndex >= 0 else {
+                            onDragEnd()
+                            return
+                        }
+                        onSwap(fromIndex)
+                        return
+                    }
+
+                    onDragEnd()
+                }
+            }
+            return true
+        }
+
+        return false
+    }
+}
+
+private enum MusicManagerSlotLookup {
+    static func index(for control: MusicControlButton) -> Int? {
+        Defaults[.musicControlSlots].firstIndex(of: control)
+    }
+}
+
+private struct MusicControlPickerCard: View {
+    let control: MusicControlButton
+    let iconColor: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Color.white.opacity(0.03))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.045), lineWidth: 0.8)
+                    }
+
+                Image(systemName: control.iconName)
+                    .font(.system(size: control.prefersLargeScale ? 14 : 12, weight: .medium))
+                    .foregroundStyle(iconColor)
+                    .frame(width: 20, height: 20)
+            }
+            .frame(width: 32, height: 32)
+        }
+        .buttonStyle(.plain)
+        .onDrag {
+            NSItemProvider(object: NSString(string: "control:\(control.rawValue)"))
+        }
     }
 }

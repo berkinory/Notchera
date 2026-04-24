@@ -53,21 +53,12 @@ struct MediaSettingsView: View {
 
             Section {
                 MusicSlotConfigurationView()
-                Toggle(isOn: $enableLyrics) {
-                    HStack {
-                        Text("Show lyrics below artist name")
-                        customBadge(text: "Beta")
+                Toggle("Show lyrics", isOn: $enableLyrics)
+                    .onChange(of: enableLyrics) { _, isEnabled in
+                        MusicManager.shared.setLyricsEnabled(isEnabled)
                     }
-                }
-                .onChange(of: enableLyrics) { _, isEnabled in
-                    MusicManager.shared.setLyricsEnabled(isEnabled)
-                }
             } header: {
                 Text("Media controls")
-            } footer: {
-                Text("Customize which controls appear in the music player.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .scrollContentBackground(.hidden)
