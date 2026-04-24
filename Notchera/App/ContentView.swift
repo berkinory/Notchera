@@ -33,6 +33,10 @@ struct ContentView: View {
         coordinator.isScreenLocked && Defaults[.showOnLockScreen]
     }
 
+    private var allowsLockScreenHUD: Bool {
+        !coordinator.isScreenLocked || (Defaults[.showOnLockScreen] && Defaults[.showHUDOnLockScreen])
+    }
+
     private var usesExpandedShell: Bool {
         vm.notchState == .open
     }
@@ -68,7 +72,7 @@ struct ContentView: View {
         var chinWidth: CGFloat = vm.closedNotchSize.width
 
         if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
-           vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
+           vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications], allowsLockScreenHUD
         {
             chinWidth = openNotchSize.width
         } else if !coordinator.expandingView.show,
@@ -253,10 +257,10 @@ struct ContentView: View {
     func NotchLayout() -> some View {
         VStack(alignment: .leading) {
             VStack(alignment: .leading) {
-                let closedHUDVisible = coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed
+                let closedHUDVisible = coordinator.hud.show && coordinator.hud.type != .battery && vm.notchState == .closed && allowsLockScreenHUD
 
                 if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
-                   vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
+                   vm.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications], allowsLockScreenHUD
                 {
                         WingHUDView(
                             type: .constant(.battery),

@@ -298,7 +298,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         var width = viewModel.closedNotchSize.width
 
         if coordinator.expandingView.type == .battery, coordinator.expandingView.show,
-           viewModel.notchState == .closed, Defaults[.hudReplacement], Defaults[.showPowerStatusNotifications]
+           viewModel.notchState == .closed,
+           Defaults[.hudReplacement],
+           Defaults[.showPowerStatusNotifications],
+           (!isScreenLocked || (Defaults[.showOnLockScreen] && Defaults[.showHUDOnLockScreen]))
         {
             width = openNotchSize.width
         } else if !coordinator.expandingView.show,

@@ -15,6 +15,7 @@ struct HUDSettingsView: View {
     @Default(.systemEventIndicatorShadow) var systemEventIndicatorShadow
     @Default(.showBacklightIndicator) var showBacklightIndicator
     @Default(.showSystemValueInHUD) var showSystemValueInHUD
+    @Default(.showHUDOnLockScreen) var showHUDOnLockScreen
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
     @Default(.showInputSourceIndicator) var showInputSourceIndicator
     @Default(.showFocusIndicator) var showFocusIndicator
@@ -38,6 +39,7 @@ struct HUDSettingsView: View {
                     showBrightnessIndicator = false
                     showBacklightIndicator = false
                     showSystemValueInHUD = false
+                    showHUDOnLockScreen = false
                     showCapsLockIndicator = false
                     showInputSourceIndicator = false
                     showFocusIndicator = false
@@ -81,6 +83,7 @@ struct HUDSettingsView: View {
                             isSelected: !enableGradient,
                             usesGradient: false,
                             glowEnabled: systemEventIndicatorShadow,
+                            showsValue: showSystemValueInHUD,
                             action: {
                                 enableGradient = false
                             }
@@ -91,6 +94,7 @@ struct HUDSettingsView: View {
                             isSelected: enableGradient,
                             usesGradient: true,
                             glowEnabled: systemEventIndicatorShadow,
+                            showsValue: showSystemValueInHUD,
                             action: {
                                 enableGradient = true
                             }
@@ -100,14 +104,10 @@ struct HUDSettingsView: View {
 
                     Toggle("Enable glow", isOn: $systemEventIndicatorShadow)
 
-                    Toggle(isOn: $showSystemValueInHUD) {
-                        HStack {
-                            Text("Show values in HUD")
-                            Spacer(minLength: 8)
-                            Text("85")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    Toggle("Show on Lock Screen", isOn: $showHUDOnLockScreen)
+                        .disabled(!hudReplacement || !Defaults[.showOnLockScreen])
+
+                    Toggle("Show values in HUD", isOn: $showSystemValueInHUD)
                 } header: {
                     SettingsSectionHeader(title: "Styling")
                 }
@@ -229,11 +229,12 @@ private struct HUDProgressStyleOptionCard: View {
     let isSelected: Bool
     let usesGradient: Bool
     let glowEnabled: Bool
+    let showsValue: Bool
     let action: () -> Void
 
     var body: some View {
         SettingsOptionCard(title: title, isSelected: isSelected, action: action) {
-            HUDProgressStylePreview(usesGradient: usesGradient, glowEnabled: glowEnabled)
+            HUDProgressStylePreview(usesGradient: usesGradient, glowEnabled: glowEnabled, showsValue: showsValue)
         }
     }
 }
@@ -241,6 +242,7 @@ private struct HUDProgressStyleOptionCard: View {
 private struct HUDProgressStylePreview: View {
     let usesGradient: Bool
     let glowEnabled: Bool
+    let showsValue: Bool
 
     private var fillStyle: AnyShapeStyle {
         if usesGradient {
@@ -261,18 +263,28 @@ private struct HUDProgressStylePreview: View {
     }
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            Capsule(style: .continuous)
-                .fill(.tertiary)
+        HStack(spacing: showsValue ? 4 : 0) {
+            ZStack(alignment: .leading) {
+                Capsule(style: .continuous)
+                    .fill(.tertiary)
 
-            Capsule(style: .continuous)
-                .fill(fillStyle)
-                .frame(width: 34)
-                .shadow(color: glowEnabled ? glowColor : .clear, radius: glowEnabled ? 4 : 0, x: glowEnabled ? 1 : 0)
+                Capsule(style: .continuous)
+                    .fill(fillStyle)
+                    .frame(width: 34)
+                    .shadow(color: glowEnabled ? glowColor : .clear, radius: glowEnabled ? 4 : 0, x: glowEnabled ? 1 : 0)
+            }
+            .frame(width: 52, height: 6)
+
+            if showsValue {
+                Text("60")
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+            }
         }
-        .frame(width: 52, height: 6)
         .animation(.smooth(duration: 0.18), value: glowEnabled)
         .animation(.smooth(duration: 0.18), value: usesGradient)
+        .animation(.smooth(duration: 0.18), value: showsValue)
     }
 }
 
