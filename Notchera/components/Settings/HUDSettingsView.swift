@@ -1,3 +1,4 @@
+import AVFoundation
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
@@ -11,6 +12,7 @@ struct HUDSettingsView: View {
     @Default(.hudReplacement) var hudReplacement
     @Default(.showVolumeIndicator) var showVolumeIndicator
     @Default(.showBrightnessIndicator) var showBrightnessIndicator
+    @Default(.systemEventIndicatorShadow) var systemEventIndicatorShadow
     @Default(.showBacklightIndicator) var showBacklightIndicator
     @Default(.showSystemValueInHUD) var showSystemValueInHUD
     @Default(.showCapsLockIndicator) var showCapsLockIndicator
@@ -23,25 +25,36 @@ struct HUDSettingsView: View {
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @State private var accessibilityAuthorized = false
 
+    private var hudEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { hudReplacement },
+            set: { newValue in
+                hudReplacement = newValue
+
+                if !newValue {
+                    enableGradient = false
+                    systemEventIndicatorShadow = false
+                    showVolumeIndicator = false
+                    showBrightnessIndicator = false
+                    showBacklightIndicator = false
+                    showSystemValueInHUD = false
+                    showCapsLockIndicator = false
+                    showInputSourceIndicator = false
+                    showFocusIndicator = false
+                    showBluetoothAudioIndicator = false
+                    animateBluetoothAudioIndicator = false
+                    showPowerStatusNotifications = false
+                    enableScreenRecordingDetection = false
+                }
+            }
+        )
+    }
+
     var body: some View {
         Form {
             Section {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Replace system HUD")
-                            .font(.headline)
-                        Text("Replaces the standard macOS volume, display brightness, and keyboard brightness HUDs with a custom design.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 40)
-                    Defaults.Toggle("", key: .hudReplacement)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .controlSize(.large)
-                        .disabled(!accessibilityAuthorized)
-                }
+                Toggle("Enable HUD", isOn: hudEnabledBinding)
+                    .disabled(!accessibilityAuthorized)
 
                 if !accessibilityAuthorized {
                     VStack(alignment: .leading, spacing: 8) {
@@ -60,74 +73,126 @@ struct HUDSettingsView: View {
                 }
             }
 
-            Section {
-                Picker("Progress bar style", selection: $enableGradient) {
-                    Text("Hierarchical")
-                        .tag(false)
-                    Text("Gradient")
-                        .tag(true)
+            if hudReplacement {
+                Section {
+                    HStack(spacing: 8) {
+                        HUDProgressStyleOptionCard(
+                            title: "Hierarchical",
+                            isSelected: !enableGradient,
+                            usesGradient: false,
+                            glowEnabled: systemEventIndicatorShadow,
+                            action: {
+                                enableGradient = false
+                            }
+                        )
+
+                        HUDProgressStyleOptionCard(
+                            title: "Gradient",
+                            isSelected: enableGradient,
+                            usesGradient: true,
+                            glowEnabled: systemEventIndicatorShadow,
+                            action: {
+                                enableGradient = true
+                            }
+                        )
+                    }
+                    .padding(.vertical, 4)
+
+                    Toggle("Enable glow", isOn: $systemEventIndicatorShadow)
+
+                    Toggle(isOn: $showSystemValueInHUD) {
+                        HStack {
+                            Text("Show values in HUD")
+                            Spacer(minLength: 8)
+                            Text("85")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    SettingsSectionHeader(title: "Styling")
                 }
-                Defaults.Toggle(key: .systemEventIndicatorShadow) {
-                    Text("Enable glowing effect")
+
+                Section {
+                    HUDNotificationToggleRow(
+                        title: "Volume",
+                        systemImage: "speaker.wave.2.fill",
+                        isOn: $showVolumeIndicator
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Brightness",
+                        systemImage: "sun.max.fill",
+                        isOn: $showBrightnessIndicator
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Keyboard backlight",
+                        systemImage: "keyboard.fill",
+                        isOn: $showBacklightIndicator
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Caps lock indicator",
+                        systemImage: "capslock.fill",
+                        isOn: $showCapsLockIndicator
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Input language indicator",
+                        systemImage: "globe",
+                        isOn: $showInputSourceIndicator
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Focus",
+                        systemImage: "moon.fill",
+                        isOn: $showFocusIndicator
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Battery",
+                        systemImage: "battery.100percent.bolt",
+                        isOn: $showPowerStatusNotifications
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Recording",
+                        systemImage: "record.circle.fill",
+                        isOn: $enableScreenRecordingDetection
+                    )
+
+                    HUDNotificationToggleRow(
+                        title: "Bluetooth Audio",
+                        systemImage: "headphones.over.ear",
+                        isOn: $showBluetoothAudioIndicator
+                    )
+
+                    if showBluetoothAudioIndicator {
+                        HStack(spacing: 8) {
+                            HUDBluetoothStyleOptionCard(
+                                title: "Animation",
+                                isSelected: animateBluetoothAudioIndicator,
+                                usesAnimation: true,
+                                action: {
+                                    animateBluetoothAudioIndicator = true
+                                }
+                            )
+
+                            HUDBluetoothStyleOptionCard(
+                                title: "Icon",
+                                isSelected: !animateBluetoothAudioIndicator,
+                                usesAnimation: false,
+                                action: {
+                                    animateBluetoothAudioIndicator = false
+                                }
+                            )
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } header: {
+                    SettingsSectionHeader(title: "Notifications")
                 }
-            } header: {
-                SettingsSectionHeader(title: "General")
             }
-            .disabled(!hudReplacement)
-
-            Section {
-                Defaults.Toggle(key: .showVolumeIndicator) {
-                    Text("Show volume indicator")
-                }
-
-                Defaults.Toggle(key: .showBrightnessIndicator) {
-                    Text("Show brightness indicator")
-                }
-
-                Defaults.Toggle(key: .showBacklightIndicator) {
-                    Text("Show keyboard backlight indicator")
-                }
-
-                Defaults.Toggle(key: .showSystemValueInHUD) {
-                    Text("Show value in HUD")
-                }
-
-                Defaults.Toggle(key: .showCapsLockIndicator) {
-                    Text("Show Caps Lock indicator")
-                }
-
-                Defaults.Toggle(key: .showInputSourceIndicator) {
-                    Text("Show input language indicator")
-                }
-
-                Defaults.Toggle(key: .showFocusIndicator) {
-                    Text("Show Focus mode indicator")
-                }
-
-                Defaults.Toggle(key: .showBluetoothAudioIndicator) {
-                    Text("Show Bluetooth audio notifications")
-                }
-
-                Defaults.Toggle(key: .animateBluetoothAudioIndicator) {
-                    Text("Use animated Bluetooth icons")
-                }
-
-                Defaults.Toggle(key: .showPowerStatusNotifications) {
-                    Text("Show battery notifications")
-                }
-
-                Defaults.Toggle(key: .enableScreenRecordingDetection) {
-                    Text("Show screen recording toast")
-                }
-            } header: {
-                SettingsSectionHeader(title: "Indicators")
-            } footer: {
-                Text("Replace system HUD acts as the master switch. When it is off, no indicator runs.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .disabled(!hudReplacement)
         }
         .scrollContentBackground(.hidden)
         .task {
@@ -143,6 +208,149 @@ struct HUDSettingsView: View {
             if let granted = notification.userInfo?["granted"] as? Bool {
                 accessibilityAuthorized = granted
             }
+        }
+    }
+}
+
+private struct HUDNotificationToggleRow: View {
+    let title: String
+    let systemImage: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            Label(title, systemImage: systemImage)
+        }
+    }
+}
+
+private struct HUDProgressStyleOptionCard: View {
+    let title: String
+    let isSelected: Bool
+    let usesGradient: Bool
+    let glowEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        SettingsOptionCard(title: title, isSelected: isSelected, action: action) {
+            HUDProgressStylePreview(usesGradient: usesGradient, glowEnabled: glowEnabled)
+        }
+    }
+}
+
+private struct HUDProgressStylePreview: View {
+    let usesGradient: Bool
+    let glowEnabled: Bool
+
+    private var fillStyle: AnyShapeStyle {
+        if usesGradient {
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.white, Color.white.opacity(0.2)],
+                    startPoint: .trailing,
+                    endPoint: .leading
+                )
+            )
+        }
+
+        return AnyShapeStyle(Color.white)
+    }
+
+    private var glowColor: Color {
+        Color.white
+    }
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Capsule(style: .continuous)
+                .fill(.tertiary)
+
+            Capsule(style: .continuous)
+                .fill(fillStyle)
+                .frame(width: 34)
+                .shadow(color: glowEnabled ? glowColor : .clear, radius: glowEnabled ? 4 : 0, x: glowEnabled ? 1 : 0)
+        }
+        .frame(width: 52, height: 6)
+        .animation(.smooth(duration: 0.18), value: glowEnabled)
+        .animation(.smooth(duration: 0.18), value: usesGradient)
+    }
+}
+
+private struct HUDBluetoothStyleOptionCard: View {
+    let title: String
+    let isSelected: Bool
+    let usesAnimation: Bool
+    let action: () -> Void
+
+    private let bluetoothIconName = "airpods"
+    private let bluetoothAnimationName = "airpods"
+
+    var body: some View {
+        SettingsOptionCard(title: title, isSelected: isSelected, action: action) {
+            Group {
+                if usesAnimation, let url = Bundle.main.url(forResource: bluetoothAnimationName, withExtension: "mov", subdirectory: "BluetoothHUDAnimations") {
+                    SettingsBluetoothLoopingVideoIcon(url: url, size: CGSize(width: 22, height: 22))
+                } else {
+                    Image(systemName: bluetoothIconName)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 24, height: 24)
+        }
+    }
+}
+
+private final class SettingsBluetoothLoopingPlayerController {
+    private let playbackRate: Float = 1.25
+
+    let player: AVQueuePlayer
+    private var looper: AVPlayerLooper?
+
+    init(url: URL) {
+        let item = AVPlayerItem(url: url)
+        player = AVQueuePlayer()
+        player.isMuted = true
+        player.actionAtItemEnd = .none
+        looper = AVPlayerLooper(player: player, templateItem: item)
+        player.playImmediately(atRate: playbackRate)
+    }
+
+    deinit {
+        player.pause()
+        looper = nil
+    }
+}
+
+private struct SettingsBluetoothLoopingVideoIcon: NSViewRepresentable {
+    let url: URL
+    let size: CGSize
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: NSRect(origin: .zero, size: size))
+        view.wantsLayer = true
+
+        let playerLayer = AVPlayerLayer()
+        playerLayer.videoGravity = .resizeAspect
+        playerLayer.frame = view.bounds
+        view.layer?.addSublayer(playerLayer)
+
+        context.coordinator.attach(playerLayer: playerLayer, url: url)
+        return view
+    }
+
+    func updateNSView(_: NSView, context _: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator {
+        private var controller: SettingsBluetoothLoopingPlayerController?
+
+        func attach(playerLayer: AVPlayerLayer, url: URL) {
+            controller = SettingsBluetoothLoopingPlayerController(url: url)
+            playerLayer.player = controller?.player
         }
     }
 }
