@@ -23,6 +23,10 @@ final class AIUsageStore: ObservableObject {
     }
 
     func addAccount(alias: String, provider: AIUsageProvider, credentials: AIUsageCredentials) async {
+        if provider == .claude, accounts.contains(where: { $0.provider == .claude }) {
+            return
+        }
+
         let account = AIUsageAccount(
             id: UUID(),
             alias: alias,
@@ -33,11 +37,12 @@ final class AIUsageStore: ObservableObject {
 
         do {
             try credentialStore.store(credentials, for: account)
-            accounts.append(account)
+            let refreshed = try await service.refreshAccount(account, force: true)
+            accounts.append(refreshed)
             save()
-            await refreshAccount(id: account.id, force: true)
         } catch {
-            print("[AIUsageStore] Failed to store credentials: \(error)")
+            try? credentialStore.removeCredentials(for: account)
+            print("[AIUsageStore] Failed to add account: \(error)")
         }
     }
 

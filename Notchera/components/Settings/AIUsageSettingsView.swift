@@ -1,9 +1,22 @@
 import Defaults
 import SwiftUI
 
+@MainActor
+final class AIUsageConnectionCoordinator: ObservableObject {
+    static let shared = AIUsageConnectionCoordinator()
+
+    @Published var pendingProvider: AIUsageProvider?
+    @Published var connectingProvider: AIUsageProvider?
+    @Published var providerAlias = ""
+    let codexLoginSession = CodexLoginSession()
+
+    private init() {}
+}
+
 struct AIUsageSettingsView: View {
     @StateObject private var store = AIUsageStore.shared
-    @State private var showingAddSheet = false
+    @ObservedObject private var connection = AIUsageConnectionCoordinator.shared
+    @FocusState private var aliasFieldFocused: Bool
     @Default(.enableAIUsage) var enableAIUsage
     @Default(.aiUsageShowRemaining) var aiUsageShowRemaining
 
@@ -19,7 +32,8 @@ struct AIUsageSettingsView: View {
                         AIUsageDisplayModeOptionCard(
                             title: "Used",
                             isSelected: !aiUsageShowRemaining,
-                            progressText: "%70",
+                            progressText: "70%",
+                            progressValue: 70,
                             accentColor: .orange,
                             action: {
                                 aiUsageShowRemaining = false
@@ -29,7 +43,8 @@ struct AIUsageSettingsView: View {
                         AIUsageDisplayModeOptionCard(
                             title: "Remaining",
                             isSelected: aiUsageShowRemaining,
-                            progressText: "%30",
+                            progressText: "30%",
+                            progressValue: 30,
                             accentColor: .yellow,
                             action: {
                                 aiUsageShowRemaining = true
@@ -41,28 +56,72 @@ struct AIUsageSettingsView: View {
             }
 
             Section {
-                Button {
-                    showingAddSheet = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .semibold))
-                            .frame(width: 16, height: 16)
-                            .foregroundStyle(Color.white.opacity(0.9))
-                            .background(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(Color.white.opacity(0.08))
-                                    .frame(width: 24, height: 24)
-                            )
+                HStack(spacing: 8) {
+                    AIUsageProviderCard(
+                        provider: .codex,
+                        actionTitle: connection.pendingProvider == .codex || connection.connectingProvider == .codex ? "Cancel" : "Add account",
+                        actionEnabled: connection.pendingProvider != .claude,
+                        isLoading: connection.connectingProvider == .codex,
+                        action: {
+                            if connection.pendingProvider == .codex || connection.connectingProvider == .codex {
+                                cancelConnecting()
+                            } else {
+                                startConnecting(.codex)
+                            }
+                        }
+                    )
 
-                        Text("Add account")
-                            .font(.system(size: 13, weight: .medium))
-
-                        Spacer()
-                    }
-                    .padding(.vertical, 2)
+                    AIUsageProviderCard(
+                        provider: .claude,
+                        actionTitle: hasClaudeAccount ? "Connected" : "Connect",
+                        actionEnabled: !hasClaudeAccount && connection.pendingProvider != .codex && connection.connectingProvider == nil,
+                        isLoading: connection.connectingProvider == .claude,
+                        action: {
+                            guard !hasClaudeAccount, connection.connectingProvider == nil else { return }
+                            startConnecting(.claude)
+                        }
+                    )
                 }
-                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                if let provider = connection.pendingProvider {
+                    HStack(spacing: 8) {
+                        TextField("Alias", text: bindingForProvider(provider))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 180)
+                            .focused($aliasFieldFocused)
+
+                        Spacer(minLength: 0)
+
+                        Button("Connect") {
+                            Task {
+                                if provider == .codex {
+                                    await connectCodex()
+                                } else {
+                                    await connectClaude()
+                                }
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(!isAliasValid)
+
+                        if activeInlineProvider == provider {
+                            NotcheraSpinner(color: .white.opacity(0.85), lineWidth: 1.4)
+                                .frame(width: 12, height: 12)
+                        }
+                    }
+                }
+            } header: {
+                SettingsSectionHeader(title: "Providers")
+            }
+
+            Section {
+                if let errorMessage = connection.codexLoginSession.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
 
                 if store.accounts.isEmpty {
                     Text("No accounts added")
@@ -98,9 +157,91 @@ struct AIUsageSettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .sheet(isPresented: $showingAddSheet) {
-            AddAIUsageAccountSheet()
+        .onAppear {
+            if connection.pendingProvider != nil {
+                aliasFieldFocused = true
+            }
         }
+    }
+
+    private var hasClaudeAccount: Bool {
+        store.accounts.contains(where: { $0.provider == .claude })
+    }
+
+    private var activeInlineProvider: AIUsageProvider? {
+        connection.connectingProvider
+    }
+
+    private var isAliasValid: Bool {
+        let length = connection.providerAlias.trimmingCharacters(in: .whitespacesAndNewlines).count
+        return (1 ... 8).contains(length)
+    }
+
+    private func bindingForProvider(_ provider: AIUsageProvider) -> Binding<String> {
+        Binding(
+            get: { connection.pendingProvider == provider ? connection.providerAlias : "" },
+            set: { connection.providerAlias = String($0.prefix(8)) }
+        )
+    }
+
+    private func startConnecting(_ provider: AIUsageProvider) {
+        connection.codexLoginSession.errorMessage = nil
+        connection.pendingProvider = provider
+        connection.connectingProvider = nil
+        connection.providerAlias = ""
+        aliasFieldFocused = true
+    }
+
+    private func cancelConnecting() {
+        connection.codexLoginSession.cancel()
+        connection.pendingProvider = nil
+        connection.connectingProvider = nil
+        connection.providerAlias = ""
+        aliasFieldFocused = false
+    }
+
+    private func disconnectClaude() {
+        guard let account = store.accounts.first(where: { $0.provider == .claude }) else { return }
+        store.removeAccount(id: account.id)
+        if connection.pendingProvider == .claude || connection.connectingProvider == .claude {
+            connection.pendingProvider = nil
+            connection.connectingProvider = nil
+            connection.providerAlias = ""
+        }
+    }
+
+    @MainActor
+    private func connectClaude() async {
+        let alias = connection.providerAlias.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (1 ... 8).contains(alias.count) else { return }
+        aliasFieldFocused = false
+        connection.codexLoginSession.errorMessage = nil
+        connection.connectingProvider = .claude
+        connection.pendingProvider = nil
+        defer { connection.connectingProvider = nil }
+        await store.addAccount(alias: alias, provider: .claude, credentials: .claude)
+        connection.providerAlias = ""
+    }
+
+    @MainActor
+    private func connectCodex() async {
+        let alias = connection.providerAlias.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (1 ... 8).contains(alias.count) else { return }
+        aliasFieldFocused = false
+        connection.codexLoginSession.errorMessage = nil
+        connection.connectingProvider = .codex
+        connection.pendingProvider = nil
+
+        do {
+            try await connection.codexLoginSession.start()
+            let credentials = try await connection.codexLoginSession.completeFromCallbackOnly()
+            await store.addAccount(alias: alias, provider: .codex, credentials: .codex(credentials))
+            connection.providerAlias = ""
+        } catch {
+            connection.codexLoginSession.errorMessage = error.localizedDescription
+        }
+
+        connection.connectingProvider = nil
     }
 }
 
@@ -220,10 +361,53 @@ struct AIUsageProviderIcon: View {
     }
 }
 
+private struct AIUsageProviderCard: View {
+    let provider: AIUsageProvider
+    let actionTitle: String
+    let actionEnabled: Bool
+    let isLoading: Bool
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                AIUsageProviderIcon(provider: provider, size: 16)
+
+                Text(provider.displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.primary)
+
+                Spacer(minLength: 0)
+
+                if isLoading {
+                    NotcheraSpinner(color: .white.opacity(0.85), lineWidth: 1.4)
+                        .frame(width: 12, height: 12)
+                }
+            }
+
+            Button(actionTitle, action: action)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!actionEnabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.035))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.8)
+                }
+        )
+    }
+}
+
 private struct AIUsageDisplayModeOptionCard: View {
     let title: String
     let isSelected: Bool
     let progressText: String
+    let progressValue: Double
     let accentColor: Color
     let action: () -> Void
 
@@ -237,7 +421,7 @@ private struct AIUsageDisplayModeOptionCard: View {
 
                     Capsule(style: .continuous)
                         .fill(accentColor)
-                        .frame(width: 45, height: 6)
+                        .frame(width: max(6, 54 * CGFloat(min(max(progressValue, 0), 100) / 100)), height: 6)
                 }
 
                 Text(progressText)
@@ -543,8 +727,12 @@ private struct AddAIUsageAccountSheet: View {
     @StateObject private var store = AIUsageStore.shared
     @StateObject private var loginSession = CodexLoginSession()
     @State private var alias = ""
-    @State private var provider: AIUsageProvider = .codex
+    @State private var provider: AIUsageProvider
     @State private var codexAutoCompleteTask: Task<Void, Never>?
+
+    init(provider: AIUsageProvider) {
+        _provider = State(initialValue: provider)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
