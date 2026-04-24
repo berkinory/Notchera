@@ -96,8 +96,8 @@ struct WingHUDView: View {
     }
 
     private var wingWidth: CGFloat {
-        let scale: CGFloat = isOpen ? 1.04 : 1.0
-        return 108 * scale
+        let scale: CGFloat = 1.0
+        return 106 * scale
     }
 
     private var titleWidth: CGFloat {
