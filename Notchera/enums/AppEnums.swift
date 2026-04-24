@@ -57,8 +57,10 @@ enum LockScreenPlayerStyle: String, CaseIterable, Identifiable, Defaults.Seriali
 
 enum ClipboardHistoryRetention: String, CaseIterable, Identifiable, Defaults.Serializable {
     case oneHour = "1 hour"
+    case twelveHours = "12 hours"
     case oneDay = "1 day"
-    case oneWeek = "1 week"
+    case threeDays = "3 days"
+    case oneWeek = "7 days"
 
     var id: String {
         rawValue
@@ -68,8 +70,12 @@ enum ClipboardHistoryRetention: String, CaseIterable, Identifiable, Defaults.Ser
         switch self {
         case .oneHour:
             3600
+        case .twelveHours:
+            43_200
         case .oneDay:
-            86400
+            86_400
+        case .threeDays:
+            259_200
         case .oneWeek:
             604_800
         }

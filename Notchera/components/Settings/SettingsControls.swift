@@ -72,6 +72,7 @@ struct SettingsSliderRow: View {
     let range: ClosedRange<Double>
     let step: Double
     var accentColor: Color = Color(red: 0.62, green: 0.76, blue: 1)
+    var showsTicks: Bool = true
     var formatValue: (Double) -> String = { String(format: "%.1fs", $0) }
 
     @State private var isDragging = false
@@ -131,20 +132,22 @@ struct SettingsSliderRow: View {
                         .fill(accentColor)
                         .frame(width: max(knobOffset + knobWidth / 2, progress == 0 ? 0 : knobWidth / 2), height: 8)
 
-                    HStack(spacing: 0) {
-                        ForEach(0 ... stepCount, id: \.self) { index in
-                            Circle()
-                                .fill(Color.white.opacity(index == 0 || index == stepCount ? 0.22 : 0.18))
-                                .frame(width: 3, height: 3)
+                    if showsTicks {
+                        HStack(spacing: 0) {
+                            ForEach(0 ... stepCount, id: \.self) { index in
+                                Circle()
+                                    .fill(Color.white.opacity(index == 0 || index == stepCount ? 0.22 : 0.18))
+                                    .frame(width: 3, height: 3)
 
-                            if index < stepCount {
-                                Spacer(minLength: 0)
+                                if index < stepCount {
+                                    Spacer(minLength: 0)
+                                }
                             }
                         }
+                        .padding(.horizontal, knobWidth / 2)
+                        .offset(y: 14)
+                        .allowsHitTesting(false)
                     }
-                    .padding(.horizontal, knobWidth / 2)
-                    .offset(y: 14)
-                    .allowsHitTesting(false)
 
                     Capsule(style: .continuous)
                         .fill(Color.white.opacity(0.98))

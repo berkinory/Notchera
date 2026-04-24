@@ -87,11 +87,7 @@ struct ContentView: View {
     }
 
     private var availableTabs: [TabModel] {
-        guard !Defaults[.notchShelf] else {
-            return tabs
-        }
-
-        return tabs.filter { $0.view != .shelf }
+        tabs
     }
 
     private var trackpadTabSwitchEnabled: Bool {

@@ -632,6 +632,7 @@ private struct SettingsMediaView: View {
 
 private struct SettingsCommandLauncherView: View {
     @Default(.enableCommandLauncher) private var enableCommandLauncher
+    @Default(.hideLauncherFromTabs) private var hideLauncherFromTabs
     @Default(.enableCommandLauncherCalculator) private var enableCommandLauncherCalculator
     @Default(.enableCommandLauncherCurrencyConversion) private var enableCommandLauncherCurrencyConversion
 
@@ -640,6 +641,12 @@ private struct SettingsCommandLauncherView: View {
             Section {
                 Defaults.Toggle(key: .enableCommandLauncher) {
                     Text("Enable Launcher")
+                }
+
+                if enableCommandLauncher {
+                    Defaults.Toggle(key: .hideLauncherFromTabs) {
+                        Text("Hide from tabs")
+                    }
                 }
             }
 

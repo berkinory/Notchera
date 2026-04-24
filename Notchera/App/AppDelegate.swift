@@ -814,7 +814,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyDown(for: .commandPalette) { [weak self] in
             Task { [weak self] in
-                guard let self, !(self.isScreenLocked && Defaults[.showOnLockScreen]) else { return }
+                guard let self,
+                      !(self.isScreenLocked && Defaults[.showOnLockScreen]),
+                      Defaults[.enableCommandLauncher]
+                else { return }
                 let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
@@ -842,7 +845,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyDown(for: .clipboardHistoryPanel) { [weak self] in
             Task { [weak self] in
-                guard let self, !(self.isScreenLocked && Defaults[.showOnLockScreen]) else { return }
+                guard let self,
+                      !(self.isScreenLocked && Defaults[.showOnLockScreen]),
+                      Defaults[.enableClipboardHistory]
+                else { return }
                 let target = targetWindowAndViewModelForShortcut()
 
                 await MainActor.run {
