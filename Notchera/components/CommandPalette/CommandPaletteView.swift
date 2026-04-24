@@ -266,7 +266,6 @@ struct CommandPaletteView: View {
                     row: CommandPaletteRootRow(
                         id: "calculator.\(calculatorResult.displayValue)",
                         title: calculatorResult.displayValue,
-                        subtitle: "Copy result",
                         icon: "equal",
                         appItem: nil,
                         action: .copyToClipboard(calculatorResult.displayValue),
