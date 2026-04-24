@@ -7,6 +7,10 @@ struct CommandPaletteView: View {
     @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
     @ObservedObject private var appLauncher = AppLauncherManager.shared
     @ObservedObject private var preventSleepManager = PreventSleepManager.shared
+    @ObservedObject private var currencyRatesManager = CurrencyRatesManager.shared
+    @Default(.enableCommandLauncher) private var enableCommandLauncher
+    @Default(.enableCommandLauncherCalculator) private var enableCommandLauncherCalculator
+    @Default(.enableCommandLauncherCurrencyConversion) private var enableCommandLauncherCurrencyConversion
     @State private var selectedRowID: String?
     @State private var hoveredRowID: String?
     @State private var suppressMouseHover = false
@@ -22,6 +26,8 @@ struct CommandPaletteView: View {
     }
 
     private var rootRows: [CommandPaletteRootRow] {
+        guard enableCommandLauncher else { return [] }
+
         var rows = commandRows(for: trimmedQuery)
 
         rows.append(contentsOf: appResults.map {
@@ -77,6 +83,7 @@ struct CommandPaletteView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear {
             appLauncher.loadIfNeeded()
+            currencyRatesManager.start()
             _ = preventSleepManager
             syncSelection(force: true)
         }
@@ -259,7 +266,26 @@ struct CommandPaletteView: View {
     private func commandRows(for query: String) -> [CommandPaletteRootRow] {
         var rows: [ScoredCommandPaletteRow] = []
 
-        if let calculatorResult = CalculatorEvaluator.evaluate(query), !query.isEmpty {
+        if enableCommandLauncherCurrencyConversion,
+           let currencyConversionResult = currencyConversionResult(for: query)
+        {
+            rows.append(
+                .init(
+                    score: 20500 + commandUsageBoost(for: "calculator.copy-result"),
+                    row: CommandPaletteRootRow(
+                        id: "currency-conversion.\(currencyConversionResult)",
+                        title: currencyConversionResult,
+                        icon: "dollarsign.arrow.circlepath",
+                        appItem: nil,
+                        action: .copyToClipboard(currencyConversionResult),
+                        usageKey: "calculator.copy-result"
+                    )
+                )
+            )
+        } else if enableCommandLauncherCalculator,
+                  let calculatorResult = CalculatorEvaluator.evaluate(query),
+                  !query.isEmpty
+        {
             rows.append(
                 .init(
                     score: 20000 + commandUsageBoost(for: "calculator.copy-result"),
@@ -290,6 +316,24 @@ struct CommandPaletteView: View {
                 return lhs.row.title.localizedCaseInsensitiveCompare(rhs.row.title) == .orderedAscending
             }
             .map(\.row)
+    }
+
+    private func currencyConversionResult(for query: String) -> String? {
+        guard !query.isEmpty,
+              let match = CurrencyConversionParser.parse(query, defaultTargetCurrency: currencyRatesManager.defaultTargetCurrency()),
+              let convertedValue = currencyRatesManager.convert(amount: match.amount, from: match.sourceCurrency, to: match.targetCurrency)
+        else {
+            return nil
+        }
+
+        let formattedValue: String
+        if convertedValue.rounded(.towardZero) == convertedValue {
+            formattedValue = String(Int64(convertedValue))
+        } else {
+            formattedValue = convertedValue.formatted(.number.precision(.fractionLength(0 ... 2)))
+        }
+
+        return "\(formattedValue) \(match.targetCurrency)"
     }
 
     private func systemCommandRows(for query: String) -> [ScoredCommandPaletteRow] {

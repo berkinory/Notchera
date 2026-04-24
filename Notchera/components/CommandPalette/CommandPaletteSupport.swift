@@ -164,7 +164,7 @@ struct CommandPaletteRowView: View, Equatable {
             Image(imageAssetName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 14, height: 14)
+                .frame(width: 16, height: 14)
         } else if let icon = row.icon {
             ZStack {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)

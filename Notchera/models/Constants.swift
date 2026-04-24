@@ -97,6 +97,9 @@ extension Defaults.Keys {
     static let clipboardHistoryMaxStoredItems = Key<Int>("clipboardHistoryMaxStoredItems", default: 50)
     static let preventSleepEnabled = Key<Bool>("preventSleepEnabled", default: false)
     static let preventSleepExpiresAt = Key<Double?>("preventSleepExpiresAt", default: nil)
+    static let enableCommandLauncher = Key<Bool>("enableCommandLauncher", default: true)
+    static let enableCommandLauncherCalculator = Key<Bool>("enableCommandLauncherCalculator", default: true)
+    static let enableCommandLauncherCurrencyConversion = Key<Bool>("enableCommandLauncherCurrencyConversion", default: true)
 
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
 

@@ -13,6 +13,8 @@ class NotcheraViewCoordinator: ObservableObject {
 
     @Published var currentView: NotchViews = .home {
         didSet {
+            resetTransientInputIfNeeded(for: currentView)
+
             guard !suppressRememberedViewUpdate else {
                 suppressRememberedViewUpdate = false
                 return
@@ -76,6 +78,17 @@ class NotcheraViewCoordinator: ObservableObject {
 
     var preferredExpandedView: NotchViews {
         rememberedView ?? .home
+    }
+
+    private func resetTransientInputIfNeeded(for view: NotchViews) {
+        switch view {
+        case .commandPalette:
+            commandPaletteQuery = ""
+        case .clipboard:
+            clipboardSearchQuery = ""
+        default:
+            break
+        }
     }
 
     func showViewWithoutRemembering(_ view: NotchViews) {

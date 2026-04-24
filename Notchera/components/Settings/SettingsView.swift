@@ -541,18 +541,33 @@ private struct SettingsMediaView: View {
 }
 
 private struct SettingsCommandLauncherView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Command Launcher")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
+    @Default(.enableCommandLauncher) private var enableCommandLauncher
+    @Default(.enableCommandLauncherCalculator) private var enableCommandLauncherCalculator
+    @Default(.enableCommandLauncherCurrencyConversion) private var enableCommandLauncherCurrencyConversion
 
-            Text("Coming soon.")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.secondary.opacity(0.76))
+    var body: some View {
+        Form {
+            Section {
+                Defaults.Toggle(key: .enableCommandLauncher) {
+                    Text("Enable command launcher")
+                }
+            }
+
+            Section {
+                Defaults.Toggle(key: .enableCommandLauncherCalculator) {
+                    Text("Enable calculator")
+                }
+
+                Defaults.Toggle(key: .enableCommandLauncherCurrencyConversion) {
+                    Text("Enable currency conversion")
+                }
+            } footer: {
+                Text("Currency conversion uses cached exchange rates and falls back to your system currency when no target currency is specified.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!enableCommandLauncher)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
+        .scrollContentBackground(.hidden)
     }
 }

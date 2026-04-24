@@ -4,6 +4,300 @@ import Darwin
 import IOKit.pwr_mgt
 import SwiftUI
 
+private struct CurrencyRatesSnapshot: Codable {
+    let fetchedAt: Date
+    let base: String
+    let rates: [String: Double]
+}
+
+@MainActor
+final class CurrencyRatesManager: ObservableObject {
+    static let shared = CurrencyRatesManager()
+
+    @Published private(set) var isReady = false
+
+    private let supportedCurrencies = [
+        "USD", "EUR", "TRY", "GBP", "JPY", "CHF", "CAD", "AUD",
+        "NZD", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON",
+        "BGN", "RSD", "CNY", "HKD", "SGD", "INR", "KRW", "MXN",
+        "BRL", "ZAR", "AED", "SAR"
+    ]
+    private let baseCurrency = "USD"
+    private let refreshInterval: TimeInterval = 60 * 60 * 6
+    private let staleThreshold: TimeInterval = 60 * 60 * 12
+
+    private var snapshot: CurrencyRatesSnapshot?
+    private var refreshTask: Task<Void, Never>?
+    private var inFlightRefresh: Task<Void, Never>?
+
+    private var storageURL: URL {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent(bundleIdentifier, isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("currency-rates.json")
+    }
+
+    private init() {
+        loadSnapshot()
+    }
+
+    func start() {
+        refreshIfNeeded(force: snapshot == nil)
+        schedulePeriodicRefresh()
+    }
+
+    func convert(amount: Double, from sourceCurrency: String, to targetCurrency: String) -> Double? {
+        guard let snapshot else {
+            refreshIfNeeded(force: false)
+            return nil
+        }
+
+        let from = sourceCurrency.uppercased()
+        let to = targetCurrency.uppercased()
+        guard from != to else { return amount }
+
+        guard let rate = crossRate(from: from, to: to, snapshot: snapshot) else {
+            refreshIfNeeded(force: false)
+            return nil
+        }
+
+        if Date().timeIntervalSince(snapshot.fetchedAt) > staleThreshold {
+            refreshIfNeeded(force: false)
+        }
+
+        return amount * rate
+    }
+
+    func defaultTargetCurrency() -> String {
+        Locale.autoupdatingCurrent.currency?.identifier
+            ?? Locale.current.currency?.identifier
+            ?? "USD"
+    }
+
+    private func schedulePeriodicRefresh() {
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(refreshInterval))
+                guard !Task.isCancelled else { return }
+                await refreshIfNeeded(force: true)
+            }
+        }
+    }
+
+    private func refreshIfNeeded(force: Bool) {
+        if !force, let snapshot,
+           Date().timeIntervalSince(snapshot.fetchedAt) < staleThreshold {
+            return
+        }
+
+        guard inFlightRefresh == nil else { return }
+
+        inFlightRefresh = Task { [weak self] in
+            guard let self else { return }
+            defer { self.inFlightRefresh = nil }
+            await fetchLatestRates()
+        }
+    }
+
+    private func fetchLatestRates() async {
+        var components = URLComponents(string: "https://api.frankfurter.dev/v2/rates")
+        components?.queryItems = [
+            URLQueryItem(name: "base", value: baseCurrency),
+            URLQueryItem(name: "quotes", value: supportedCurrencies.filter { $0 != baseCurrency }.joined(separator: ",")),
+        ]
+
+        guard let url = components?.url else { return }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200 ..< 300).contains(httpResponse.statusCode)
+            else {
+                return
+            }
+
+            let decoded = try JSONDecoder().decode([FrankfurterRateEntry].self, from: data)
+            guard let first = decoded.first else { return }
+
+            let snapshot = CurrencyRatesSnapshot(
+                fetchedAt: .now,
+                base: first.base.uppercased(),
+                rates: Dictionary(uniqueKeysWithValues: decoded.map { ($0.quote.uppercased(), $0.rate) })
+            )
+
+            self.snapshot = snapshot
+            self.isReady = true
+            saveSnapshot(snapshot)
+        } catch {
+            return
+        }
+    }
+
+    private func crossRate(from sourceCurrency: String, to targetCurrency: String, snapshot: CurrencyRatesSnapshot) -> Double? {
+        let base = snapshot.base.uppercased()
+
+        func rateToBase(for currency: String) -> Double? {
+            if currency == base { return 1 }
+            guard let rate = snapshot.rates[currency] else { return nil }
+            return rate
+        }
+
+        guard let sourceRate = rateToBase(for: sourceCurrency),
+              let targetRate = rateToBase(for: targetCurrency)
+        else {
+            return nil
+        }
+
+        return targetRate / sourceRate
+    }
+
+    private func loadSnapshot() {
+        guard let data = try? Data(contentsOf: storageURL),
+              let snapshot = try? JSONDecoder().decode(CurrencyRatesSnapshot.self, from: data)
+        else {
+            return
+        }
+
+        self.snapshot = snapshot
+        self.isReady = true
+    }
+
+    private func saveSnapshot(_ snapshot: CurrencyRatesSnapshot) {
+        guard let data = try? JSONEncoder().encode(snapshot) else { return }
+        try? data.write(to: storageURL, options: .atomic)
+    }
+}
+
+struct CurrencyConversionMatch {
+    let amount: Double
+    let sourceCurrency: String
+    let targetCurrency: String
+}
+
+enum CurrencyConversionParser {
+    static func parse(_ rawInput: String, defaultTargetCurrency: String) -> CurrencyConversionMatch? {
+        let trimmedInput = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInput.isEmpty else { return nil }
+
+        let normalized = trimmedInput
+            .replacingOccurrences(of: "→", with: " to ")
+            .replacingOccurrences(of: " in ", with: " to ", options: .caseInsensitive)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let lowered = normalized.lowercased()
+        let separatorRange = lowered.range(of: " to ")
+        if let separatorRange {
+            let leftPart = String(normalized[..<separatorRange.lowerBound])
+            let rightPart = String(normalized[separatorRange.upperBound...])
+            if let left = parseAmountAndCurrency(leftPart),
+               let targetCurrency = parseCurrency(rightPart)
+            {
+                return .init(amount: left.amount, sourceCurrency: left.currency, targetCurrency: targetCurrency)
+            }
+        }
+
+        if let left = parseAmountAndCurrency(normalized) {
+            return .init(amount: left.amount, sourceCurrency: left.currency, targetCurrency: defaultTargetCurrency.uppercased())
+        }
+
+        return nil
+    }
+
+    private static func parseAmountAndCurrency(_ input: String) -> (amount: Double, currency: String)? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let compact = trimmed.replacingOccurrences(of: ",", with: "")
+        let tokens = compact.split(whereSeparator: \ .isWhitespace).map(String.init)
+        guard tokens.count >= 2 else { return nil }
+
+        if let amount = Double(tokens[0]), let currency = parseCurrency(tokens[1]) {
+            return (amount, currency)
+        }
+
+        if let amount = Double(tokens[1]), let currency = parseCurrency(tokens[0]) {
+            return (amount, currency)
+        }
+
+        return nil
+    }
+
+    private static func parseCurrency(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let normalized = trimmed.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).uppercased()
+        switch normalized {
+        case "USD", "DOLLAR", "DOLLARS":
+            return "USD"
+        case "EUR", "EURO", "EUROS":
+            return "EUR"
+        case "TRY", "TL", "TURKISHLIRA", "TURKISHLIRAS", "LIRA", "LIRAS":
+            return "TRY"
+        case "GBP", "POUND", "POUNDS":
+            return "GBP"
+        case "JPY", "YEN":
+            return "JPY"
+        case "CHF", "FRANC", "FRANCS":
+            return "CHF"
+        case "CAD":
+            return "CAD"
+        case "AUD":
+            return "AUD"
+        case "NZD":
+            return "NZD"
+        case "SEK":
+            return "SEK"
+        case "NOK":
+            return "NOK"
+        case "DKK":
+            return "DKK"
+        case "PLN":
+            return "PLN"
+        case "CZK":
+            return "CZK"
+        case "HUF":
+            return "HUF"
+        case "RON":
+            return "RON"
+        case "BGN":
+            return "BGN"
+        case "RSD":
+            return "RSD"
+        case "CNY", "RMB", "YUAN":
+            return "CNY"
+        case "HKD":
+            return "HKD"
+        case "SGD":
+            return "SGD"
+        case "INR", "RUPEE", "RUPEES":
+            return "INR"
+        case "KRW", "WON":
+            return "KRW"
+        case "MXN", "PESO", "PESOS":
+            return "MXN"
+        case "BRL", "REAL", "REALS":
+            return "BRL"
+        case "ZAR", "RAND":
+            return "ZAR"
+        case "AED", "DIRHAM", "DIRHAMS":
+            return "AED"
+        case "SAR", "RIYAL", "RIYALS":
+            return "SAR"
+        default:
+            return normalized.count == 3 ? normalized : nil
+        }
+    }
+}
+
+private struct FrankfurterRateEntry: Decodable {
+    let base: String
+    let quote: String
+    let rate: Double
+}
+
 enum CommandPaletteAction {
     case copyToClipboard(String)
     case googleSearch(String)
