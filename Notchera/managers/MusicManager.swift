@@ -71,6 +71,7 @@ class MusicManager: ObservableObject {
     @Published private(set) var pendingAlbumArt: NSImage?
     @Published private(set) var compactAlbumArt: NSImage = defaultImage
     @Published private(set) var compactIsFlipping: Bool = false
+    @Published private(set) var compactFlipProgress: Double = 0
     private var flipTask: Task<Void, Never>?
     private var compactFlipWorkItem: DispatchWorkItem?
     private var compactSwapWorkItem: DispatchWorkItem?
@@ -586,6 +587,7 @@ class MusicManager: ObservableObject {
         compactFlipWorkItem?.cancel()
         compactSwapWorkItem?.cancel()
         compactIsFlipping = false
+        compactFlipProgress = 0
 
         guard compactAlbumArt !== defaultImage else {
             compactAlbumArt = newAlbumArt
@@ -595,7 +597,11 @@ class MusicManager: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
 
-            compactIsFlipping = true
+            self.compactIsFlipping = true
+
+            withAnimation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.22)) {
+                self.compactFlipProgress = 1
+            }
 
             let swapWorkItem = DispatchWorkItem { [weak self] in
                 self?.compactAlbumArt = newAlbumArt
@@ -603,13 +609,14 @@ class MusicManager: ObservableObject {
 
             let finishWorkItem = DispatchWorkItem { [weak self] in
                 self?.compactIsFlipping = false
+                self?.compactFlipProgress = 0
             }
 
             compactSwapWorkItem = swapWorkItem
             compactFlipWorkItem = finishWorkItem
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: swapWorkItem)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: finishWorkItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.11, execute: swapWorkItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22, execute: finishWorkItem)
         }
     }
 
@@ -701,6 +708,7 @@ class MusicManager: ObservableObject {
         compactSwapWorkItem?.cancel()
         compactAlbumArt = newAlbumArt
         compactIsFlipping = false
+        compactFlipProgress = 0
         resetFlipState(to: newAlbumArt)
         withAnimation(.smooth) {
             self.albumArt = newAlbumArt

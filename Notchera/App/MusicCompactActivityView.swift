@@ -13,7 +13,7 @@ struct MusicCompactActivityView: View {
             Rectangle()
                 .fill(.black)
                 .frame(
-                    width: max(0, vm.closedNotchSize.width - 22)
+                    width: max(0, vm.closedNotchSize.width - 24)
                 )
 
             MusicSpectrumIndicatorView(
@@ -29,6 +29,7 @@ struct MusicCompactActivityView: View {
                 cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed
             )
         }
+        .padding(.leading, 2)
         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
     }
 
@@ -45,9 +46,9 @@ struct MusicCompactActivityView: View {
                         style: .continuous
                     )
                 )
-                .blur(radius: musicManager.compactIsFlipping ? 2.2 : 0)
-                .saturation(musicManager.compactIsFlipping ? 0.965 : 1)
-                .scaleEffect(musicManager.compactIsFlipping ? 0.982 : 1)
+                .blur(radius: musicManager.compactFlipProgress * 1.2)
+                .saturation(1 - (musicManager.compactFlipProgress * 0.025))
+                .scaleEffect(1 - (musicManager.compactFlipProgress * 0.012))
 
             RoundedRectangle(
                 cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed,
@@ -59,7 +60,6 @@ struct MusicCompactActivityView: View {
         }
         .scaleEffect(hoverBoostActive ? 1.07 : 1)
         .animation(.spring(response: 0.22, dampingFraction: 0.72, blendDuration: 0), value: hoverBoostActive)
-        .animation(.timingCurve(0.22, 0.88, 0.32, 1, duration: 0.26), value: musicManager.compactIsFlipping)
         .frame(
             width: max(0, vm.effectiveClosedNotchHeight - 10),
             height: max(0, vm.effectiveClosedNotchHeight - 10)
