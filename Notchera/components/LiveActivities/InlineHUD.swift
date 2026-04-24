@@ -133,6 +133,7 @@ struct WingHUDView: View {
         )
         .symbolVariant(.fill)
         .foregroundStyle(.white)
+        .shadow(color: .black.opacity(isOpen ? 0.42 : 0.32), radius: isOpen ? 12 : 10, y: isOpen ? 4 : 3)
         .animation(.smooth(duration: 0.18), value: type)
         .animation(.smooth(duration: 0.18), value: isOpen)
     }

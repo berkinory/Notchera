@@ -134,12 +134,14 @@ struct ContentView: View {
                     .scaleEffect(closedNotchHoverEffectActive ? 1.032 : 1, anchor: .top)
                     .shadow(
                         color: closedNotchHoverEffectActive
-                            ? .black.opacity(0.78)
-                            : (usesExpandedShell || isHovering)
-                            ? .black.opacity(0.4)
-                            : .clear,
-                        radius: closedNotchHoverEffectActive ? 22 : 1,
-                        y: closedNotchHoverEffectActive ? 6 : 0
+                            ? .black.opacity(0.82)
+                            : usesExpandedShell
+                            ? .black.opacity(0.5)
+                            : isHovering
+                            ? .black.opacity(0.42)
+                            : .black.opacity(0.3),
+                        radius: closedNotchHoverEffectActive ? 24 : (usesExpandedShell ? 14 : 12),
+                        y: closedNotchHoverEffectActive ? 6 : (usesExpandedShell ? 4 : 3)
                     )
                     .padding(
                         .bottom,
