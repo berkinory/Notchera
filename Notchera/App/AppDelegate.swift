@@ -8,7 +8,6 @@ import Sparkle
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var statusItem: NSStatusItem?
     var windows: [String: NSWindow] = [:]
     var viewModels: [String: NotcheraViewModel] = [:]
     var window: NSWindow?
@@ -1052,18 +1051,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         updateLockScreenMediaWindowVisibility()
-    }
-
-    @objc func togglePopover(_: Any?) {
-        if window?.isVisible == true {
-            window?.orderOut(nil)
-        } else {
-            window?.orderFrontRegardless()
-        }
-    }
-
-    @objc func showMenu() {
-        statusItem?.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 
     @objc func quitAction() {

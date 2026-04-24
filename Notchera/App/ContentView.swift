@@ -187,12 +187,13 @@ struct ContentView: View {
                     }
                     .contextMenu {
                         if !isLockScreenInteractionDisabled {
-                            Button("Settings") {
+                            Button {
                                 DispatchQueue.main.async {
                                     SettingsWindowController.shared.showWindow()
                                 }
+                            } label: {
+                                Label("Settings", systemImage: "gearshape")
                             }
-                            .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
                         }
                     }
 
