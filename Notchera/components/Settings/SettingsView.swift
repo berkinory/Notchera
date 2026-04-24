@@ -18,12 +18,12 @@ struct SettingsView: View {
         SettingsSidebarSection(
             title: "Notch",
             items: [
-                SettingsSidebarItem(id: "media", title: "Media", icon: "play.laptopcomputer"),
-                SettingsSidebarItem(id: "notifications", title: "Notifications", icon: "dial.medium.fill"),
-                SettingsSidebarItem(id: "shelf", title: "File Shelf", icon: "books.vertical"),
+                SettingsSidebarItem(id: "media", title: "Media", icon: "music.note"),
+                SettingsSidebarItem(id: "notifications", title: "Notifications", icon: "app.badge"),
+                SettingsSidebarItem(id: "shelf", title: "File Shelf", icon: "folder.fill"),
                 SettingsSidebarItem(id: "launcher", title: "Command Launcher", icon: "command"),
                 SettingsSidebarItem(id: "clipboard", title: "Clipboard History", icon: "doc.on.clipboard"),
-                SettingsSidebarItem(id: "aiUsage", title: "AI Usage", icon: "brain"),
+                SettingsSidebarItem(id: "aiUsage", title: "AI Usage", icon: "chart.bar.fill"),
                 SettingsSidebarItem(id: "shortcuts", title: "Shortcuts", icon: "keyboard")
             ]
         ),
@@ -124,6 +124,7 @@ struct SettingsView: View {
             detailContent
                 .scrollContentBackground(.hidden)
                 .background(sharedBackground)
+                .tint(settingsAccentColor)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -168,6 +169,10 @@ struct SettingsView: View {
     private var sharedBackground: some View {
         Rectangle()
             .fill(.ultraThinMaterial)
+    }
+
+    private var settingsAccentColor: Color {
+        Color(red: 0.62, green: 0.76, blue: 1)
     }
 
     private func iconChipBackground(color: Color) -> some View {
@@ -334,9 +339,9 @@ private struct QuitAppSidebarButton: View {
 }
 
 private struct SettingsGeneralView: View {
-    @State private var screens: [(uuid: String, name: String)] = NSScreen.screens.compactMap { screen in
+    @State private var screens: [(uuid: String, name: String, isBuiltIn: Bool)] = NSScreen.screens.compactMap { screen in
         guard let uuid = screen.displayUUID else { return nil }
-        return (uuid, screen.localizedName)
+        return (uuid, screen.localizedName, screen.isBuiltInDisplay)
     }
 
     @ObservedObject private var coordinator = NotcheraViewCoordinator.shared
@@ -352,6 +357,71 @@ private struct SettingsGeneralView: View {
     @Default(.hideNotchInFullscreen) private var hideNotchInFullscreen
     @Default(.hideFromScreenRecording) private var hideFromScreenRecording
 
+    private var selectedNotchHeightMode: Binding<WindowHeightMode> {
+        Binding(
+            get: { notchHeightMode },
+            set: { newValue in
+                notchHeightMode = newValue
+                nonNotchHeightMode = newValue
+                NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
+            }
+        )
+    }
+
+    private var builtInScreen: (uuid: String, name: String, isBuiltIn: Bool)? {
+        screens.first(where: { $0.isBuiltIn })
+    }
+
+    private var mainScreen: (uuid: String, name: String, isBuiltIn: Bool)? {
+        guard let uuid = NSScreen.main?.displayUUID else { return nil }
+        return screens.first(where: { $0.uuid == uuid })
+    }
+
+    private func refreshScreens() {
+        screens = NSScreen.screens.compactMap { screen in
+            guard let uuid = screen.displayUUID else { return nil }
+            return (uuid, screen.localizedName, screen.isBuiltInDisplay)
+        }
+    }
+
+    private func selectDisplayMode(_ mode: DisplaySelectionMode) {
+        switch mode {
+        case .builtIn:
+            guard let builtInScreen else { return }
+            Defaults[.showOnAllDisplays] = false
+            Defaults[.automaticallySwitchDisplay] = false
+            coordinator.preferredScreenUUID = builtInScreen.uuid
+        case .main:
+            Defaults[.showOnAllDisplays] = false
+            Defaults[.automaticallySwitchDisplay] = true
+            if let mainScreen {
+                coordinator.preferredScreenUUID = mainScreen.uuid
+            }
+        case .all:
+            Defaults[.showOnAllDisplays] = true
+            Defaults[.automaticallySwitchDisplay] = false
+        }
+
+        NotificationCenter.default.post(name: Notification.Name.showOnAllDisplaysChanged, object: nil)
+        NotificationCenter.default.post(name: Notification.Name.automaticallySwitchDisplayChanged, object: nil)
+    }
+
+    private var selectedDisplayMode: DisplaySelectionMode {
+        if showOnAllDisplays {
+            return .all
+        }
+
+        if automaticallySwitchDisplay {
+            return .main
+        }
+
+        if let builtInScreen, coordinator.preferredScreenUUID == builtInScreen.uuid {
+            return .builtIn
+        }
+
+        return .main
+    }
+
     var body: some View {
         Form {
             Section {
@@ -362,86 +432,85 @@ private struct SettingsGeneralView: View {
                 )) {
                     Text("Show menu bar icon")
                 }
-                Toggle("Hide tab buttons", isOn: $coordinator.hideTabButtons)
             }
 
             Section {
-                Defaults.Toggle(key: .showOnAllDisplays) {
-                    Text("Show on all displays")
-                }
-                .onChange(of: showOnAllDisplays) {
-                    NotificationCenter.default.post(name: Notification.Name.showOnAllDisplaysChanged, object: nil)
-                }
-
-                Picker("Preferred display", selection: $coordinator.preferredScreenUUID) {
-                    ForEach(screens, id: \.uuid) { screen in
-                        Text(screen.name).tag(screen.uuid as String?)
+                HStack(spacing: 8) {
+                    if builtInScreen != nil {
+                        SettingsIconOptionCard(
+                            title: "Built-in display",
+                            systemImage: "macbook",
+                            isSelected: selectedDisplayMode == .builtIn,
+                            action: {
+                                selectDisplayMode(.builtIn)
+                            }
+                        )
                     }
+
+                    SettingsIconOptionCard(
+                        title: "Main display",
+                        systemImage: "display",
+                        isSelected: selectedDisplayMode == .main,
+                        action: {
+                            selectDisplayMode(.main)
+                        }
+                    )
+
+                    SettingsIconOptionCard(
+                        title: "All displays",
+                        systemImage: "display.2",
+                        isSelected: selectedDisplayMode == .all,
+                        action: {
+                            selectDisplayMode(.all)
+                        }
+                    )
+                }
+                .onAppear {
+                    refreshScreens()
                 }
                 .onChange(of: NSScreen.screens) {
-                    screens = NSScreen.screens.compactMap { screen in
-                        guard let uuid = screen.displayUUID else { return nil }
-                        return (uuid, screen.localizedName)
+                    refreshScreens()
+                }
+            } header: {
+                SettingsSectionHeader(title: "Display")
+            }
+
+            Section {
+                Toggle(isOn: Binding(
+                    get: { notchHeightMode == .matchMenuBar },
+                    set: { newValue in
+                        let mode: WindowHeightMode = newValue ? .matchMenuBar : .matchRealNotchSize
+                        notchHeightMode = mode
+                        nonNotchHeightMode = mode
+                        NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
                     }
-                }
-                .disabled(showOnAllDisplays)
-
-                Defaults.Toggle(key: .automaticallySwitchDisplay) {
-                    Text("Automatically switch displays")
-                }
-                .onChange(of: automaticallySwitchDisplay) {
-                    NotificationCenter.default.post(name: Notification.Name.automaticallySwitchDisplayChanged, object: nil)
-                }
-                .disabled(showOnAllDisplays)
-            } header: {
-                SettingsSectionHeader(title: "Display settings")
-            }
-
-            Section {
-                Picker("Notch height on notch displays", selection: $notchHeightMode) {
-                    Text("Match real notch height")
-                        .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Match menu bar height")
-                        .tag(WindowHeightMode.matchMenuBar)
-                }
-                .onChange(of: notchHeightMode) {
-                    NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
-                }
-
-                Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
+                )) {
                     Text("Match menubar height")
-                        .tag(WindowHeightMode.matchMenuBar)
-                    Text("Match real notch height")
-                        .tag(WindowHeightMode.matchRealNotchSize)
                 }
-                .onChange(of: nonNotchHeightMode) {
-                    NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
-                }
-            } header: {
-                SettingsSectionHeader(title: "Notch sizing")
-            }
 
-            Section {
                 Defaults.Toggle(key: .openNotchOnHover) {
                     Text("Open notch on hover")
                 }
-
-                if openNotchOnHover {
-                    Slider(value: $minimumHoverDuration, in: 0 ... 1, step: 0.1) {
-                        HStack {
-                            Text("Hover delay")
-                            Spacer()
-                            Text("\(minimumHoverDuration, specifier: "%.1f")s")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .onChange(of: minimumHoverDuration) {
-                        NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
+                .onChange(of: openNotchOnHover) {
+                    if !openNotchOnHover {
+                        extendHoverArea = false
                     }
                 }
 
-                Defaults.Toggle(key: .extendHoverArea) {
-                    Text("Extend hover area")
+                if openNotchOnHover {
+                    SettingsSliderRow(
+                        title: "Hover delay",
+                        value: $minimumHoverDuration,
+                        range: 0 ... 1,
+                        step: 0.1
+                    )
+                    .onChange(of: minimumHoverDuration) {
+                        NotificationCenter.default.post(name: Notification.Name.notchHeightChanged, object: nil)
+                    }
+
+                    Defaults.Toggle(key: .extendHoverArea) {
+                        Text("Extend hover area")
+                    }
                 }
                 Defaults.Toggle(key: .hideNotchInFullscreen) {
                     Text("Hide in fullscreen")
@@ -463,12 +532,19 @@ private struct SettingsGeneralView: View {
                     Text("Enable gestures")
                 }
                 Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
+                Toggle("Hide tab buttons", isOn: $coordinator.hideTabButtons)
             } header: {
-                SettingsSectionHeader(title: "Behavior")
+                SettingsSectionHeader(title: "Notch")
             }
         }
         .scrollContentBackground(.hidden)
     }
+}
+
+private enum DisplaySelectionMode {
+    case builtIn
+    case main
+    case all
 }
 
 private struct SettingsMediaView: View {

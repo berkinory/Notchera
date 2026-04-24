@@ -2,15 +2,23 @@ import AppKit
 import CoreGraphics
 
 extension NSScreen {
-    var displayUUID: String? {
+    var displayID: CGDirectDisplayID? {
         guard let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
             return nil
         }
-        let displayID = CGDirectDisplayID(number.uint32Value)
-        guard let uuid = CGDisplayCreateUUIDFromDisplayID(displayID) else {
+        return CGDirectDisplayID(number.uint32Value)
+    }
+
+    var displayUUID: String? {
+        guard let displayID, let uuid = CGDisplayCreateUUIDFromDisplayID(displayID) else {
             return nil
         }
         return CFUUIDCreateString(nil, uuid.takeRetainedValue()) as String
+    }
+
+    var isBuiltInDisplay: Bool {
+        guard let displayID else { return false }
+        return CGDisplayIsBuiltin(displayID) != 0
     }
 
     @MainActor static func screen(withUUID uuid: String) -> NSScreen? {

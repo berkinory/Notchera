@@ -38,7 +38,7 @@ enum ClipboardSelectionAction: String, CaseIterable, Identifiable, Defaults.Seri
 extension Defaults.Keys {
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
-    static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: true)
+    static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: false)
 
     static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.2)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
@@ -46,7 +46,7 @@ extension Defaults.Keys {
     static let extendHoverArea = Key<Bool>("extendHoverArea", default: false)
     static let notchHeightMode = Key<WindowHeightMode>(
         "notchHeightMode",
-        default: WindowHeightMode.matchRealNotchSize
+        default: WindowHeightMode.matchMenuBar
     )
     static let nonNotchHeightMode = Key<WindowHeightMode>(
         "nonNotchHeightMode",

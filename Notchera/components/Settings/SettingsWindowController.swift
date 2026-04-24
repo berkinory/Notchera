@@ -38,7 +38,7 @@ class SettingsWindowController: NSWindowController {
         window.titleVisibility = .hidden
         window.toolbar = nil
         window.toolbarStyle = .unified
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.backgroundColor = NSColor.windowBackgroundColor
 
         window.collectionBehavior = [.managed, .participatesInCycle, .fullScreenAuxiliary]

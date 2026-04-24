@@ -115,15 +115,15 @@ class NotcheraViewCoordinator: ObservableObject {
                 preferredScreenUUID = uuid
                 NSLog("✅ Migrated display preference from name '\(legacyName)' to UUID '\(uuid)'")
             } else {
-                preferredScreenUUID = NSScreen.main?.displayUUID
-                NSLog("⚠️ Could not find display named '\(legacyName)', falling back to main screen")
+                preferredScreenUUID = NSScreen.screens.first(where: { $0.isBuiltInDisplay })?.displayUUID ?? NSScreen.main?.displayUUID
+                NSLog("⚠️ Could not find display named '\(legacyName)', falling back to built-in display")
             }
             legacyPreferredScreenName = nil
         } else if preferredScreenUUID == nil {
-            preferredScreenUUID = NSScreen.main?.displayUUID
+            preferredScreenUUID = NSScreen.screens.first(where: { $0.isBuiltInDisplay })?.displayUUID ?? NSScreen.main?.displayUUID
         }
 
-        selectedScreenUUID = preferredScreenUUID ?? NSScreen.main?.displayUUID ?? ""
+        selectedScreenUUID = preferredScreenUUID ?? NSScreen.screens.first(where: { $0.isBuiltInDisplay })?.displayUUID ?? NSScreen.main?.displayUUID ?? ""
         currentView = preferredExpandedView
 
         InputSourceMonitor.shared.start()

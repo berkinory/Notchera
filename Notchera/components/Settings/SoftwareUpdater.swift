@@ -29,25 +29,18 @@ struct CheckForUpdatesView: View {
 struct UpdaterSettingsView: View {
     private let updater: SPUUpdater
 
-    @State private var automaticallyChecksForUpdates: Bool
-    @State private var automaticallyDownloadsUpdates: Bool
+    @State private var automaticallyUpdatesApp: Bool
 
     init(updater: SPUUpdater) {
         self.updater = updater
-        automaticallyChecksForUpdates = updater.automaticallyChecksForUpdates
-        automaticallyDownloadsUpdates = updater.automaticallyDownloadsUpdates
+        automaticallyUpdatesApp = updater.automaticallyChecksForUpdates && updater.automaticallyDownloadsUpdates
     }
 
     var body: some View {
         Section {
-            Toggle("Automatically check for updates", isOn: $automaticallyChecksForUpdates)
-                .onChange(of: automaticallyChecksForUpdates) { _, newValue in
+            Toggle("Automatically update the app", isOn: $automaticallyUpdatesApp)
+                .onChange(of: automaticallyUpdatesApp) { _, newValue in
                     updater.automaticallyChecksForUpdates = newValue
-                }
-
-            Toggle("Automatically download updates", isOn: $automaticallyDownloadsUpdates)
-                .disabled(!automaticallyChecksForUpdates)
-                .onChange(of: automaticallyDownloadsUpdates) { _, newValue in
                     updater.automaticallyDownloadsUpdates = newValue
                 }
         } header: {

@@ -53,6 +53,7 @@
 		11A45C792E34E63100CEB175 /* MediaChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A45C782E34E63100CEB175 /* MediaChecker.swift */; };
 		11C5E3132DFE85970065821E /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5E3112DFE85970065821E /* SettingsWindowController.swift */; };
 		11C5E3162DFE88510065821E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5E3152DFE88510065821E /* SettingsView.swift */; };
+		11C5E3182DFE88510065821E /* SettingsControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5E3172DFE88510065821E /* SettingsControls.swift */; };
 		11CFC65B2E097E9D00748C80 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC65A2E097E9D00748C80 /* WelcomeView.swift */; };
 		11CFC65F2E097F2F00748C80 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC65E2E097F2100748C80 /* OnboardingView.swift */; };
 		11CFC6612E097F6800748C80 /* PermissionsRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */; };
@@ -235,6 +236,7 @@
 		11A45C782E34E63100CEB175 /* MediaChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaChecker.swift; sourceTree = "<group>"; };
 		11C5E3112DFE85970065821E /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		11C5E3152DFE88510065821E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		11C5E3172DFE88510065821E /* SettingsControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsControls.swift; sourceTree = "<group>"; };
 		11CFC65A2E097E9D00748C80 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		11CFC65E2E097F2100748C80 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsRequestView.swift; sourceTree = "<group>"; };
@@ -784,6 +786,7 @@
 			children = (
 				11F748832ECB27DC00F841DB /* MusicSlotConfigurationView.swift */,
 				11C5E3152DFE88510065821E /* SettingsView.swift */,
+				11C5E3172DFE88510065821E /* SettingsControls.swift */,
 				11C5E3112DFE85970065821E /* SettingsWindowController.swift */,
 				B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */,
 				B1B112902C6A572100093D8F /* EditPanelView.swift */,
@@ -1051,6 +1054,7 @@
 				14D570C62C5F38210011E668 /* NotcheraHeader.swift in Sources */,
 				14D570CD2C5F4BB70011E668 /* NotcheraBattery.swift in Sources */,
 				11C5E3162DFE88510065821E /* SettingsView.swift in Sources */,
+				11C5E3182DFE88510065821E /* SettingsControls.swift in Sources */,
 				1153BD932D986E4300979FB0 /* AppleMusicController.swift in Sources */,
 				11C5E3132DFE85970065821E /* SettingsWindowController.swift in Sources */,
 				110029272E84FD4C00035A57 /* TemporaryFileStorageService.swift in Sources */,
