@@ -28,14 +28,23 @@ struct BrewUpdaterSettingsView: View {
 
                 if let updateResult {
                     if updateResult.updateAvailable {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Version \(updateResult.latestVersion) is available.")
                                 .foregroundStyle(.secondary)
 
-                            Text(brewUpgradeCommand)
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .textSelection(.enabled)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 10) {
+                                Text(brewUpgradeCommand)
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .foregroundStyle(.secondary)
+
+                                Button("Copy") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(brewUpgradeCommand, forType: .string)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
                         }
                     } else {
                         Text("You’re up to date.")

@@ -14,6 +14,7 @@ APPCAST_PATH = ROOT / "website-repo" / "apps" / "www" / "public" / "appcast.xml"
 APP_PATH = ROOT / ".derived-data-release-dist" / "Build" / "Products" / "Release" / "Notchera.app"
 DMG_PATH = ROOT / "Notchera.dmg"
 BREW_ZIP_PATH = ROOT / "Notchera-brew.zip"
+RELEASE_NOTES_PATH = ROOT / "release-notes"
 
 
 def sha256(path: Path) -> str:
@@ -60,8 +61,16 @@ def minimum_system_version() -> str:
     return str(info.get("LSMinimumSystemVersion") or "14.0")
 
 
+def release_notes(marketing_version: str) -> str:
+    path = RELEASE_NOTES_PATH / f"v{marketing_version}.md"
+    if path.exists():
+        return path.read_text().strip()
+    return f"Notchera {marketing_version} is now available."
+
+
 def write_appcast(marketing_version: str, build_version: str) -> None:
     APPCAST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    notes = release_notes(marketing_version).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     APPCAST_PATH.write_text(
         f'''<?xml version="1.0" encoding="utf-8"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
@@ -74,7 +83,7 @@ def write_appcast(marketing_version: str, build_version: str) -> None:
       <title>Version {marketing_version}</title>
       <pubDate>{formatdate(usegmt=True)}</pubDate>
       <description><![CDATA[
-        <p>Notchera {marketing_version} is now available.</p>
+        <p>{notes}</p>
       ]]></description>
       <sparkle:version>{build_version}</sparkle:version>
       <sparkle:shortVersionString>{marketing_version}</sparkle:shortVersionString>

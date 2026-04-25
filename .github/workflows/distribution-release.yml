@@ -32,15 +32,20 @@ jobs:
         run: |
           set -euo pipefail
 
-          current_marketing=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);/\1/p' Notchera.xcodeproj/project.pbxproj | head -n 1 | tr -d ' ')
-          current_build=$(sed -n 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);/\1/p' Notchera.xcodeproj/project.pbxproj | head -n 1 | tr -d ' ')
+          read_plist_value() {
+            /usr/libexec/PlistBuddy -c "Print :$2" "$1"
+          }
+
+          current_marketing=$(read_plist_value Notchera/Info.plist CFBundleShortVersionString)
+          current_build=$(read_plist_value Notchera/Info.plist CFBundleVersion)
 
           previous_marketing=""
           previous_build=""
 
           if git rev-parse HEAD^ >/dev/null 2>&1; then
-            previous_marketing=$(git show HEAD^:Notchera.xcodeproj/project.pbxproj | sed -n 's/.*MARKETING_VERSION = \([^;]*\);/\1/p' | head -n 1 | tr -d ' ' || true)
-            previous_build=$(git show HEAD^:Notchera.xcodeproj/project.pbxproj | sed -n 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);/\1/p' | head -n 1 | tr -d ' ' || true)
+            git show HEAD^:Notchera/Info.plist > /tmp/previous-info.plist
+            previous_marketing=$(read_plist_value /tmp/previous-info.plist CFBundleShortVersionString || true)
+            previous_build=$(read_plist_value /tmp/previous-info.plist CFBundleVersion || true)
           fi
 
           changed=false
@@ -52,13 +57,6 @@ jobs:
           echo "marketing_version=$current_marketing" >> "$GITHUB_OUTPUT"
           echo "build_version=$current_build" >> "$GITHUB_OUTPUT"
           echo "tag_name=v$current_marketing" >> "$GITHUB_OUTPUT"
-
-      - name: summary
-        run: |
-          echo "changed=${{ steps.detect.outputs.changed }}"
-          echo "marketing=${{ steps.detect.outputs.marketing_version }}"
-          echo "build=${{ steps.detect.outputs.build_version }}"
-          echo "tag=${{ steps.detect.outputs.tag_name }}"
 
   release:
     if: needs.detect-version.outputs.changed == 'true'
@@ -82,7 +80,7 @@ jobs:
           path: |
             .derived-data-release-dist/SourcePackages
             cli/notcherahud/.build
-          key: ${{ runner.os }}-release-${{ hashFiles('Notchera.xcodeproj/project.pbxproj', 'cli/notcherahud/Package.swift', 'cli/notcherahud/Package.resolved') }}
+          key: ${{ runner.os }}-release-${{ hashFiles('Notchera/Info.plist', 'Notchera.xcodeproj/project.pbxproj', 'cli/notcherahud/Package.swift', 'cli/notcherahud/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-release-
 
@@ -124,11 +122,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          notes_file="release-notes/$TAG_NAME.md"
+          notes_args=(--notes "Notchera $MARKETING_VERSION")
+          if [[ -f "$notes_file" ]]; then
+            notes_args=(--notes-file "$notes_file")
+          fi
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "release already exists"
             exit 0
           fi
-          gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "Notchera $MARKETING_VERSION"
+          gh release create "$TAG_NAME" --title "$TAG_NAME" "${notes_args[@]}"
 
       - name: setup python
         uses: actions/setup-python@v5
@@ -143,13 +145,7 @@ jobs:
         run: |
           set -euo pipefail
           sign_update_bin=$(find "$(brew --prefix)" -type f -name sign_update | head -n 1)
-          if [[ -z "$sign_update_bin" ]]; then
-            echo "sign_update not found under brew prefix"
-            find "$(brew --prefix)" -type f | rg 'sign_update|generate_keys|sparkle' || true
-            exit 1
-          fi
-          echo "using $sign_update_bin"
-          "$sign_update_bin" --help || "$sign_update_bin" -h || true
+          [[ -n "$sign_update_bin" ]]
 
       - name: install release dependencies
         run: python3 -m pip install --require-hashes -r scripts/requirements-release.txt

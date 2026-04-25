@@ -7,6 +7,10 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>CFBundleShortVersionString</key>
+	<string>0.0.4</string>
+	<key>CFBundleVersion</key>
+	<string>0.0.4</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Notchera needs calendar access to show your upcoming events in the calendar tab.</string>
 	<key>SUAutomaticallyUpdate</key>

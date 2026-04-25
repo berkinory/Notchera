@@ -471,7 +471,8 @@ def main() -> None:
 
     set_release_channel(kind)
 
-    if profile is BuildProfile.distribution and not args.reuse_build:
+    identity: str | None = None
+    if profile is BuildProfile.distribution:
         team_id = require_env("TEAM_ID")
         apple_id = require_env("APPLE_ID")
         app_password = require_env("APPLE_APP_PASSWORD")
