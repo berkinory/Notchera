@@ -158,6 +158,10 @@ jobs:
         run: python3 scripts/release.py --kind direct --profile distribution --yes --skip-notarize
 
       - name: prepare brew artifact from existing build
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: python3 scripts/release.py --kind brew --profile distribution --yes --reuse-build --skip-notarize
 
       - name: notarize direct dmg

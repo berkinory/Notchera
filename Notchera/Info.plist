@@ -8,9 +8,9 @@
 		<true/>
 	</dict>
 	<key>CFBundleShortVersionString</key>
-	<string>0.0.6</string>
+	<string>0.0.7</string>
 	<key>CFBundleVersion</key>
-	<string>0.0.6</string>
+	<string>0.0.7</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Notchera needs calendar access to show your upcoming events in the calendar tab.</string>
 	<key>SUAutomaticallyUpdate</key>
