@@ -149,7 +149,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          signature=$("$(brew --prefix)/bin/sign_update" Notchera.dmg)
+          sign_update_bin=$(find "$(brew --prefix)" -type f -name sign_update | head -n 1)
+          if [[ -z "$sign_update_bin" ]]; then
+            echo "sign_update not found"
+            exit 1
+          fi
+          signature=$("$sign_update_bin" Notchera.dmg)
           echo "signature=$signature" >> "$GITHUB_OUTPUT"
 
       - name: upload brew artifact to github release
