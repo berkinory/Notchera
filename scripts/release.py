@@ -347,14 +347,20 @@ def sign_app(identity: str, include_sparkle: bool) -> None:
 
         if include_sparkle:
             sparkle = APP_PATH / "Contents" / "Frameworks" / "Sparkle.framework"
-            current_version = os.readlink(sparkle / "Versions" / "Current")
-            sparkle_version = sparkle / "Versions" / current_version
+            ensure_dir(sparkle)
+
+            versions_dir = sparkle / "Versions"
+            if versions_dir.exists() and (versions_dir / "Current").exists():
+                current_version = os.readlink(versions_dir / "Current")
+                sparkle_version = versions_dir / current_version
+            else:
+                sparkle_version = sparkle
+
             autoupdate = sparkle_version / "Autoupdate"
             downloader = sparkle_version / "XPCServices" / "Downloader.xpc"
             installer = sparkle_version / "XPCServices" / "Installer.xpc"
             updater = sparkle_version / "Updater.app"
 
-            ensure_dir(sparkle)
             ensure_file(autoupdate)
             ensure_dir(downloader)
             ensure_dir(installer)
