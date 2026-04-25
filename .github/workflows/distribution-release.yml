@@ -177,7 +177,7 @@ jobs:
           fi
 
           set +e
-          raw_output=$("$sign_update_bin" Notchera.dmg "$SPARKLE_PRIVATE_KEY" 2>&1)
+          raw_output=$(printf '%s\n' "$SPARKLE_PRIVATE_KEY" | "$sign_update_bin" --ed-key-file - -p Notchera.dmg 2>&1)
           status=$?
           set -e
 
