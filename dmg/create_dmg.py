@@ -16,6 +16,8 @@ DESTINATION = "platform=macOS"
 DERIVED_DATA = ROOT / ".derived-data-release-dist"
 SOURCE_PACKAGES = DERIVED_DATA / "SourcePackages"
 APP_PATH = DERIVED_DATA / "Build" / "Products" / "Release" / "Notchera.app"
+CLI_PROJECT = ROOT / "cli" / "notcherahud"
+CLI_BINARY = CLI_PROJECT / ".build" / "release" / "notcherahud"
 DMG_OUTPUT = ROOT / "Notchera.dmg"
 VOLUME_NAME = "Notchera"
 NOTARY_PROFILE = "notary-profile"
@@ -39,12 +41,12 @@ def die(message: str) -> None:
     raise SystemExit(1)
 
 
-def run(*args: str, capture: bool = False, env: dict[str, str] | None = None) -> str:
+def run(*args: str, capture: bool = False, env: dict[str, str] | None = None, cwd: str | Path | None = None) -> str:
     cmd = [str(arg) for arg in args]
     print("$", " ".join(cmd))
     completed = subprocess.run(
         cmd,
-        cwd=ROOT,
+        cwd=str(cwd or ROOT),
         env=env,
         text=True,
         stdout=subprocess.PIPE if capture else None,
@@ -166,6 +168,19 @@ def build_release() -> None:
     ensure_dir(APP_PATH)
 
 
+def build_cli() -> None:
+    run("swift", "build", "-c", "release", cwd=str(CLI_PROJECT))
+    ensure_file(CLI_BINARY)
+
+
+def bundle_cli() -> None:
+    resources_dir = APP_PATH / "Contents" / "Resources"
+    target = resources_dir / "notcherahud"
+    ensure_dir(resources_dir)
+    shutil.copy2(CLI_BINARY, target)
+    target.chmod(0o755)
+
+
 def plist_value(path: Path, key: str) -> str:
     with path.open("rb") as fh:
         data = plistlib.load(fh)
@@ -201,6 +216,7 @@ def sign_app(identity: str) -> None:
     helper = APP_PATH / "Contents" / "XPCServices" / "NotcheraXPCHelper.xpc"
     mediaremote = APP_PATH / "Contents" / "Frameworks" / "MediaRemoteAdapter.framework"
     mediaremote_test_client = APP_PATH / "Contents" / "Resources" / "MediaRemoteAdapterTestClient"
+    cli_binary = APP_PATH / "Contents" / "Resources" / "notcherahud"
     sparkle = APP_PATH / "Contents" / "Frameworks" / "Sparkle.framework"
     current_version = os.readlink(sparkle / "Versions" / "Current")
     sparkle_version = sparkle / "Versions" / current_version
@@ -214,6 +230,7 @@ def sign_app(identity: str) -> None:
     ensure_dir(mediaremote)
     ensure_dir(sparkle)
     ensure_file(autoupdate)
+    ensure_file(cli_binary)
     ensure_dir(downloader)
     ensure_dir(installer)
     ensure_dir(updater)
@@ -228,6 +245,7 @@ def sign_app(identity: str) -> None:
         render_app_entitlements(bundle_id, entitlements)
         sign(identity, mediaremote)
         sign(identity, autoupdate)
+        sign(identity, cli_binary)
         sign(identity, downloader)
         sign(identity, installer)
         sign(identity, updater)
@@ -345,6 +363,8 @@ def main() -> None:
     identity = resolve_developer_id_identity(team_id)
     ensure_notary_profile(team_id, apple_id, app_password)
     build_release()
+    build_cli()
+    bundle_cli()
     sign_app(identity)
     create_dmg(APP_PATH)
     smoke_test_dmg()

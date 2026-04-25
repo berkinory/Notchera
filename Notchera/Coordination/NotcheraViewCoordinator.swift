@@ -223,7 +223,8 @@ class NotcheraViewCoordinator: ObservableObject {
     }
 
     private func handleExternalHUDNotification(_ notification: Notification) {
-        guard let payload = externalHUDPayload(from: notification),
+        guard Defaults[.showCLINotifications],
+              let payload = externalHUDPayload(from: notification),
               let data = payload.data(using: .utf8),
               let request = try? JSONDecoder().decode(ExternalHUDRequest.self, from: data),
               let normalizedRequest = request.normalized()
@@ -395,7 +396,9 @@ class NotcheraViewCoordinator: ObservableObject {
             Defaults[.enableScreenRecordingDetection]
         case .battery:
             Defaults[.showPowerStatusNotifications]
-        case .hudEnabled, .custom:
+        case .custom:
+            Defaults[.showCLINotifications]
+        case .hudEnabled:
             true
         }
     }

@@ -23,8 +23,11 @@ struct HUDSettingsView: View {
     @Default(.animateBluetoothAudioIndicator) var animateBluetoothAudioIndicator
     @Default(.showPowerStatusNotifications) var showPowerStatusNotifications
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
+    @Default(.showCLINotifications) var showCLINotifications
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
     @State private var accessibilityAuthorized = false
+    @State private var cliInstallState = CLIToolManager.installState()
+    @State private var cliInstallError: String?
 
     private var hudEnabledBinding: Binding<Bool> {
         Binding(
@@ -192,11 +195,51 @@ struct HUDSettingsView: View {
                 } header: {
                     SettingsSectionHeader(title: "Notifications")
                 }
+
+                Section {
+                    switch cliInstallState {
+                    case .bundled:
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Install notcherahud to send custom HUD notifications from the terminal.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Button("Install Command Line Tool") {
+                                do {
+                                    try CLIToolManager.install()
+                                    cliInstallError = nil
+                                    cliInstallState = CLIToolManager.installState()
+                                } catch {
+                                    cliInstallError = error.localizedDescription
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            if let cliInstallError {
+                                Text(cliInstallError)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    case .installed:
+                        Toggle(isOn: $showCLINotifications) {
+                            Label("Show notifications from CLI", systemImage: "apple.terminal.fill")
+                        }
+                    case .unavailable:
+                        Text("Command line tool is unavailable in this build.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    SettingsSectionHeader(title: "CLI")
+                }
             }
         }
         .scrollContentBackground(.hidden)
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
+            cliInstallState = CLIToolManager.installState()
         }
         .onAppear {
             XPCHelperClient.shared.startMonitoringAccessibilityAuthorization()
@@ -209,6 +252,118 @@ struct HUDSettingsView: View {
                 accessibilityAuthorized = granted
             }
         }
+    }
+}
+
+enum CLIToolInstallState: Equatable {
+    case bundled
+    case installed
+    case unavailable
+}
+
+enum CLIToolInstallError: LocalizedError {
+    case bundledBinaryMissing
+
+    var errorDescription: String? {
+        switch self {
+        case .bundledBinaryMissing:
+            "notcherahud binary is not available in this build"
+        }
+    }
+}
+
+struct CLIToolManager {
+    static let executableName = "notcherahud"
+
+    static var installDirectory: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".local", isDirectory: true)
+            .appendingPathComponent("bin", isDirectory: true)
+    }
+
+    static var installedExecutableURL: URL {
+        installDirectory.appendingPathComponent(executableName, isDirectory: false)
+    }
+
+    static func installState() -> CLIToolInstallState {
+        let installedURL = installedExecutableURL
+        if FileManager.default.fileExists(atPath: installedURL.path) {
+            return .installed
+        }
+
+        return bundledExecutableURL() == nil ? .unavailable : .bundled
+    }
+
+    static func install() throws {
+        guard let sourceURL = bundledExecutableURL() else {
+            throw CLIToolInstallError.bundledBinaryMissing
+        }
+
+        try FileManager.default.createDirectory(at: installDirectory, withIntermediateDirectories: true)
+
+        let destinationURL = installedExecutableURL
+        if FileManager.default.fileExists(atPath: destinationURL.path) || isSymlink(at: destinationURL) {
+            try FileManager.default.removeItem(at: destinationURL)
+        }
+
+        try FileManager.default.createSymbolicLink(at: destinationURL, withDestinationURL: sourceURL)
+        try ensureShellPathConfigured()
+    }
+
+    private static func bundledExecutableURL() -> URL? {
+        if let bundledURL = Bundle.main.url(forResource: executableName, withExtension: nil),
+           FileManager.default.isExecutableFile(atPath: bundledURL.path)
+        {
+            return bundledURL
+        }
+
+        let localBuildURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("cli", isDirectory: true)
+            .appendingPathComponent("notcherahud", isDirectory: true)
+            .appendingPathComponent(".build", isDirectory: true)
+            .appendingPathComponent("release", isDirectory: true)
+            .appendingPathComponent(executableName, isDirectory: false)
+
+        if FileManager.default.isExecutableFile(atPath: localBuildURL.path) {
+            return localBuildURL
+        }
+
+        return nil
+    }
+
+    private static func ensureShellPathConfigured() throws {
+        let shell = ProcessInfo.processInfo.environment["SHELL"] ?? ""
+        let configFiles: [URL]
+
+        if shell.hasSuffix("/bash") {
+            configFiles = [
+                FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".bash_profile", isDirectory: false)
+            ]
+        } else {
+            configFiles = [
+                FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".zshrc", isDirectory: false)
+            ]
+        }
+
+        let exportLine = "export PATH=\"$HOME/.local/bin:$PATH\""
+
+        for fileURL in configFiles {
+            let existing = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
+            guard !existing.contains(exportLine) else { continue }
+
+            let prefix = existing.isEmpty || existing.hasSuffix("\n") ? existing : existing + "\n"
+            try (prefix + exportLine + "\n").write(to: fileURL, atomically: true, encoding: .utf8)
+        }
+    }
+
+    private static func isSymlink(at url: URL) -> Bool {
+        guard let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey]) else {
+            return false
+        }
+        return values.isSymbolicLink ?? false
     }
 }
 

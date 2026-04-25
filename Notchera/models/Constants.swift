@@ -90,6 +90,7 @@ extension Defaults.Keys {
     static let animateBluetoothAudioIndicator = Key<Bool>("animateBluetoothAudioIndicator", default: true)
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
     static let enableScreenRecordingDetection = Key<Bool>("enableScreenRecordingDetection", default: true)
+    static let showCLINotifications = Key<Bool>("showCLINotifications", default: true)
 
     static let enableCalendar = Key<Bool>("enableCalendar", default: true)
     static let showCalendarEvents = Key<Bool>("showCalendarEvents", default: true)
