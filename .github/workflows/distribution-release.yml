@@ -33,7 +33,17 @@ jobs:
           set -euo pipefail
 
           read_plist_value() {
-            /usr/libexec/PlistBuddy -c "Print :$2" "$1"
+            python3 - "$1" "$2" <<'PY'
+import plistlib
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+key = sys.argv[2]
+with path.open('rb') as file:
+    data = plistlib.load(file)
+value = data.get(key, '')
+print(value)
+PY
           }
 
           current_marketing=$(read_plist_value Notchera/Info.plist CFBundleShortVersionString)
