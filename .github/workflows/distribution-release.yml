@@ -56,12 +56,13 @@ jobs:
           echo "build=${{ steps.detect.outputs.build_version }}"
           echo "tag=${{ steps.detect.outputs.tag_name }}"
 
-  distribution-release:
+  release:
     if: needs.detect-version.outputs.changed == 'true'
     needs:
       - detect-version
     runs-on: macos-latest
     env:
+      GH_TOKEN: ${{ github.token }}
       MARKETING_VERSION: ${{ needs.detect-version.outputs.marketing_version }}
       BUILD_VERSION: ${{ needs.detect-version.outputs.build_version }}
       TAG_NAME: ${{ needs.detect-version.outputs.tag_name }}
