@@ -51,7 +51,7 @@ SPARKLE_PBX_SNIPPETS = [
     '\t\t\t\t14D0321D2C68F3350096E6A1 /* Sparkle in Frameworks */,\n',
     '\t\t\t\t14D0321C2C68F3350096E6A1 /* Sparkle */,\n',
     '\t\t\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */,\n',
-    '\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = "https://github.com/sparkle-project/Sparkle";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMajorVersion;\n\t\t\t\tminimumVersion = 2.9.1;\n\t\t\t};\n\t\t};\n',
+    '\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = "https://github.com/sparkle-project/Sparkle";\n\t\t\trequirement = {\n\t\t\t\tkind = exactVersion;\n\t\t\t\tversion = 2.9.1;\n\t\t\t};\n\t\t};\n',
     '\t\t14D0321C2C68F3350096E6A1 /* Sparkle */ = {\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tpackage = 14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */;\n\t\t\tproductName = Sparkle;\n\t\t};\n',
 ]
 
