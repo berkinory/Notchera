@@ -9,7 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 PROJECT = ROOT / "Notchera.xcodeproj"
 SCHEME = "Notchera"
 DESTINATION = "platform=macOS"
@@ -19,7 +19,7 @@ APP_PATH = DERIVED_DATA / "Build" / "Products" / "Release" / "Notchera.app"
 DMG_OUTPUT = ROOT / "Notchera.dmg"
 VOLUME_NAME = "Notchera"
 NOTARY_PROFILE = "notary-profile"
-REQUIREMENTS = ROOT / "Configuration" / "dmg" / "requirements.txt"
+REQUIREMENTS = ROOT / "dmg" / "requirements.txt"
 APP_ENTITLEMENTS = ROOT / "Notchera" / "Notchera.entitlements"
 HELPER_ENTITLEMENTS = ROOT / "NotcheraXPCHelper" / "NotcheraXPCHelper.entitlements"
 TEAM_ID = os.environ.get("TEAM_ID", "")

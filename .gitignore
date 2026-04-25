@@ -53,6 +53,7 @@ _Users_*repositories*.lock
 *.vscode/
 *.idea/
 .env
+.swift-version
 
 # User-specific files
 *.xcuserdatad/

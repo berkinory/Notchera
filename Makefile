@@ -6,7 +6,7 @@ SOURCE_PACKAGES := $(DERIVED_DATA)/SourcePackages
 APP_PATH := $(DERIVED_DATA)/Build/Products/Debug/Notchera.app
 XCODEBUILD_BASE := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DESTINATION)' -derivedDataPath $(DERIVED_DATA) -clonedSourcePackagesDirPath $(SOURCE_PACKAGES) -disableAutomaticPackageResolution
 
-.PHONY: open build run debug debug-run clear profile-build profile-run hud-cli format lint check release-dmg
+.PHONY: open build run cli check release clear
 
 open:
 	open $(PROJECT)
@@ -17,10 +17,18 @@ build:
 run: build
 	open $(APP_PATH)
 
-debug: build
-	$(APP_PATH)/Contents/MacOS/Notchera
+cli:
+	cd cli/notcherahud && swift build -c release
 
-debug-run: debug
+check: 	
+	@command -v swiftformat >/dev/null 2>&1 || (echo "swiftformat yok. brew install swiftformat" && exit 1)
+	swiftformat Notchera NotcheraXPCHelper
+	@command -v swiftlint >/dev/null 2>&1 || (echo "swiftlint yok. brew install swiftlint" && exit 1)
+	swiftlint lint --config .swiftlint.yml
+	build
+
+release:
+	python3 ./dmg/create_dmg.py
 
 clear:
 	-osascript -e 'tell application "Notchera" to quit' 2>/dev/null || true
@@ -42,25 +50,3 @@ clear:
 	-killall cfprefsd 2>/dev/null || true
 	-tccutil reset Accessibility com.notchera.app || true
 	-tccutil reset Calendar com.notchera.app || true
-
-profile-build:
-	$(XCODEBUILD_BASE) build
-
-profile-run: profile-build
-	open $(APP_PATH)
-
-hud-cli:
-	cd cli/notcherahud && swift build -c release
-
-format:
-	@command -v swiftformat >/dev/null 2>&1 || (echo "swiftformat yok. brew install swiftformat" && exit 1)
-	swiftformat Notchera NotcheraXPCHelper
-
-lint:
-	@command -v swiftlint >/dev/null 2>&1 || (echo "swiftlint yok. brew install swiftlint" && exit 1)
-	swiftlint lint --config .swiftlint.yml
-
-check: format lint build
-
-release:
-	python3 ./create_dmg.py
