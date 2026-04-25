@@ -8,7 +8,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 
@@ -30,32 +29,12 @@ NOTARY_PROFILE = "notary-profile"
 REQUIREMENTS = ROOT / "scripts" / "requirements-release.txt"
 APP_ENTITLEMENTS = ROOT / "Notchera" / "Notchera.entitlements"
 HELPER_ENTITLEMENTS = ROOT / "NotcheraXPCHelper" / "NotcheraXPCHelper.entitlements"
-SPARKLE_PLIST_KEYS = [
-    "SUAutomaticallyUpdate",
-    "SUEnableAutomaticChecks",
-    "SUEnableDownloaderService",
-    "SUEnableInstallerLauncherService",
-    "SUFeedURL",
-    "SUPublicEDKey",
-]
-
 USER_PYTHON_BINS = [
     Path.home() / "Library/Python/3.12/bin",
     Path.home() / "Library/Python/3.11/bin",
     Path.home() / "Library/Python/3.10/bin",
     Path.home() / "Library/Python/3.9/bin",
 ]
-
-SPARKLE_PBX_SNIPPETS = [
-    '\t\t14D0321D2C68F3350096E6A1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 14D0321C2C68F3350096E6A1 /* Sparkle */; };\n',
-    '\t\t\t\t14D0321D2C68F3350096E6A1 /* Sparkle in Frameworks */,\n',
-    '\t\t\t\t14D0321C2C68F3350096E6A1 /* Sparkle */,\n',
-    '\t\t\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */,\n',
-    '\t\t\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */,\n',
-    '\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = "https://github.com/sparkle-project/Sparkle";\n\t\t\trequirement = {\n\t\t\t\tkind = exactVersion;\n\t\t\t\tversion = 2.9.1;\n\t\t\t};\n\t\t};\n',
-    '\t\t14D0321C2C68F3350096E6A1 /* Sparkle */ = {\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tpackage = 14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */;\n\t\t\tproductName = Sparkle;\n\t\t};\n',
-]
-
 
 class ReleaseKind(str, Enum):
     direct = "direct"
@@ -230,33 +209,6 @@ def prompt_build_plan() -> tuple[ReleaseKind, BuildProfile]:
     return kind, profile
 
 
-@contextmanager
-def brew_project_variant(enabled: bool):
-    if not enabled:
-        yield
-        return
-
-    original_pbxproj = PBXPROJ.read_text()
-    original_info_plist = INFO_PLIST.read_bytes()
-    try:
-        patched = original_pbxproj
-        for snippet in SPARKLE_PBX_SNIPPETS:
-            patched = patched.replace(snippet, "")
-        PBXPROJ.write_text(patched)
-
-        with INFO_PLIST.open("rb") as fh:
-            info = plistlib.load(fh)
-        for key in SPARKLE_PLIST_KEYS:
-            info.pop(key, None)
-        with INFO_PLIST.open("wb") as fh:
-            plistlib.dump(info, fh, sort_keys=False)
-
-        yield
-    finally:
-        PBXPROJ.write_text(original_pbxproj)
-        INFO_PLIST.write_bytes(original_info_plist)
-
-
 def build_release() -> None:
     if DERIVED_DATA.exists():
         shutil.rmtree(DERIVED_DATA, ignore_errors=True)
@@ -323,7 +275,7 @@ def sign(identity: str, path: Path, entitlements: Path | None = None) -> None:
     run(*args)
 
 
-def sign_app(identity: str, include_sparkle: bool) -> None:
+def sign_app(identity: str) -> None:
     info_plist = APP_PATH / "Contents" / "Info.plist"
     helper = APP_PATH / "Contents" / "XPCServices" / "NotcheraXPCHelper.xpc"
     mediaremote = APP_PATH / "Contents" / "Frameworks" / "MediaRemoteAdapter.framework"
@@ -346,33 +298,31 @@ def sign_app(identity: str, include_sparkle: bool) -> None:
         sign(identity, mediaremote)
         sign(identity, cli_binary)
 
-        if include_sparkle:
-            sparkle = APP_PATH / "Contents" / "Frameworks" / "Sparkle.framework"
-            ensure_dir(sparkle)
+        sparkle = APP_PATH / "Contents" / "Frameworks" / "Sparkle.framework"
+        ensure_dir(sparkle)
 
-            versions_dir = sparkle / "Versions"
-            if versions_dir.exists() and (versions_dir / "Current").exists():
-                current_version = os.readlink(versions_dir / "Current")
-                sparkle_version = versions_dir / current_version
-            else:
-                sparkle_version = sparkle
+        versions_dir = sparkle / "Versions"
+        if versions_dir.exists() and (versions_dir / "Current").exists():
+            current_version = os.readlink(versions_dir / "Current")
+            sparkle_version = versions_dir / current_version
+        else:
+            sparkle_version = sparkle
 
-            autoupdate = sparkle_version / "Autoupdate"
-            downloader = sparkle_version / "XPCServices" / "Downloader.xpc"
-            installer = sparkle_version / "XPCServices" / "Installer.xpc"
-            updater = sparkle_version / "Updater.app"
+        autoupdate = sparkle_version / "Autoupdate"
+        downloader = sparkle_version / "XPCServices" / "Downloader.xpc"
+        installer = sparkle_version / "XPCServices" / "Installer.xpc"
+        updater = sparkle_version / "Updater.app"
 
-            ensure_file(autoupdate)
-            ensure_dir(downloader)
-            ensure_dir(installer)
-            ensure_dir(updater)
+        ensure_file(autoupdate)
+        ensure_dir(downloader)
+        ensure_dir(installer)
+        ensure_dir(updater)
 
-            sign(identity, autoupdate)
-            sign(identity, downloader)
-            sign(identity, installer)
-            sign(identity, updater)
-            sign(identity, sparkle)
-
+        sign(identity, autoupdate)
+        sign(identity, downloader)
+        sign(identity, installer)
+        sign(identity, updater)
+        sign(identity, sparkle)
         sign(identity, helper, HELPER_ENTITLEMENTS)
         sign(identity, APP_PATH, entitlements)
 
@@ -460,6 +410,15 @@ def smoke_test_dmg() -> None:
         shutil.rmtree(mount_point, ignore_errors=True)
 
 
+def set_release_channel(kind: ReleaseKind) -> None:
+    info_plist = APP_PATH / "Contents" / "Info.plist"
+    with info_plist.open("rb") as file:
+        info = plistlib.load(file)
+    info["NotcheraReleaseChannel"] = kind.value
+    with info_plist.open("wb") as file:
+        plistlib.dump(info, file, sort_keys=False)
+
+
 def create_brew_zip() -> None:
     if BREW_ZIP_OUTPUT.exists():
         BREW_ZIP_OUTPUT.unlink()
@@ -501,35 +460,35 @@ def main() -> None:
 
     validate_prerequisites(kind)
 
-    with brew_project_variant(kind is ReleaseKind.brew):
-        build_release()
-        build_cli()
-        bundle_cli()
+    build_release()
+    build_cli()
+    bundle_cli()
+    set_release_channel(kind)
 
+    if profile is BuildProfile.distribution:
+        team_id = require_env("TEAM_ID")
+        apple_id = require_env("APPLE_ID")
+        app_password = require_env("APPLE_APP_PASSWORD")
+        identity = resolve_developer_id_identity(team_id)
+        ensure_notary_profile(team_id, apple_id, app_password)
+        sign_app(identity)
+
+    if kind is ReleaseKind.direct:
+        create_dmg(APP_PATH)
+        smoke_test_dmg()
         if profile is BuildProfile.distribution:
-            team_id = require_env("TEAM_ID")
-            apple_id = require_env("APPLE_ID")
-            app_password = require_env("APPLE_APP_PASSWORD")
-            identity = resolve_developer_id_identity(team_id)
-            ensure_notary_profile(team_id, apple_id, app_password)
-            sign_app(identity, include_sparkle=kind is ReleaseKind.direct)
+            notarize_dmg()
+        print(f"ready: {DMG_OUTPUT}")
+        return
 
-        if kind is ReleaseKind.direct:
-            create_dmg(APP_PATH)
-            smoke_test_dmg()
-            if profile is BuildProfile.distribution:
-                notarize_dmg()
-            print(f"ready: {DMG_OUTPUT}")
-            return
-
-        if profile is BuildProfile.distribution:
-            create_brew_zip()
-            notarize_app_for_brew()
-            print(f"ready: {APP_PATH}")
-            print(f"archive: {BREW_ZIP_OUTPUT}")
-            return
-
+    if profile is BuildProfile.distribution:
+        create_brew_zip()
+        notarize_app_for_brew()
         print(f"ready: {APP_PATH}")
+        print(f"archive: {BREW_ZIP_OUTPUT}")
+        return
+
+    print(f"ready: {APP_PATH}")
 
 
 if __name__ == "__main__":
