@@ -4,6 +4,9 @@ import Combine
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
+#if canImport(Sparkle)
+import Sparkle
+#endif
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -33,6 +36,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let windowInteractivityPollingInterval: TimeInterval = 1 / 15
     private weak var clipboardFocusedViewModel: NotcheraViewModel?
     private var keyboardDismissClickMonitor: Any?
+    #if canImport(Sparkle)
+    private var updaterController: SPUStandardUpdaterController?
+    #endif
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
@@ -665,6 +671,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if coordinator.firstLaunch {
             LaunchAtLogin.isEnabled = true
         }
+
+        #if canImport(Sparkle)
+        if ReleaseChannel.usesSparkleUpdates {
+            let controller = SPUStandardUpdaterController(
+                startingUpdater: true,
+                updaterDelegate: nil,
+                userDriverDelegate: nil
+            )
+            updaterController = controller
+            SettingsWindowController.shared.setUpdaterController(controller)
+        }
+        #endif
 
         NotificationCenter.default.addObserver(
             self,
