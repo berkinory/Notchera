@@ -121,6 +121,22 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: install sparkle tools
+        run: brew install sparkle
+
+      - name: validate sparkle signing tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          sign_update_bin=$(find "$(brew --prefix)" -type f -name sign_update | head -n 1)
+          if [[ -z "$sign_update_bin" ]]; then
+            echo "sign_update not found under brew prefix"
+            find "$(brew --prefix)" -type f | rg 'sign_update|generate_keys|sparkle' || true
+            exit 1
+          fi
+          echo "using $sign_update_bin"
+          "$sign_update_bin" --help || "$sign_update_bin" -h || true
+
       - name: install release dependencies
         run: python3 -m pip install --require-hashes -r scripts/requirements-release.txt
 
@@ -149,22 +165,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          candidate_bins=(
-            "$GITHUB_WORKSPACE/.derived-data-release-dist/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update"
-            "$GITHUB_WORKSPACE/.derived-data-release-dist/SourcePackages/checkouts/Sparkle/bin/sign_update"
-          )
-
-          sign_update_bin=""
-          for candidate in "${candidate_bins[@]}"; do
-            if [[ -x "$candidate" ]]; then
-              sign_update_bin="$candidate"
-              break
-            fi
-          done
-
+          sign_update_bin=$(find "$(brew --prefix)" -type f -name sign_update | head -n 1)
           if [[ -z "$sign_update_bin" ]]; then
             echo "sign_update not found"
-            ls -R "$GITHUB_WORKSPACE/.derived-data-release-dist/SourcePackages" || true
             exit 1
           fi
 
@@ -173,7 +176,19 @@ jobs:
             exit 1
           fi
 
-          signature=$("$sign_update_bin" Notchera.dmg "$SPARKLE_PRIVATE_KEY")
+          set +e
+          raw_output=$("$sign_update_bin" Notchera.dmg "$SPARKLE_PRIVATE_KEY" 2>&1)
+          status=$?
+          set -e
+
+          echo "$raw_output"
+
+          if [[ $status -ne 0 ]]; then
+            echo "sign_update failed"
+            exit $status
+          fi
+
+          signature=$(printf '%s\n' "$raw_output" | tail -n 1 | tr -d '\r')
           echo "signature=$signature" >> "$GITHUB_OUTPUT"
 
       - name: upload brew artifact to github release
