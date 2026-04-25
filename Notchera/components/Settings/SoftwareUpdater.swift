@@ -39,7 +39,7 @@ struct UpdaterSettingsView: View {
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
-                Toggle("Automatically update the app", isOn: $automaticallyUpdatesApp)
+                Toggle("Automatically download and install updates", isOn: $automaticallyUpdatesApp)
                     .onChange(of: automaticallyUpdatesApp) { _, newValue in
                         updater.automaticallyChecksForUpdates = newValue
                         updater.automaticallyDownloadsUpdates = newValue
