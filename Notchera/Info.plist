@@ -9,6 +9,18 @@
 	</dict>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Notchera needs calendar access to show your upcoming events in the calendar tab.</string>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUEnableDownloaderService</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://notchera.app/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>t6dd4+TwrP75+hpt8KyDr9/F/Vv7HIYgVHCs5SPiPf0=</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict/>
