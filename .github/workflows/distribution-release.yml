@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: distribution-release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -71,6 +75,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: cache source packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            .derived-data-release-dist/SourcePackages
+            cli/notcherahud/.build
+          key: ${{ runner.os }}-release-${{ hashFiles('Notchera.xcodeproj/project.pbxproj', 'cli/notcherahud/Package.swift', 'cli/notcherahud/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-release-
 
       - name: xcode version
         run: xcodebuild -version
@@ -140,19 +154,29 @@ jobs:
       - name: install release dependencies
         run: python3 -m pip install --require-hashes -r scripts/requirements-release.txt
 
-      - name: build direct distribution artifact
+      - name: build and sign direct distribution artifact
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-        run: python3 scripts/release.py --kind direct --profile distribution --yes
+        run: python3 scripts/release.py --kind direct --profile distribution --yes --skip-notarize
 
-      - name: build brew distribution artifact
+      - name: prepare brew artifact from existing build
+        run: python3 scripts/release.py --kind brew --profile distribution --yes --reuse-build --skip-notarize
+
+      - name: notarize direct dmg
         env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-        run: python3 scripts/release.py --kind brew --profile distribution --yes
+        run: xcrun notarytool submit Notchera.dmg --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait && xcrun stapler staple Notchera.dmg && xcrun stapler validate Notchera.dmg
+
+      - name: notarize brew app
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: xcrun notarytool submit Notchera-brew.zip --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait && xcrun stapler staple .derived-data-release-dist/Build/Products/Release/Notchera.app && xcrun stapler validate .derived-data-release-dist/Build/Products/Release/Notchera.app
 
       - name: upload direct artifact to github release
         run: gh release upload "$TAG_NAME" Notchera.dmg --clobber

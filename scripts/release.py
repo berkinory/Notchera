@@ -187,6 +187,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--kind", choices=[item.value for item in ReleaseKind])
     parser.add_argument("--profile", choices=[item.value for item in BuildProfile])
     parser.add_argument("--yes", action="store_true")
+    parser.add_argument("--reuse-build", action="store_true")
+    parser.add_argument("--skip-notarize", action="store_true")
     return parser.parse_args()
 
 
@@ -460,12 +462,16 @@ def main() -> None:
 
     validate_prerequisites(kind)
 
-    build_release()
-    build_cli()
-    bundle_cli()
+    if not args.reuse_build:
+        build_release()
+        build_cli()
+        bundle_cli()
+    else:
+        ensure_dir(APP_PATH)
+
     set_release_channel(kind)
 
-    if profile is BuildProfile.distribution:
+    if profile is BuildProfile.distribution and not args.reuse_build:
         team_id = require_env("TEAM_ID")
         apple_id = require_env("APPLE_ID")
         app_password = require_env("APPLE_APP_PASSWORD")
@@ -476,17 +482,20 @@ def main() -> None:
     if kind is ReleaseKind.direct:
         create_dmg(APP_PATH)
         smoke_test_dmg()
-        if profile is BuildProfile.distribution:
+        if profile is BuildProfile.distribution and not args.skip_notarize:
             notarize_dmg()
         print(f"ready: {DMG_OUTPUT}")
         return
 
-    if profile is BuildProfile.distribution:
+    if profile is BuildProfile.distribution and not args.skip_notarize:
         create_brew_zip()
         notarize_app_for_brew()
         print(f"ready: {APP_PATH}")
         print(f"archive: {BREW_ZIP_OUTPUT}")
         return
+
+    if kind is ReleaseKind.brew:
+        create_brew_zip()
 
     print(f"ready: {APP_PATH}")
 
