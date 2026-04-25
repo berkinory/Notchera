@@ -141,20 +141,39 @@ jobs:
       - name: upload direct artifact to github release
         run: gh release upload "$TAG_NAME" Notchera.dmg --clobber
 
-      - name: install sparkle tools
-        run: brew install sparkle
-
       - name: generate sparkle signature
         id: sparkle-signature
         shell: bash
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          sign_update_bin=$(find "$(brew --prefix)" -type f -name sign_update | head -n 1)
+
+          candidate_bins=(
+            "$GITHUB_WORKSPACE/.derived-data-release-dist/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update"
+            "$GITHUB_WORKSPACE/.derived-data-release-dist/SourcePackages/checkouts/Sparkle/bin/sign_update"
+          )
+
+          sign_update_bin=""
+          for candidate in "${candidate_bins[@]}"; do
+            if [[ -x "$candidate" ]]; then
+              sign_update_bin="$candidate"
+              break
+            fi
+          done
+
           if [[ -z "$sign_update_bin" ]]; then
             echo "sign_update not found"
+            ls -R "$GITHUB_WORKSPACE/.derived-data-release-dist/SourcePackages" || true
             exit 1
           fi
-          signature=$("$sign_update_bin" Notchera.dmg)
+
+          if [[ -z "${SPARKLE_PRIVATE_KEY:-}" ]]; then
+            echo "SPARKLE_PRIVATE_KEY secret is missing"
+            exit 1
+          fi
+
+          signature=$("$sign_update_bin" Notchera.dmg "$SPARKLE_PRIVATE_KEY")
           echo "signature=$signature" >> "$GITHUB_OUTPUT"
 
       - name: upload brew artifact to github release
