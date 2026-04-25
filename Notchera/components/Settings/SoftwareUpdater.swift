@@ -1,5 +1,61 @@
 import SwiftUI
 
+private let brewUpgradeCommand = "brew upgrade --cask notchera"
+
+struct BrewUpdaterSettingsView: View {
+    @State private var isCheckingForUpdates = false
+    @State private var updateResult: BrewUpdateCheckResult?
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Button(isCheckingForUpdates ? "Checking for Updates…" : "Check for Updates…") {
+                    Task {
+                        isCheckingForUpdates = true
+                        defer { isCheckingForUpdates = false }
+
+                        do {
+                            errorMessage = nil
+                            updateResult = try await BrewUpdateChecker.check()
+                        } catch {
+                            updateResult = nil
+                            errorMessage = error.localizedDescription
+                        }
+                    }
+                }
+                .disabled(isCheckingForUpdates)
+
+                if let updateResult {
+                    if updateResult.updateAvailable {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Version \(updateResult.latestVersion) is available.")
+                                .foregroundStyle(.secondary)
+
+                            Text(brewUpgradeCommand)
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .textSelection(.enabled)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text("You’re up to date.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+            .padding(.vertical, 2)
+        } header: {
+            SettingsSectionHeader(title: "Software updates")
+        }
+    }
+}
+
 #if canImport(Sparkle)
 final class CheckForUpdatesViewModel: ObservableObject {
     @Published var canCheckForUpdates = false

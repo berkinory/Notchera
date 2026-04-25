@@ -32,6 +32,8 @@ struct AboutSettingsView: View {
                 #if canImport(Sparkle)
                 if ReleaseChannel.usesSparkleUpdates, let updaterController {
                     UpdaterSettingsView(updater: updaterController.updater)
+                } else {
+                    BrewUpdaterSettingsView()
                 }
                 #endif
 
