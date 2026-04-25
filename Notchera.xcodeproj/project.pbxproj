@@ -909,6 +909,7 @@
 			mainGroup = 14CEF4092C5CAED200855D72;
 			packageReferences = (
 				14D032182C68F32E0096E6A1 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				B18654372C6F4990000B926A /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				9A987A0E2C73CA8D005CA465 /* XCRemoteSwiftPackageReference "swift-collections" */,
 				9A987A112C73CAA1005CA465 /* XCRemoteSwiftPackageReference "Pow" */,
