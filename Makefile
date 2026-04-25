@@ -28,7 +28,7 @@ check:
 	build
 
 release:
-	python3 ./dmg/create_dmg.py
+	python3 ./scripts/release.py
 
 clear:
 	-osascript -e 'tell application "Notchera" to quit' 2>/dev/null || true

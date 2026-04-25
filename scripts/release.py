@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import os
 import plistlib
 import shutil
@@ -26,7 +27,7 @@ DMG_OUTPUT = ROOT / "Notchera.dmg"
 BREW_ZIP_OUTPUT = ROOT / "Notchera-brew.zip"
 VOLUME_NAME = "Notchera"
 NOTARY_PROFILE = "notary-profile"
-REQUIREMENTS = ROOT / "dmg" / "requirements.txt"
+REQUIREMENTS = ROOT / "scripts" / "requirements-release.txt"
 APP_ENTITLEMENTS = ROOT / "Notchera" / "Notchera.entitlements"
 HELPER_ENTITLEMENTS = ROOT / "NotcheraXPCHelper" / "NotcheraXPCHelper.entitlements"
 SPARKLE_PLIST_KEYS = [
@@ -201,22 +202,22 @@ def ask_yes_no(title: str, default: bool) -> bool:
         print("invalid selection")
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--kind", choices=[item.value for item in ReleaseKind])
+    parser.add_argument("--profile", choices=[item.value for item in BuildProfile])
+    parser.add_argument("--yes", action="store_true")
+    return parser.parse_args()
+
+
 def prompt_build_plan() -> tuple[ReleaseKind, BuildProfile]:
-    kind = ReleaseKind(
-        ask_choice(
-            "which artifact do you want?",
-            [
-                (ReleaseKind.direct.value, "normal release. sparkle included. dmg flow"),
-                (ReleaseKind.brew.value, "brew release. no sparkle. brew-managed updates"),
-            ],
-        )
-    )
+    kind = ReleaseKind.direct
     profile = BuildProfile(
         ask_choice(
-            "which build profile?",
+            "which local release mode do you want?",
             [
-                (BuildProfile.dev.value, "dev. fast local artifact. no sign or notarize"),
-                (BuildProfile.distribution.value, "distribution. sign and notarize when applicable"),
+                (BuildProfile.dev.value, "dev. local direct build only. no sign or notarize"),
+                (BuildProfile.distribution.value, "distribution. local direct dmg with sign and notarize"),
             ],
         )
     )
@@ -475,13 +476,22 @@ def validate_prerequisites(kind: ReleaseKind) -> None:
     ensure_dir(PROJECT)
     ensure_file(APP_ENTITLEMENTS)
     ensure_file(HELPER_ENTITLEMENTS)
-    if kind is ReleaseKind.direct:
-        ensure_file(REQUIREMENTS)
+    ensure_file(REQUIREMENTS)
 
 
 def main() -> None:
     read_env_file()
-    kind, profile = prompt_build_plan()
+    args = parse_args()
+
+    if args.profile:
+        kind = ReleaseKind(args.kind or ReleaseKind.direct.value)
+        profile = BuildProfile(args.profile)
+        if not args.yes:
+            print(f"kind: {kind.value}")
+            print(f"profile: {profile.value}")
+    else:
+        kind, profile = prompt_build_plan()
+
     validate_prerequisites(kind)
 
     with brew_project_variant(kind is ReleaseKind.brew):

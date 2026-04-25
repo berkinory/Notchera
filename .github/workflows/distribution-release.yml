@@ -1,0 +1,213 @@
+name: distribution release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  detect-version:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.detect.outputs.changed }}
+      marketing_version: ${{ steps.detect.outputs.marketing_version }}
+      build_version: ${{ steps.detect.outputs.build_version }}
+      tag_name: ${{ steps.detect.outputs.tag_name }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: detect version change
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_marketing=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);/\1/p' Notchera.xcodeproj/project.pbxproj | head -n 1 | tr -d ' ')
+          current_build=$(sed -n 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);/\1/p' Notchera.xcodeproj/project.pbxproj | head -n 1 | tr -d ' ')
+
+          previous_marketing=""
+          previous_build=""
+
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            previous_marketing=$(git show HEAD^:Notchera.xcodeproj/project.pbxproj | sed -n 's/.*MARKETING_VERSION = \([^;]*\);/\1/p' | head -n 1 | tr -d ' ' || true)
+            previous_build=$(git show HEAD^:Notchera.xcodeproj/project.pbxproj | sed -n 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);/\1/p' | head -n 1 | tr -d ' ' || true)
+          fi
+
+          changed=false
+          if [[ "$current_marketing" != "$previous_marketing" || "$current_build" != "$previous_build" ]]; then
+            changed=true
+          fi
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "marketing_version=$current_marketing" >> "$GITHUB_OUTPUT"
+          echo "build_version=$current_build" >> "$GITHUB_OUTPUT"
+          echo "tag_name=v$current_marketing" >> "$GITHUB_OUTPUT"
+
+      - name: summary
+        run: |
+          echo "changed=${{ steps.detect.outputs.changed }}"
+          echo "marketing=${{ steps.detect.outputs.marketing_version }}"
+          echo "build=${{ steps.detect.outputs.build_version }}"
+          echo "tag=${{ steps.detect.outputs.tag_name }}"
+
+  distribution-release:
+    if: needs.detect-version.outputs.changed == 'true'
+    needs:
+      - detect-version
+    runs-on: macos-latest
+    env:
+      MARKETING_VERSION: ${{ needs.detect-version.outputs.marketing_version }}
+      BUILD_VERSION: ${{ needs.detect-version.outputs.build_version }}
+      TAG_NAME: ${{ needs.detect-version.outputs.tag_name }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: xcode version
+        run: xcodebuild -version
+
+      - name: import signing certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="$RUNNER_TEMP/notchera-signing.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/build_certificate.p12"
+
+          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
+
+      - name: create tag if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "tag already exists"
+            exit 0
+          fi
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+
+      - name: create github release if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "release already exists"
+            exit 0
+          fi
+          gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "Notchera $MARKETING_VERSION"
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: install release dependencies
+        run: python3 -m pip install --require-hashes -r scripts/requirements-release.txt
+
+      - name: build direct distribution artifact
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: python3 scripts/release.py --kind direct --profile distribution --yes
+
+      - name: build brew distribution artifact
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: python3 scripts/release.py --kind brew --profile distribution --yes
+
+      - name: upload direct artifact to github release
+        run: gh release upload "$TAG_NAME" Notchera.dmg --clobber
+
+      - name: install sparkle tools
+        run: brew install sparkle
+
+      - name: generate sparkle signature
+        id: sparkle-signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          signature=$("$(brew --prefix)/bin/sign_update" Notchera.dmg)
+          echo "signature=$signature" >> "$GITHUB_OUTPUT"
+
+      - name: upload brew artifact to github release
+        run: gh release upload "$TAG_NAME" Notchera-brew.zip --clobber
+
+      - name: checkout website repo
+        uses: actions/checkout@v4
+        with:
+          repository: berkinory/notchera-web
+          token: ${{ secrets.WEBSITE_REPO_PAT }}
+          path: website-repo
+
+      - name: checkout homebrew repo
+        uses: actions/checkout@v4
+        with:
+          repository: berkinory/brew
+          token: ${{ secrets.HOMEBREW_REPO_PAT }}
+          path: homebrew-tap
+
+      - name: update appcast and cask
+        env:
+          SPARKLE_ED_SIGNATURE: ${{ steps.sparkle-signature.outputs.signature }}
+        run: |
+          python3 scripts/update_release_metadata.py --marketing-version "$MARKETING_VERSION" --build-version "$BUILD_VERSION" --target all
+
+      - name: commit and push website repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd website-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/www/public/appcast.xml
+          if git diff --cached --quiet; then
+            echo "website repo unchanged"
+            exit 0
+          fi
+          git commit -m "update appcast for $TAG_NAME"
+          git push origin HEAD
+
+      - name: commit and push homebrew repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/notchera.rb
+          if git diff --cached --quiet; then
+            echo "homebrew repo unchanged"
+            exit 0
+          fi
+          git commit -m "update notchera to $TAG_NAME"
+          git push origin HEAD
+
+  no-release:
+    if: needs.detect-version.outputs.changed != 'true'
+    needs:
+      - detect-version
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "version unchanged. skipping distribution release."
