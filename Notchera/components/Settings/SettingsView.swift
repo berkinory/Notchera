@@ -1,12 +1,11 @@
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
-import Sparkle
 import SwiftUI
 
 struct SettingsView: View {
     @State private var selectedTab = "general"
-    let updaterController: SPUStandardUpdaterController?
+    let updaterController: AppUpdaterController?
 
     private let sections: [SettingsSidebarSection] = [
         SettingsSidebarSection(
@@ -36,7 +35,7 @@ struct SettingsView: View {
         )
     ]
 
-    init(updaterController: SPUStandardUpdaterController? = nil) {
+    init(updaterController: AppUpdaterController? = nil) {
         self.updaterController = updaterController
     }
 
@@ -134,7 +133,7 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    fileprivate static func buildDetailContent(selectedTab: String, updaterController: SPUStandardUpdaterController?) -> some View {
+    fileprivate static func buildDetailContent(selectedTab: String, updaterController: AppUpdaterController?) -> some View {
         switch selectedTab {
         case "general":
             SettingsGeneralView()
@@ -155,17 +154,7 @@ struct SettingsView: View {
         case "shortcuts":
             ShortcutsSettingsView()
         case "about":
-            if let controller = updaterController {
-                AboutSettingsView(updaterController: controller)
-            } else {
-                AboutSettingsView(
-                    updaterController: SPUStandardUpdaterController(
-                        startingUpdater: false,
-                        updaterDelegate: nil,
-                        userDriverDelegate: nil
-                    )
-                )
-            }
+            AboutSettingsView(updaterController: updaterController)
         default:
             SettingsGeneralView()
         }

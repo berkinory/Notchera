@@ -1,11 +1,10 @@
 import AppKit
 import Defaults
-import Sparkle
 import SwiftUI
 
 class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
-    private var updaterController: SPUStandardUpdaterController?
+    private var updaterController: AppUpdaterController?
 
     private init() {
         let window = NSWindow(
@@ -25,7 +24,7 @@ class SettingsWindowController: NSWindowController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func setUpdaterController(_ controller: SPUStandardUpdaterController) {
+    func setUpdaterController(_ controller: AppUpdaterController) {
         updaterController = controller
         setupWindow()
     }

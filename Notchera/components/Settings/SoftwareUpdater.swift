@@ -1,10 +1,10 @@
-import Sparkle
 import SwiftUI
 
+#if canImport(Sparkle)
 final class CheckForUpdatesViewModel: ObservableObject {
     @Published var canCheckForUpdates = false
 
-    init(updater: SPUUpdater) {
+    init(updater: AppUpdater) {
         updater.publisher(for: \.canCheckForUpdates)
             .assign(to: &$canCheckForUpdates)
     }
@@ -12,11 +12,10 @@ final class CheckForUpdatesViewModel: ObservableObject {
 
 struct CheckForUpdatesView: View {
     @ObservedObject private var checkForUpdatesViewModel: CheckForUpdatesViewModel
-    private let updater: SPUUpdater
+    private let updater: AppUpdater
 
-    init(updater: SPUUpdater) {
+    init(updater: AppUpdater) {
         self.updater = updater
-
         checkForUpdatesViewModel = CheckForUpdatesViewModel(updater: updater)
     }
 
@@ -27,11 +26,11 @@ struct CheckForUpdatesView: View {
 }
 
 struct UpdaterSettingsView: View {
-    private let updater: SPUUpdater
+    private let updater: AppUpdater
 
     @State private var automaticallyUpdatesApp: Bool
 
-    init(updater: SPUUpdater) {
+    init(updater: AppUpdater) {
         self.updater = updater
         automaticallyUpdatesApp = updater.automaticallyChecksForUpdates && updater.automaticallyDownloadsUpdates
     }
@@ -53,3 +52,10 @@ struct UpdaterSettingsView: View {
         }
     }
 }
+#else
+struct UpdaterSettingsView: View {
+    var body: some View {
+        EmptyView()
+    }
+}
+#endif

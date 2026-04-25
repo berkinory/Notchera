@@ -1,13 +1,12 @@
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
-import Sparkle
 import SwiftUI
 import SwiftUIIntrospect
 
 struct AboutSettingsView: View {
     @State private var showBuildNumber: Bool = false
-    let updaterController: SPUStandardUpdaterController
+    let updaterController: AppUpdaterController?
     @Environment(\.openWindow) var openWindow
     var body: some View {
         VStack {
@@ -30,7 +29,11 @@ struct AboutSettingsView: View {
                     }
                 }
 
-                UpdaterSettingsView(updater: updaterController.updater)
+                #if canImport(Sparkle)
+                if let updaterController {
+                    UpdaterSettingsView(updater: updaterController.updater)
+                }
+                #endif
 
                 HStack(spacing: 10) {
                     AboutSocialCard(title: "GitHub", imageName: "Github") {

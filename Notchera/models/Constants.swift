@@ -1,5 +1,16 @@
 import Defaults
+#if canImport(Sparkle)
+import Sparkle
+#endif
 import SwiftUI
+
+#if canImport(Sparkle)
+typealias AppUpdaterController = SPUStandardUpdaterController
+typealias AppUpdater = SPUUpdater
+#else
+final class AppUpdaterController {}
+final class AppUpdater {}
+#endif
 
 private let availableDirectories = FileManager
     .default

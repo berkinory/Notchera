@@ -4,7 +4,6 @@ import Combine
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
-import Sparkle
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {

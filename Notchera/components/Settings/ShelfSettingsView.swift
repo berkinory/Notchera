@@ -1,7 +1,6 @@
 import Defaults
 import KeyboardShortcuts
 import LaunchAtLogin
-import Sparkle
 import SwiftUI
 import SwiftUIIntrospect
 

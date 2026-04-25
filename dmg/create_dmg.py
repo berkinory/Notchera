@@ -7,10 +7,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
+from enum import Enum
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PROJECT = ROOT / "Notchera.xcodeproj"
+PBXPROJ = PROJECT / "project.pbxproj"
+INFO_PLIST = ROOT / "Notchera" / "Info.plist"
 SCHEME = "Notchera"
 DESTINATION = "platform=macOS"
 DERIVED_DATA = ROOT / ".derived-data-release-dist"
@@ -19,14 +23,20 @@ APP_PATH = DERIVED_DATA / "Build" / "Products" / "Release" / "Notchera.app"
 CLI_PROJECT = ROOT / "cli" / "notcherahud"
 CLI_BINARY = CLI_PROJECT / ".build" / "release" / "notcherahud"
 DMG_OUTPUT = ROOT / "Notchera.dmg"
+BREW_ZIP_OUTPUT = ROOT / "Notchera-brew.zip"
 VOLUME_NAME = "Notchera"
 NOTARY_PROFILE = "notary-profile"
 REQUIREMENTS = ROOT / "dmg" / "requirements.txt"
 APP_ENTITLEMENTS = ROOT / "Notchera" / "Notchera.entitlements"
 HELPER_ENTITLEMENTS = ROOT / "NotcheraXPCHelper" / "NotcheraXPCHelper.entitlements"
-TEAM_ID = os.environ.get("TEAM_ID", "")
-APPLE_ID = os.environ.get("APPLE_ID", "")
-APPLE_APP_PASSWORD = os.environ.get("APPLE_APP_PASSWORD", "")
+SPARKLE_PLIST_KEYS = [
+    "SUAutomaticallyUpdate",
+    "SUEnableAutomaticChecks",
+    "SUEnableDownloaderService",
+    "SUEnableInstallerLauncherService",
+    "SUFeedURL",
+    "SUPublicEDKey",
+]
 
 USER_PYTHON_BINS = [
     Path.home() / "Library/Python/3.12/bin",
@@ -34,6 +44,25 @@ USER_PYTHON_BINS = [
     Path.home() / "Library/Python/3.10/bin",
     Path.home() / "Library/Python/3.9/bin",
 ]
+
+SPARKLE_PBX_SNIPPETS = [
+    '\t\t14D0321D2C68F3350096E6A1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 14D0321C2C68F3350096E6A1 /* Sparkle */; };\n',
+    '\t\t\t\t14D0321D2C68F3350096E6A1 /* Sparkle in Frameworks */,\n',
+    '\t\t\t\t14D0321C2C68F3350096E6A1 /* Sparkle */,\n',
+    '\t\t\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */,\n',
+    '\t\t14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = "https://github.com/sparkle-project/Sparkle";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMajorVersion;\n\t\t\t\tminimumVersion = 2.9.1;\n\t\t\t};\n\t\t};\n',
+    '\t\t14D0321C2C68F3350096E6A1 /* Sparkle */ = {\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tpackage = 14D0321B2C68F3350096E6A1 /* XCRemoteSwiftPackageReference "Sparkle" */;\n\t\t\tproductName = Sparkle;\n\t\t};\n',
+]
+
+
+class ReleaseKind(str, Enum):
+    direct = "direct"
+    brew = "brew"
+
+
+class BuildProfile(str, Enum):
+    dev = "dev"
+    distribution = "distribution"
 
 
 def die(message: str) -> None:
@@ -145,9 +174,90 @@ def ensure_notary_profile(team_id: str, apple_id: str, app_password: str) -> Non
     )
 
 
+def ask_choice(title: str, options: list[tuple[str, str]]) -> str:
+    print()
+    print(title)
+    for index, (_, label) in enumerate(options, start=1):
+        print(f"  {index}. {label}")
+    while True:
+        raw = input("select: ").strip()
+        if raw.isdigit():
+            selected = int(raw)
+            if 1 <= selected <= len(options):
+                return options[selected - 1][0]
+        print("invalid selection")
+
+
+def ask_yes_no(title: str, default: bool) -> bool:
+    suffix = "Y/n" if default else "y/N"
+    while True:
+        raw = input(f"{title} [{suffix}]: ").strip().lower()
+        if not raw:
+            return default
+        if raw in {"y", "yes"}:
+            return True
+        if raw in {"n", "no"}:
+            return False
+        print("invalid selection")
+
+
+def prompt_build_plan() -> tuple[ReleaseKind, BuildProfile]:
+    kind = ReleaseKind(
+        ask_choice(
+            "which artifact do you want?",
+            [
+                (ReleaseKind.direct.value, "normal release. sparkle included. dmg flow"),
+                (ReleaseKind.brew.value, "brew release. no sparkle. brew-managed updates"),
+            ],
+        )
+    )
+    profile = BuildProfile(
+        ask_choice(
+            "which build profile?",
+            [
+                (BuildProfile.dev.value, "dev. fast local artifact. no sign or notarize"),
+                (BuildProfile.distribution.value, "distribution. sign and notarize when applicable"),
+            ],
+        )
+    )
+    print()
+    print(f"kind: {kind.value}")
+    print(f"profile: {profile.value}")
+    if not ask_yes_no("continue", True):
+        raise SystemExit(0)
+    return kind, profile
+
+
+@contextmanager
+def brew_project_variant(enabled: bool):
+    if not enabled:
+        yield
+        return
+
+    original_pbxproj = PBXPROJ.read_text()
+    original_info_plist = INFO_PLIST.read_bytes()
+    try:
+        patched = original_pbxproj
+        for snippet in SPARKLE_PBX_SNIPPETS:
+            patched = patched.replace(snippet, "")
+        PBXPROJ.write_text(patched)
+
+        with INFO_PLIST.open("rb") as fh:
+            info = plistlib.load(fh)
+        for key in SPARKLE_PLIST_KEYS:
+            info.pop(key, None)
+        with INFO_PLIST.open("wb") as fh:
+            plistlib.dump(info, fh, sort_keys=False)
+
+        yield
+    finally:
+        PBXPROJ.write_text(original_pbxproj)
+        INFO_PLIST.write_bytes(original_info_plist)
+
+
 def build_release() -> None:
     if DERIVED_DATA.exists():
-        shutil.rmtree(DERIVED_DATA)
+        shutil.rmtree(DERIVED_DATA, ignore_errors=True)
     run(
         "xcodebuild",
         "-project",
@@ -169,7 +279,7 @@ def build_release() -> None:
 
 
 def build_cli() -> None:
-    run("swift", "build", "-c", "release", cwd=str(CLI_PROJECT))
+    run("swift", "build", "-c", "release", cwd=CLI_PROJECT)
     ensure_file(CLI_BINARY)
 
 
@@ -211,29 +321,17 @@ def sign(identity: str, path: Path, entitlements: Path | None = None) -> None:
     run(*args)
 
 
-def sign_app(identity: str) -> None:
+def sign_app(identity: str, include_sparkle: bool) -> None:
     info_plist = APP_PATH / "Contents" / "Info.plist"
     helper = APP_PATH / "Contents" / "XPCServices" / "NotcheraXPCHelper.xpc"
     mediaremote = APP_PATH / "Contents" / "Frameworks" / "MediaRemoteAdapter.framework"
     mediaremote_test_client = APP_PATH / "Contents" / "Resources" / "MediaRemoteAdapterTestClient"
     cli_binary = APP_PATH / "Contents" / "Resources" / "notcherahud"
-    sparkle = APP_PATH / "Contents" / "Frameworks" / "Sparkle.framework"
-    current_version = os.readlink(sparkle / "Versions" / "Current")
-    sparkle_version = sparkle / "Versions" / current_version
-    autoupdate = sparkle_version / "Autoupdate"
-    downloader = sparkle_version / "XPCServices" / "Downloader.xpc"
-    installer = sparkle_version / "XPCServices" / "Installer.xpc"
-    updater = sparkle_version / "Updater.app"
 
     ensure_file(info_plist)
     ensure_dir(helper)
     ensure_dir(mediaremote)
-    ensure_dir(sparkle)
-    ensure_file(autoupdate)
     ensure_file(cli_binary)
-    ensure_dir(downloader)
-    ensure_dir(installer)
-    ensure_dir(updater)
 
     if mediaremote_test_client.exists():
         mediaremote_test_client.unlink()
@@ -244,12 +342,29 @@ def sign_app(identity: str) -> None:
         entitlements = Path(tmp) / "app.entitlements"
         render_app_entitlements(bundle_id, entitlements)
         sign(identity, mediaremote)
-        sign(identity, autoupdate)
         sign(identity, cli_binary)
-        sign(identity, downloader)
-        sign(identity, installer)
-        sign(identity, updater)
-        sign(identity, sparkle)
+
+        if include_sparkle:
+            sparkle = APP_PATH / "Contents" / "Frameworks" / "Sparkle.framework"
+            current_version = os.readlink(sparkle / "Versions" / "Current")
+            sparkle_version = sparkle / "Versions" / current_version
+            autoupdate = sparkle_version / "Autoupdate"
+            downloader = sparkle_version / "XPCServices" / "Downloader.xpc"
+            installer = sparkle_version / "XPCServices" / "Installer.xpc"
+            updater = sparkle_version / "Updater.app"
+
+            ensure_dir(sparkle)
+            ensure_file(autoupdate)
+            ensure_dir(downloader)
+            ensure_dir(installer)
+            ensure_dir(updater)
+
+            sign(identity, autoupdate)
+            sign(identity, downloader)
+            sign(identity, installer)
+            sign(identity, updater)
+            sign(identity, sparkle)
+
         sign(identity, helper, HELPER_ENTITLEMENTS)
         sign(identity, APP_PATH, entitlements)
 
@@ -328,48 +443,76 @@ def smoke_test_dmg() -> None:
     try:
         run("hdiutil", "attach", "-nobrowse", "-readonly", "-mountpoint", str(mount_point), str(DMG_OUTPUT))
         mounted = True
-        ensure_dir(mount_point / app_path_name())
+        ensure_dir(mount_point / APP_PATH.name)
         ensure_file(mount_point / ".DS_Store")
         print(f"smoke: mounted={mount_point}")
-        print(f"smoke: app={mount_point / app_path_name()}")
-        print(f"smoke: ds_store={mount_point / '.DS_Store'}")
     finally:
         if mounted:
             run("hdiutil", "detach", str(mount_point))
         shutil.rmtree(mount_point, ignore_errors=True)
 
 
-def app_path_name() -> str:
-    return APP_PATH.name
+def create_brew_zip() -> None:
+    if BREW_ZIP_OUTPUT.exists():
+        BREW_ZIP_OUTPUT.unlink()
+    run("ditto", "-c", "-k", "--keepParent", str(APP_PATH), str(BREW_ZIP_OUTPUT))
+    ensure_file(BREW_ZIP_OUTPUT)
 
 
-def notarize() -> None:
+def notarize_dmg() -> None:
     run("xcrun", "notarytool", "submit", str(DMG_OUTPUT), "--keychain-profile", NOTARY_PROFILE, "--wait")
     run("xcrun", "stapler", "staple", str(DMG_OUTPUT))
     run("xcrun", "stapler", "validate", str(DMG_OUTPUT))
 
 
-def main() -> None:
-    read_env_file()
-    team_id = require_env("TEAM_ID")
-    apple_id = require_env("APPLE_ID")
-    app_password = require_env("APPLE_APP_PASSWORD")
+def notarize_app_for_brew() -> None:
+    run("xcrun", "notarytool", "submit", str(BREW_ZIP_OUTPUT), "--keychain-profile", NOTARY_PROFILE, "--wait")
+    run("xcrun", "stapler", "staple", str(APP_PATH))
+    run("xcrun", "stapler", "validate", str(APP_PATH))
 
+
+def validate_prerequisites(kind: ReleaseKind) -> None:
     ensure_dir(PROJECT)
-    ensure_file(REQUIREMENTS)
     ensure_file(APP_ENTITLEMENTS)
     ensure_file(HELPER_ENTITLEMENTS)
+    if kind is ReleaseKind.direct:
+        ensure_file(REQUIREMENTS)
 
-    identity = resolve_developer_id_identity(team_id)
-    ensure_notary_profile(team_id, apple_id, app_password)
-    build_release()
-    build_cli()
-    bundle_cli()
-    sign_app(identity)
-    create_dmg(APP_PATH)
-    smoke_test_dmg()
-    notarize()
-    print(f"ready: {DMG_OUTPUT}")
+
+def main() -> None:
+    read_env_file()
+    kind, profile = prompt_build_plan()
+    validate_prerequisites(kind)
+
+    with brew_project_variant(kind is ReleaseKind.brew):
+        build_release()
+        build_cli()
+        bundle_cli()
+
+        if profile is BuildProfile.distribution:
+            team_id = require_env("TEAM_ID")
+            apple_id = require_env("APPLE_ID")
+            app_password = require_env("APPLE_APP_PASSWORD")
+            identity = resolve_developer_id_identity(team_id)
+            ensure_notary_profile(team_id, apple_id, app_password)
+            sign_app(identity, include_sparkle=kind is ReleaseKind.direct)
+
+        if kind is ReleaseKind.direct:
+            create_dmg(APP_PATH)
+            smoke_test_dmg()
+            if profile is BuildProfile.distribution:
+                notarize_dmg()
+            print(f"ready: {DMG_OUTPUT}")
+            return
+
+        if profile is BuildProfile.distribution:
+            create_brew_zip()
+            notarize_app_for_brew()
+            print(f"ready: {APP_PATH}")
+            print(f"archive: {BREW_ZIP_OUTPUT}")
+            return
+
+        print(f"ready: {APP_PATH}")
 
 
 if __name__ == "__main__":
