@@ -32,8 +32,16 @@ enum BrewUpdateChecker {
             let outputPipe = Pipe()
             let errorPipe = Pipe()
 
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = ["brew", "info", "--cask", "--json=v2", "notchera"]
+            guard let brewPath = brewExecutablePath() else {
+                throw NSError(
+                    domain: "BrewUpdateChecker",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Homebrew is not available on this Mac."]
+                )
+            }
+
+            process.executableURL = URL(fileURLWithPath: brewPath)
+            process.arguments = ["info", "--cask", "--json=v2", "notchera"]
             process.standardOutput = outputPipe
             process.standardError = errorPipe
 
@@ -64,6 +72,17 @@ enum BrewUpdateChecker {
 
             return outputData
         }.value
+    }
+
+    private static func brewExecutablePath() -> String? {
+        let fileManager = FileManager.default
+        let candidates = [
+            ProcessInfo.processInfo.environment["HOMEBREW_PREFIX"].map { "\($0)/bin/brew" },
+            "/opt/homebrew/bin/brew",
+            "/usr/local/bin/brew",
+        ].compactMap { $0 }
+
+        return candidates.first(where: { fileManager.isExecutableFile(atPath: $0) })
     }
 }
 
