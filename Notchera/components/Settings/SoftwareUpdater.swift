@@ -1,6 +1,6 @@
 import SwiftUI
 
-private let brewUpgradeCommand = "brew upgrade --cask notchera"
+private let brewUpgradeCommand = "brew update && brew upgrade --cask notchera"
 
 struct BrewUpdaterSettingsView: View {
     @State private var isCheckingForUpdates = false

@@ -1,77 +1,78 @@
 import Foundation
 
 struct BrewUpdateCheckResult: Equatable {
+    let installedVersion: String?
     let latestVersion: String
-    let downloadURL: URL?
-
-    var updateAvailable: Bool {
-        latestVersion != (Bundle.main.releaseVersionNumber ?? "")
-    }
+    let updateAvailable: Bool
 }
 
 enum BrewUpdateChecker {
     static func check() async throws -> BrewUpdateCheckResult {
-        guard let feedURLString = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String,
-              let feedURL = URL(string: feedURLString)
-        else {
-            throw NSError(domain: "BrewUpdateChecker", code: 1, userInfo: [NSLocalizedDescriptionKey: "Update feed URL is missing."])
+        let data = try await runBrewInfo()
+        let response = try JSONDecoder().decode(BrewInfoResponse.self, from: data)
+
+        guard let cask = response.casks.first else {
+            throw NSError(
+                domain: "BrewUpdateChecker",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Notchera is not installed via Homebrew."]
+            )
         }
 
-        let (data, _) = try await URLSession.shared.data(from: feedURL)
-        let parser = AppcastParser()
-        return try parser.parse(data: data)
+        return BrewUpdateCheckResult(
+            installedVersion: cask.installed,
+            latestVersion: cask.version,
+            updateAvailable: cask.outdated
+        )
+    }
+
+    private static func runBrewInfo() async throws -> Data {
+        try await Task.detached(priority: .userInitiated) {
+            let process = Process()
+            let outputPipe = Pipe()
+            let errorPipe = Pipe()
+
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["brew", "info", "--cask", "--json=v2", "notchera"]
+            process.standardOutput = outputPipe
+            process.standardError = errorPipe
+
+            do {
+                try process.run()
+            } catch {
+                throw NSError(
+                    domain: "BrewUpdateChecker",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Homebrew is not available on this Mac."]
+                )
+            }
+
+            process.waitUntilExit()
+
+            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+
+            guard process.terminationStatus == 0 else {
+                let message = String(data: errorData, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                throw NSError(
+                    domain: "BrewUpdateChecker",
+                    code: Int(process.terminationStatus),
+                    userInfo: [NSLocalizedDescriptionKey: message?.isEmpty == false ? message! : "Failed to query Homebrew."]
+                )
+            }
+
+            return outputData
+        }.value
     }
 }
 
-private final class AppcastParser: NSObject, XMLParserDelegate {
-    private var currentElement = ""
-    private var insideFirstItem = false
-    private var hasParsedFirstItem = false
-    private var latestVersion = ""
-    private var enclosureURL: URL?
+private struct BrewInfoResponse: Decodable {
+    let casks: [BrewCaskInfo]
+}
 
-    func parse(data: Data) throws -> BrewUpdateCheckResult {
-        let parser = XMLParser(data: data)
-        parser.delegate = self
-        guard parser.parse() else {
-            throw parser.parserError ?? NSError(domain: "BrewUpdateChecker", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to parse update feed."])
-        }
-
-        guard !latestVersion.isEmpty else {
-            throw NSError(domain: "BrewUpdateChecker", code: 3, userInfo: [NSLocalizedDescriptionKey: "No release version found in update feed."])
-        }
-
-        return BrewUpdateCheckResult(latestVersion: latestVersion, downloadURL: enclosureURL)
-    }
-
-    func parser(_: XMLParser, didStartElement elementName: String, namespaceURI _: String?, qualifiedName _: String?, attributes attributeDict: [String: String] = [:]) {
-        currentElement = elementName
-
-        if elementName == "item", !hasParsedFirstItem {
-            insideFirstItem = true
-            return
-        }
-
-        guard insideFirstItem else { return }
-
-        if elementName == "enclosure", let rawURL = attributeDict["url"] {
-            enclosureURL = URL(string: rawURL)
-        }
-    }
-
-    func parser(_: XMLParser, foundCharacters string: String) {
-        guard insideFirstItem else { return }
-        if currentElement == "sparkle:shortVersionString" {
-            latestVersion += string
-        }
-    }
-
-    func parser(_: XMLParser, didEndElement elementName: String, namespaceURI _: String?, qualifiedName _: String?) {
-        if elementName == "item", insideFirstItem {
-            insideFirstItem = false
-            hasParsedFirstItem = true
-            latestVersion = latestVersion.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        currentElement = ""
-    }
+private struct BrewCaskInfo: Decodable {
+    let version: String
+    let installed: String?
+    let outdated: Bool
 }

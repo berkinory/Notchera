@@ -14,7 +14,7 @@ struct DynamicNotchApp: App {
 
     var body: some Scene {
         MenuBarExtra(isInserted: $showMenuBarIcon) {
-            Text("Notchera \(Bundle.main.releaseVersionNumberPretty)")
+            Text("Notchera")
                 .foregroundStyle(.secondary)
 
             Divider()
