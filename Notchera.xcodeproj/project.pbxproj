@@ -1297,7 +1297,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/ThirdParty/mediaremote-adapter",
 				);
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Notchera/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Notchera;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -1345,7 +1345,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/ThirdParty/mediaremote-adapter",
 				);
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Notchera/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Notchera;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
