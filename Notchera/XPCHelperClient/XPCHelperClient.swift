@@ -99,6 +99,10 @@ final class XPCHelperClient: NSObject {
         return AXIsProcessTrusted()
     }
 
+    nonisolated func currentAccessibilityAuthorizationStatus() -> Bool {
+        currentProcessAccessibilityAuthorized()
+    }
+
     nonisolated func requestAccessibilityAuthorization() {
         Task { @MainActor in
             NSApp.activate(ignoringOtherApps: true)

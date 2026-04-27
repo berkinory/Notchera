@@ -124,6 +124,8 @@ class NotcheraViewModel: NSObject, ObservableObject {
     }
 
     func open(forceView: NotchViews? = nil, rememberForcedView: Bool = true) {
+        guard !coordinator.firstLaunch else { return }
+
         if let forceView {
             if rememberForcedView {
                 coordinator.currentView = forceView

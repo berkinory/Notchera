@@ -404,7 +404,7 @@ struct ContentView: View {
     }
 
     private func beginTapOpen(forceView: NotchViews? = nil) {
-        guard vm.notchState == .closed else { return }
+        guard !coordinator.firstLaunch, vm.notchState == .closed else { return }
 
         hoverOpenTask?.cancel()
         closeTask?.cancel()

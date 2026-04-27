@@ -5,6 +5,7 @@ struct MediaSettingsView: View {
     @Default(.waitInterval) var waitInterval
     @Default(.mediaController) var mediaController
     @Default(.enableLyrics) var enableLyrics
+    @Default(.matchAlbumArtColor) var matchAlbumArtColor
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
 
     var body: some View {
@@ -52,6 +53,8 @@ struct MediaSettingsView: View {
             }
 
             Section {
+                Toggle("Match album art color", isOn: $matchAlbumArtColor)
+
                 MusicSlotConfigurationView()
                 Toggle("Show lyrics", isOn: $enableLyrics)
                     .onChange(of: enableLyrics) { _, isEnabled in

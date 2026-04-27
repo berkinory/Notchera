@@ -7,7 +7,13 @@ struct ClipboardSettingsView: View {
     @Default(.clipboardSelectionAction) var clipboardSelectionAction
     @Default(.clipboardHistoryRetention) var clipboardHistoryRetention
     @Default(.clipboardHistoryMaxStoredItems) var clipboardHistoryMaxStoredItems
-    @State private var accessibilityAuthorized = false
+    @State private var accessibilityAuthorized: Bool
+
+    init() {
+        _accessibilityAuthorized = State(
+            initialValue: XPCHelperClient.shared.currentAccessibilityAuthorizationStatus()
+        )
+    }
 
     private var retentionSliderValue: Binding<Double> {
         Binding(

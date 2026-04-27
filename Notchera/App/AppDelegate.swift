@@ -1086,6 +1086,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.title = "Onboarding"
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
+            window.level = .mainMenu + 4
+            window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .ignoresCycle]
             window.contentView = NSHostingView(
                 rootView: OnboardingView(
                     onFinish: {

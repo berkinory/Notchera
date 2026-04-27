@@ -66,6 +66,26 @@ struct MusicPlayerView: View {
     }
 }
 
+private extension MusicManager {
+    var showsExpandedIdlePlaceholder: Bool {
+        let normalizedTitle = songTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let normalizedArtist = artistName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        let hasBlankMetadata = normalizedTitle.isEmpty && normalizedArtist.isEmpty
+        let hasUnknownMetadata =
+            (normalizedTitle == "unknown" || normalizedTitle == "not playing") &&
+            normalizedArtist == "unknown"
+
+        return !isPlaying &&
+            songDuration <= 0 &&
+            (isPlayerIdle || hasBlankMetadata || hasUnknownMetadata)
+    }
+}
+
 struct FlippingAlbumArtCard: View {
     @ObservedObject private var musicManager = MusicManager.shared
     let albumArtNamespace: Namespace.ID
@@ -307,15 +327,31 @@ struct AlbumArtView: View {
                 Button {
                     musicManager.openMusicApp()
                 } label: {
-                    albumArtImage
+                    if musicManager.showsExpandedIdlePlaceholder {
+                        idleAlbumArtPlaceholder
+                    } else {
+                        albumArtImage
+                    }
                 }
                 .buttonStyle(PlainButtonStyle())
-                .scaleEffect(musicManager.isPlaying ? (isHovering ? 1.018 : 1) : 0.92)
+                .scaleEffect(musicManager.showsExpandedIdlePlaceholder ? 1 : (musicManager.isPlaying ? (isHovering ? 1.018 : 1) : 0.92))
 
-                albumArtDarkOverlay
+                if !musicManager.showsExpandedIdlePlaceholder {
+                    albumArtDarkOverlay
+                }
             }
             .contentShape(Rectangle())
             .onContinuousHover { phase in
+                guard !musicManager.showsExpandedIdlePlaceholder else {
+                    if case .ended = phase {
+                        withAnimation(.smooth(duration: 0.22)) {
+                            isHovering = false
+                            hoverTilt = .zero
+                        }
+                    }
+                    return
+                }
+
                 switch phase {
                 case let .active(location):
                     updateHoverTilt(location: location, size: geo.size)
@@ -328,6 +364,37 @@ struct AlbumArtView: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
+    }
+
+    private var idleAlbumArtPlaceholder: some View {
+        RoundedRectangle(
+            cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
+            style: .continuous
+        )
+        .fill(
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.085),
+                    Color.white.opacity(0.035),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.opened,
+                style: .continuous
+            )
+            .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.8)
+        }
+        .overlay {
+            Image(systemName: "music.note")
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.72))
+        }
+        .shadow(color: .white.opacity(0.08), radius: 12, y: 0)
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 3)
     }
 
     private var albumArtDarkOverlay: some View {
@@ -453,17 +520,25 @@ struct MusicControlsView: View {
 
     private func titleView(width: CGFloat) -> some View {
         ZStack(alignment: .leading) {
-            MarqueeText(
-                $musicManager.songTitle,
-                font: .system(size: 13.5, weight: .semibold),
-                nsFont: .headline,
-                textColor: .white,
-                frameWidth: width
-            )
-            .id(musicManager.songTitle)
-            .fontWeight(.medium)
-            .contentTransition(.interpolate)
-            .transition(metadataTextTransition)
+            if musicManager.showsExpandedIdlePlaceholder {
+                Text("Not playing")
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .transition(metadataTextTransition)
+            } else {
+                MarqueeText(
+                    $musicManager.songTitle,
+                    font: .system(size: 13.5, weight: .semibold),
+                    nsFont: .headline,
+                    textColor: .white,
+                    frameWidth: width
+                )
+                .id(musicManager.songTitle)
+                .fontWeight(.medium)
+                .contentTransition(.interpolate)
+                .transition(metadataTextTransition)
+            }
         }
         .clipped()
         .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.22), value: musicManager.songTitle)
@@ -474,19 +549,24 @@ struct MusicControlsView: View {
 
     private func artistView(width: CGFloat) -> some View {
         ZStack(alignment: .leading) {
-            MarqueeText(
-                $musicManager.artistName,
-                font: .system(size: 12.5, weight: .medium),
-                nsFont: .headline,
-                textColor: matchAlbumArtColor
-                    ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
-                    : .gray,
-                frameWidth: width
-            )
-            .id(musicManager.artistName)
-            .fontWeight(.regular)
-            .contentTransition(.interpolate)
-            .transition(metadataTextTransition)
+            if musicManager.showsExpandedIdlePlaceholder {
+                Color.clear
+                    .frame(width: width, height: 16)
+            } else {
+                MarqueeText(
+                    $musicManager.artistName,
+                    font: .system(size: 12.5, weight: .medium),
+                    nsFont: .headline,
+                    textColor: matchAlbumArtColor
+                        ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6)
+                        : .gray,
+                    frameWidth: width
+                )
+                .id(musicManager.artistName)
+                .fontWeight(.regular)
+                .contentTransition(.interpolate)
+                .transition(metadataTextTransition)
+            }
         }
         .clipped()
         .animation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.22), value: musicManager.artistName)

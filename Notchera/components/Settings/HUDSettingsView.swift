@@ -24,9 +24,15 @@ struct HUDSettingsView: View {
     @Default(.enableScreenRecordingDetection) var enableScreenRecordingDetection
     @Default(.showCLINotifications) var showCLINotifications
     @ObservedObject var coordinator = NotcheraViewCoordinator.shared
-    @State private var accessibilityAuthorized = false
+    @State private var accessibilityAuthorized: Bool
     @State private var cliInstallState = CLIToolManager.installState()
     @State private var cliInstallError: String?
+
+    init() {
+        _accessibilityAuthorized = State(
+            initialValue: XPCHelperClient.shared.currentAccessibilityAuthorizationStatus()
+        )
+    }
 
     private var hudEnabledBinding: Binding<Bool> {
         Binding(
